@@ -1,0 +1,51 @@
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import DocumentDetail from "./pages/document-detail";
+import Feature from "./pages/feature";
+import Register from "./pages/register";
+import Signin from "./pages/signin";
+import Upload from "./pages/upload";
+import ProtectedRoute from "./components/protected-route";
+import { getToken } from "./api/client";
+
+function EntryRedirect() {
+  return <Navigate to={getToken() ? "/feature" : "/signin"} replace />;
+}
+
+function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<EntryRedirect />} />
+        <Route path="/signin" element={<Signin />} />
+        <Route path="/register" element={<Register />} />
+        <Route
+          path="/feature"
+          element={<ProtectedRoute><Feature /></ProtectedRoute>}
+        />
+        <Route
+          path="/upload"
+          element={<ProtectedRoute><Upload /></ProtectedRoute>}
+        />
+        <Route
+          path="/documents/:documentId"
+          element={<ProtectedRoute><DocumentDetail /></ProtectedRoute>}
+        />
+        <Route
+          path="/documents/:documentId/runs/:runId"
+          element={<ProtectedRoute><DocumentDetail /></ProtectedRoute>}
+        />
+        <Route path="*" element={<Navigate to="/signin" replace />} />
+      </Routes>
+    </BrowserRouter>
+  );
+}
+
+export default App;
+
+/* 생성한 파일
+- App.jsx: React Router를 사용하여 애플리케이션의 라우팅을 설정하는 컴포넌트
+- EntryRedirect: 사용자가 로그인 상태인지 확인하고, 로그인 상태에 따라 /feature 또는 /signin으로 리디렉션하는 컴포넌트 
+- App: 애플리케이션의 주요 라우팅을 정의하는 컴포넌트
+- 다른 파일들과의 관계
+- pages: 각 페이지 컴포넌트들을 import하여 라우팅에 사용
+*/
