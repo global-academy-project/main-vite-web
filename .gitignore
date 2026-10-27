@@ -29,6 +29,7 @@ Thumbs.db
 # Node.js
 node_modules/
 packages/
+dist/
 
 # .NET
 bin/

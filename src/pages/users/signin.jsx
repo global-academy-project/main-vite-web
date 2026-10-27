@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
-import { api, setToken } from "../api/client";
-import "../style/signin-style.css";
+import { api, setToken } from "../../api/client";
+import "../../style/signin-style.css";
 
 function Signin() {
   const navigate = useNavigate();
