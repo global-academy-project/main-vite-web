@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { reprocessDocument, uploadDocument } from "../api/documents";
-import { ApiError, clearToken } from "../api/client";
-import { getEngines } from "../api/engines";
-import FeatureHeader from "../components/feature-header";
-import "../style/feature-style.css";
+import { reprocessDocument, uploadDocument } from "../../api/documents";
+import { ApiError, clearToken } from "../../api/client";
+import { getEngines } from "../../api/engines";
+import FeatureHeader from "../../components/feature-header";
+import "../../style/feature-style.css";
 
 const MAX_FILE_SIZE = 20 * 1024 * 1024;
 
