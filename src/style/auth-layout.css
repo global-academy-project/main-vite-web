@@ -20,29 +20,79 @@
 .auth-brand {
   background: var(--safety-navy);
   color: #fff;
-  padding: 44px;
+  padding: 32px 22px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  overflow: visible;
 }
 .auth-brand__logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 40px;
   font-weight: 700;
 }
-.auth-brand__logo span {
-  color: var(--safety-orange);
-  margin-right: 8px;
+.auth-brand__logo img {
+  width: 40px;
+  height: 40px;
+  flex: 0 0 auto;
+  object-fit: contain;
 }
 .auth-brand h2 {
-  font-size: 34px;
+  position: relative;
+  z-index: 1;
+  width: max-content;
+  max-width: none;
+  font-size: 60px;
   line-height: 1.25;
   margin: 0 0 18px;
+  white-space: normal;
 }
 .auth-brand p {
+  position: relative;
+  z-index: 1;
+  width: max-content;
+  max-width: none;
   color: #aeb9c9;
   line-height: 1.7;
 }
 .auth-brand small {
   color: #718096;
+  font-size: 20px;
+}
+.auth-page--register {
+  grid-template-columns: minmax(280px, 34%) 1fr;
+}
+.auth-page--register .auth-brand {
+  padding: 32px 22px;
+  overflow: visible;
+}
+.auth-page--register .auth-brand__logo {
+  white-space: nowrap;
+}
+.auth-page--register .auth-brand h2 {
+  font-size: 60px;
+}
+.auth-page--register .auth-brand p {
+  position: relative;
+  z-index: 1;
+  width: max-content;
+  max-width: none;
+}
+
+@media (max-width: 1180px) {
+  .auth-page--register {
+    grid-template-columns: minmax(280px, 34%) 1fr;
+  }
+
+  .auth-page--register .auth-brand h2 {
+    font-size: 60px;
+  }
+}
+.auth-page--register .auth-brand small {
+  font-size: 20px;
+  white-space: nowrap;
 }
 .auth-content {
   display: grid;
@@ -51,8 +101,15 @@
 }
 .auth-mobile-brand {
   display: none;
+  align-items: center;
+  gap: 8px;
   font-weight: 700;
   margin-bottom: 24px;
+}
+.auth-mobile-brand img {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
 }
 .auth-card {
   width: min(100%, 420px);
@@ -202,7 +259,7 @@
     padding: 24px max(18px, env(safe-area-inset-left));
   }
   .auth-mobile-brand {
-    display: block;
+    display: flex;
   }
   .auth-card {
     padding: 24px 20px;
