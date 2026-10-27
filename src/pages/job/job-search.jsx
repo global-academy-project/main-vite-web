@@ -36,8 +36,7 @@ function formatDate(value) {
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? value : date.toLocaleString('ko-KR');
 }
-
-export default function JobSearch() {
+function JobSearch() {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem('dashboard-theme') === 'dark');
@@ -99,6 +98,7 @@ export default function JobSearch() {
   }, {});
   const userName = user?.name || user?.email || '사용자';
   const userInitial = Array.from(userName)[0];
+  const userFactory = user?.factory || '현재 소속된 공장이 없습니다.';
 
   return (
     <div className="dashboard-shell">
@@ -110,6 +110,7 @@ export default function JobSearch() {
             <div className="breadcrumb"><span>대시보드</span><b>›</b><strong>문서 현황</strong></div>
           </div>
           <div className="header-actions">
+            <button className="notification" aria-label="알림">♧<i>3</i></button>
             <button className="theme-toggle" onClick={() => setDarkMode((value) => !value)} aria-label="다크모드 전환">{darkMode ? '☀' : '☾'}</button>
             <div className="avatar" aria-hidden="true">{userInitial}</div>
             <div className="user-info"><strong>{userName}</strong><span>로그인 사용자</span></div>
@@ -130,7 +131,7 @@ export default function JobSearch() {
             <p>
               <span className="date-text">{dateText}</span>
               <span className="separator">·</span>
-              <span className="site-name">{user?.email || '내 문서'}</span>
+              <span className="site-name">{userFactory}</span>
             </p>
           </div>
           {error && (
@@ -209,3 +210,5 @@ export default function JobSearch() {
     </div>
   );
 }
+
+export default JobSearch;
