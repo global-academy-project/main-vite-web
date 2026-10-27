@@ -10,9 +10,7 @@ import Feature from "./pages/features/feature";
 import Upload from "./pages/features/upload";
 import ProtectedRoute from "./components/protected-route";
 // Job Component 모듈
-import JobSearch from "./pages/job/job-search"; 
-import JobDetails from "./pages/job/job-details";
-import ResourceDetail from "./pages/job/job-resource";
+import JobSearch from "./pages/job/job-search";
 
 function EntryRedirect() {
   return <Navigate to={getToken() ? "/feature" : "/signin"} replace />;
@@ -48,16 +46,6 @@ function App() {
           path="/job/list"
           element={<JobSearch />}
         />
-        <Route
-          path="/job/:jobId"
-          element={<ProtectedRoute><JobDetails /></ProtectedRoute>}
-        />
-        {/* Job Resource 라우팅 */}
-        <Route
-          path="/job/:jobId/resource/:resourceId"
-          element={<ProtectedRoute><ResourceDetail /></ProtectedRoute>}
-        />
-        <Route path="*" element={<Navigate to="/signin" replace />} />
       </Routes>
     </BrowserRouter>
   );
