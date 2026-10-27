@@ -87,11 +87,22 @@
 .status-blocked { background: #fff0f0; color: #ee5b62; }
 .status-waiting { background: #eaf0ff; color: #3d71dc; }
 .status-approved { background: #e6f7ef; color: #21966a; }
+.status-uploaded { background: #fff5d9; color: #a87300; }
+.status-processing { background: #eaf0ff; color: #3d71dc; }
+.status-done { background: #e6f7ef; color: #21966a; }
+.status-failed { background: #fff0f0; color: #ee5b62; }
 .tasks-panel ul { margin: 0; padding: 0; list-style: none; }
 .tasks-panel li { display: flex; min-height: 51px; align-items: center; justify-content: space-between; border-bottom: 1px solid #edf0f5; font-size: 13px; }
 .tasks-panel li:last-child { border-bottom: 0; }
 .tasks-panel b { font-weight: 500; }
 .tasks-panel mark { padding: 5px 10px; border-radius: 20px; background: #fff4d4; color: #c88d00; font-size: 11px; font-weight: 600; }
+.tasks-panel h2 small { color: #8994a6; font-size: 11px; font-weight: 400; }
+.document-link { padding: 0; border: 0; background: transparent; color: #246be2; font: inherit; text-align: left; cursor: pointer; }
+.document-link:hover { text-decoration: underline; }
+.document-date { display: block; margin-top: 4px; color: #8994a6; font-size: 11px; }
+.dashboard-message { margin: 0; padding: 18px 8px; color: #687995; font-size: 13px; }
+.dashboard-error { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 20px; padding: 13px 16px; border: 1px solid #f1b8bb; border-radius: 10px; background: #fff0f0; color: #a33138; font-size: 13px; }
+.dashboard-error button { padding: 6px 10px; border: 1px solid #e8a3a7; border-radius: 7px; background: #fff; color: inherit; cursor: pointer; white-space: nowrap; }
 
 @media (max-width: 1050px) {
   .dashboard-panels { grid-template-columns: 1fr; }
@@ -128,6 +139,10 @@
 .dark-mode .notification, .dark-mode .logout, .dark-mode .mobile-menu-button, .dark-mode .theme-toggle { background: #1f2937; border-color: #4b5563; color: #d1d5db; }
 .dark-mode .role-switch { background: #111827; }
 .dark-mode .role-switch button.chosen { background: #374151; color: #f3f4f6; }
+.dark-mode .document-link { color: #93c5fd; }
+.dark-mode .document-date, .dark-mode .tasks-panel h2 small, .dark-mode .dashboard-message { color: #aeb9c9; }
+.dark-mode .dashboard-error { border-color: #783b40; background: #3b2024; color: #fda4af; }
+.dark-mode .dashboard-error button { border-color: #783b40; background: #1f2937; color: #fda4af; }
 
 @media (min-width: 721px) {
   .theme-toggle { display: inline-flex; }
