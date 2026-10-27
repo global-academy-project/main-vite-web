@@ -2,6 +2,7 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { getToken } from "./api/client";
 // User Component 모듈
 import Register from "./pages/users/register";
+import RegisterDone from "./pages/users/register-done";
 import Signin from "./pages/users/signin";
 // Feature Component 모듈
 import DocumentDetail from "./pages/features/document-detail";
@@ -25,6 +26,7 @@ function App() {
         <Route path="/" element={<EntryRedirect />} />
         <Route path="/signin" element={<Signin />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/register/done" element={<RegisterDone />} />
         <Route
           path="/feature"
           element={<ProtectedRoute><Feature /></ProtectedRoute>}
