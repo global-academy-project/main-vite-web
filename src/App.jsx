@@ -1,7 +1,7 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 // User Component 모듈
-import Register from "./pages/register";
-import Signin from "./pages/signin";
+import Register from "./pages/users/register";
+import Signin from "./pages/users/signin";
 // Feature Component 모듈
 import DocumentDetail from "./pages/features/document-detail";
 import Feature from "./pages/features/feature";
@@ -14,7 +14,8 @@ import ResourceDetail from "./pages/job/job-resource";
 import { getToken } from "./api/client";
 
 function EntryRedirect() {
-  return <Navigate to={getToken() ? "/feature" : "/signin"} replace />;
+  // return <Navigate to={getToken() ? "/feature" : "/signin"} replace />;
+  return <Navigate to={"/job/list"} replace />;
 }
 
 function App() {
