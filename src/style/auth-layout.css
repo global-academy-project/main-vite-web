@@ -13,7 +13,7 @@
 .auth-page {
   min-height: 100vh;
   display: grid;
-  grid-template-columns: clamp(460px, 42vw, 680px) 1fr;
+  grid-template-columns: clamp(28.75em, 42vw, 42.5em) 1fr;
   background: var(--safety-bg);
   color: var(--safety-text);
 }
