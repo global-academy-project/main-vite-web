@@ -12,9 +12,8 @@ export default function AuthLayout({ children, compact = false, variant = "defau
           </div>
           <div>
             <h2>
-              작업 전에 위험을 먼저
-              <br />
-              확인합니다
+              <span>작업 전에 위험을 먼저</span>
+              <span>확인합니다</span>
             </h2>
             <p>
               작업허가 · 위험성평가 · TBM · 안전일지를
