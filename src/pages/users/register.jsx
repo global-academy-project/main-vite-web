@@ -1,120 +1,101 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { api } from "../../api/client";
-import "../../style/register-style.css";
-
-function Register() {
-  const navigate = useNavigate();
-  const [fieldErrors, setFieldErrors] = useState({});
+import { signUp } from "../../api/auth";
+import AuthLayout from "../../components/auth/auth-layout";
+import AuthAlert from "../../components/auth/auth-alert";
+import PasswordRules from "../../components/auth/password-rules";
+import { validPassword } from "../../utils/auth-validation";
+export default function Register() {
+  const nav = useNavigate();
+  const [errors, setErrors] = useState({});
   const [formError, setFormError] = useState("");
-
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-
-    const formData = new FormData(event.currentTarget);
-    const email = formData.get("email")?.toString().trim();
-    const name = formData.get("name")?.toString().trim();
-    const password = formData.get("password");
-    const passwordConfirm = formData.get("password-confirm");
-    setFieldErrors({});
+  const [loading, setLoading] = useState(false);
+  const submit = async (e) => {
+    e.preventDefault();
+    const f = new FormData(e.currentTarget),
+      v = Object.fromEntries(f);
+    const next = {};
+    if (!validPassword(v.password))
+      next.password = "비밀번호 규칙을 확인해주세요.";
+    if (v.password !== v.passwordConfirm)
+      next.passwordConfirm = "비밀번호가 일치하지 않습니다.";
+    if (v.phone && !/^0[0-9]{8,10}$/.test(v.phone))
+      next.phone = "전화번호는 숫자 9~11자로 입력해주세요.";
+    setErrors(next);
+    if (Object.keys(next).length) return;
+    setLoading(true);
     setFormError("");
-
-    if (!email || !name || !password) {
-      setFormError("이메일, 이름, 비밀번호를 모두 입력해주세요.");
-      return;
-    }
-    if (password.length < 8 || password.length > 64) {
-      setFieldErrors({ password: "비밀번호는 8~64자로 입력해주세요." });
-      return;
-    }
-    if (password !== passwordConfirm) {
-      setFieldErrors({ "password-confirm": "비밀번호가 일치하지 않습니다." });
-      return;
-    }
-
     try {
-      await api("/api/v1/auth/signup", {
-        method: "POST",
-        body: { email, password, name },
+      await signUp({
+        email: v.email,
+        name: v.name,
+        password: v.password,
+        phone: v.phone,
+        department: v.department,
+        jobTitle: v.jobTitle,
       });
-      alert("회원가입이 완료되었습니다.");
-      navigate("/signin");
-    } catch (error) {
-      if (error.code === "EMAIL_DUPLICATED") {
-        setFieldErrors({ email: "이미 가입된 이메일입니다." });
-      } else if (error.code === "INVALID_REQUEST" && error.details?.length) {
-        const errors = {};
-        error.details.forEach((detail) => {
-          if (detail.field) {
-            const field = {
-              passwordConfirm: "password-confirm",
-              password_confirmation: "password-confirm",
-            }[detail.field] ?? detail.field;
-            errors[field] = detail.message ?? detail.reason ?? error.message;
-          }
-        });
-        setFieldErrors(errors);
-        if (!Object.keys(errors).length) setFormError(error.message);
-      } else {
-        setFormError(error.message);
-      }
+      nav("/register/done", { state: { email: v.email } });
+    } catch (err) {
+      if (err.code === "EMAIL_DUPLICATED")
+        setErrors({ email: "이미 가입된 이메일입니다." });
+      else setFormError(err.message);
+    } finally {
+      setLoading(false);
     }
   };
-
   return (
-    <div className="register-page">
-      <div className="register-card">
-        <div className="register-brand-wrap">
-          <div className="register-brand-mark">G</div>
-          <span className="register-brand-name">Global Academy</span>
-        </div>
-
+    <AuthLayout>
+      <div className="auth-card">
         <h1>회원가입</h1>
-        <p className="register-subtitle">새 계정을 만들어 시작해보세요.</p>
-
-        <form className="register-form" onSubmit={handleSubmit}>
-          <label className="register-input-group">
-            <span>이메일</span>
-            <input type="email" name="email" placeholder="이메일을 입력하세요" aria-invalid={Boolean(fieldErrors.email)} />
-            {fieldErrors.email && <small className="field-error">{fieldErrors.email}</small>}
-          </label>
-
-          <label className="register-input-group">
-            <span>이름</span>
-            <input type="text" name="name" placeholder="이름을 입력하세요" aria-invalid={Boolean(fieldErrors.name)} />
-            {fieldErrors.name && <small className="field-error">{fieldErrors.name}</small>}
-          </label>
-
-          <label className="register-input-group">
-            <span>비밀번호</span>
-            <input type="password" name="password" minLength={8} maxLength={64} placeholder="비밀번호를 입력하세요" aria-invalid={Boolean(fieldErrors.password)} />
-            {fieldErrors.password && <small className="field-error">{fieldErrors.password}</small>}
-          </label>
-
-          <label className="register-input-group">
-            <span>비밀번호 확인</span>
-            <input type="password" name="password-confirm" placeholder="비밀번호를 다시 입력하세요" aria-invalid={Boolean(fieldErrors["password-confirm"])} />
-            {fieldErrors["password-confirm"] && <small className="field-error">{fieldErrors["password-confirm"]}</small>}
-          </label>
-
-          {formError && <p className="field-error" role="alert">{formError}</p>}
-          <button className="register-btn" type="submit">
-            회원가입
+        <p className="auth-subtitle">
+          <b>*</b> 표시는 필수입니다.
+        </p>
+        <AuthAlert type="error">{formError}</AuthAlert>
+        <form className="auth-form" onSubmit={submit}>
+          {[
+            ["email", "이메일 *", "email"],
+            ["name", "이름 *", "text"],
+            ["password", "비밀번호 *", "password"],
+            ["passwordConfirm", "비밀번호 확인 *", "password"],
+            ["phone", "전화번호 (선택)", "tel"],
+          ].map(([n, l, t]) => (
+            <label className="auth-field" key={n}>
+              {l}
+              <input
+                name={n}
+                type={t}
+                required={n !== "phone"}
+                aria-invalid={!!errors[n]}
+              />
+              {errors[n] && <small className="field-error">{errors[n]}</small>}
+            </label>
+          ))}
+          <PasswordRules />
+          <div className="auth-row">
+            <label className="auth-field" style={{ flex: 1 }}>
+              부서 (선택)
+              <input name="department" />
+            </label>
+            <label className="auth-field" style={{ flex: 1 }}>
+              직책 (선택)
+              <input name="jobTitle" />
+            </label>
+          </div>
+          <button className="auth-button" disabled={loading}>
+            {loading ? "가입 중…" : "가입하기"}
           </button>
-          <button className="register-secondary-btn" type="button" onClick={() => navigate("/signin")}>
-            돌아가기
-          </button>
+          <div className="auth-help" style={{ textAlign: "center" }}>
+            이미 계정이 있나요?{" "}
+            <button
+              type="button"
+              className="auth-link"
+              onClick={() => nav("/signin")}
+            >
+              로그인
+            </button>
+          </div>
         </form>
       </div>
-    </div>
+    </AuthLayout>
   );
 }
-
-export default Register;
-
-/* 생성한 파일
-- register.jsx: 회원가입 페이지를 구현하는 React 컴포넌트
-- 다른 파일들과의 관계 
-- api/client.js: 회원가입 API 호출을 처리하는 함수를 import하여 사용
-- style/register-style.css: 회원가입 페이지의 스타일을 정의하는 CSS 파일을 import하여 적용
-*/
