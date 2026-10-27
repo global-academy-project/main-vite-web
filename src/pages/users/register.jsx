@@ -30,9 +30,6 @@ export default function Register() {
         email: v.email,
         name: v.name,
         password: v.password,
-        phone: v.phone,
-        department: v.department,
-        jobTitle: v.jobTitle,
       });
       nav("/register/done", { state: { email: v.email } });
     } catch (err) {
@@ -44,7 +41,7 @@ export default function Register() {
     }
   };
   return (
-    <AuthLayout>
+    <AuthLayout variant="register">
       <div className="auth-card">
         <h1>회원가입</h1>
         <p className="auth-subtitle">
