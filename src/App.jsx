@@ -1,10 +1,13 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
-import DocumentDetail from "./pages/document-detail";
-import Feature from "./pages/feature";
 import Register from "./pages/register";
 import Signin from "./pages/signin";
-import Upload from "./pages/upload";
+import DocumentDetail from "./pages/features/document-detail";
+import Feature from "./pages/features/feature";
+import Upload from "./pages/features/upload";
 import ProtectedRoute from "./components/protected-route";
+import JobSearch from "./pages/job/job-search"; 
+import JobDetails from "./pages/job/job-details";
+import ResourceDetail from "./pages/job/job-resource";
 import { getToken } from "./api/client";
 
 function EntryRedirect() {
@@ -33,6 +36,20 @@ function App() {
         <Route
           path="/documents/:documentId/runs/:runId"
           element={<ProtectedRoute><DocumentDetail /></ProtectedRoute>}
+        />
+        {/* Job List, Details 라우팅 */}
+        <Route
+          path="/job/list"
+          element={<ProtectedRoute><JobSearch /></ProtectedRoute>}
+        />
+        <Route
+          path="/job/:jobId"
+          element={<ProtectedRoute><JobDetails /></ProtectedRoute>}
+        />
+        {/* Job Resource 라우팅 */}
+        <Route
+          path="/job/:jobId/resource/:resourceId"
+          element={<ProtectedRoute><ResourceDetail /></ProtectedRoute>}
         />
         <Route path="*" element={<Navigate to="/signin" replace />} />
       </Routes>
