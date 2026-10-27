@@ -1,17 +1,18 @@
 import "../../style/auth-layout.css";
-export default function AuthLayout({ children, compact = false }) {
+import safetyGuardianLogo from "../../assets/safety-guardian-logo.png";
+
+export default function AuthLayout({ children, compact = false, variant = "default" }) {
   return (
-    <main className={`auth-page ${compact ? "auth-page--compact" : ""}`}>
+    <main className={`auth-page auth-page--${variant} ${compact ? "auth-page--compact" : ""}`}>
       {!compact && (
         <aside className="auth-brand">
           <div className="auth-brand__logo">
-            <span>◇</span> 산업현장 안전관리 AI
+            <img src={safetyGuardianLogo} alt="" aria-hidden="true" />
+            <span>산업현장 안전관리 AI</span>
           </div>
           <div>
             <h2>
-              작업 전에
-              <br />
-              위험을 먼저
+              작업 전에 위험을 먼저
               <br />
               확인합니다
             </h2>
@@ -25,7 +26,10 @@ export default function AuthLayout({ children, compact = false }) {
         </aside>
       )}
       <section className="auth-content">
-        <div className="auth-mobile-brand">◇ 산업현장 안전관리 AI</div>
+        <div className="auth-mobile-brand">
+          <img src={safetyGuardianLogo} alt="" aria-hidden="true" />
+          <span>산업현장 안전관리 AI</span>
+        </div>
         {children}
       </section>
     </main>
