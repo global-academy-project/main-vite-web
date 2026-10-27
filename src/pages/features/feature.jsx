@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { deleteDocument, getDocuments } from "../api/documents";
-import { ApiError, clearToken } from "../api/client";
-import FeatureHeader from "../components/feature-header";
+import { deleteDocument, getDocuments } from "../../api/documents";
+import { ApiError, clearToken } from "../../api/client";
+import FeatureHeader from "../../components/feature-header";
 import "../style/feature-style.css";
 
 const PAGE_SIZE = 10;
