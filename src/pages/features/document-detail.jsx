@@ -8,9 +8,9 @@ import {
   getDocumentRuns,
   getExtractedImage,
   getOriginalPdf,
-} from "../api/documents";
-import { ApiError, clearToken } from "../api/client";
-import FeatureHeader from "../components/feature-header";
+} from "../../api/documents";
+import { ApiError, clearToken } from "../../api/client";
+import FeatureHeader from "../../components/feature-header";
 import "../style/feature-style.css";
 
 const POLL_INTERVAL_MS = 2500;
