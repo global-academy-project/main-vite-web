@@ -43,7 +43,7 @@ function App() {
         {/* Job List, Details 라우팅 */}
         <Route
           path="/job/list"
-          element={<JobSearch />}
+          element={<ProtectedRoute><JobSearch /></ProtectedRoute>}
         />
         <Route
           path="/job/:jobId"
