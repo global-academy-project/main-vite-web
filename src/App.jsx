@@ -1,10 +1,13 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+// User Component 모듈
 import Register from "./pages/register";
 import Signin from "./pages/signin";
+// Feature Component 모듈
 import DocumentDetail from "./pages/features/document-detail";
 import Feature from "./pages/features/feature";
 import Upload from "./pages/features/upload";
 import ProtectedRoute from "./components/protected-route";
+// Job Component 모듈
 import JobSearch from "./pages/job/job-search"; 
 import JobDetails from "./pages/job/job-details";
 import ResourceDetail from "./pages/job/job-resource";
