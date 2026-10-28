@@ -5,13 +5,34 @@ import AuthLayout from "../../components/auth/auth-layout";
 import AuthAlert from "../../components/auth/auth-alert";
 import PasswordRules from "../../components/auth/password-rules";
 import { validPassword } from "../../utils/auth-validation";
+import { getDetailMessages, getFieldErrors } from "../../utils/validation-details";
 export default function Register() {
   const nav = useNavigate();
   const [errors, setErrors] = useState({});
   const [formError, setFormError] = useState("");
   const [loading, setLoading] = useState(false);
+  const validatePasswordFields = (event) => {
+    const form = event.currentTarget;
+    const input = event.target;
+    const password = form.elements.password.value;
+    const passwordConfirm = form.elements.passwordConfirm.value;
+
+    setErrors((current) => ({
+      ...current,
+      password: password && !validPassword(password)
+        ? "비밀번호는 영문, 숫자, 특수문자를 포함한 8~64자여야 합니다."
+        : undefined,
+      passwordConfirm: passwordConfirm && password !== passwordConfirm
+        ? "비밀번호가 일치하지 않습니다."
+        : undefined,
+      email: input.name === "email" && input.value && !input.validity.valid
+        ? "이메일 형식으로 입력해 주세요."
+        : input.name === "email" ? undefined : current.email,
+    }));
+  };
   const submit = async (e) => {
     e.preventDefault();
+    setFormError("");
     const f = new FormData(e.currentTarget),
       v = Object.fromEntries(f);
     const next = {};
@@ -24,7 +45,7 @@ export default function Register() {
     setErrors(next);
     if (Object.keys(next).length) return;
     setLoading(true);
-    setFormError("");
+    setErrors({});
     try {
       await signUp({
         email: v.email,
@@ -35,7 +56,11 @@ export default function Register() {
     } catch (err) {
       if (err.code === "EMAIL_DUPLICATED")
         setErrors({ email: "이미 가입된 이메일입니다." });
-      else setFormError(err.message);
+      else {
+        const fieldErrors = getFieldErrors(err);
+        setErrors(fieldErrors);
+        setFormError(Object.keys(fieldErrors).length ? "" : getDetailMessages(err).join("\n") || err.message);
+      }
     } finally {
       setLoading(false);
     }
@@ -48,7 +73,7 @@ export default function Register() {
           <b>*</b> 표시는 필수입니다.
         </p>
         <AuthAlert type="error">{formError}</AuthAlert>
-        <form className="auth-form" onSubmit={submit}>
+        <form className="auth-form" onSubmit={submit} onInput={validatePasswordFields}>
           {[
             ["email", "이메일 *", "email"],
             ["name", "이름 *", "text"],

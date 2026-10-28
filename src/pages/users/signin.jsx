@@ -11,6 +11,7 @@ export default function Signin() {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
+  const [emailError, setEmailError] = useState("");
   const submit = async (e) => {
     e.preventDefault();
     setError(null);
@@ -73,7 +74,15 @@ export default function Signin() {
               type="email"
               required
               placeholder="name@company.com"
+              aria-invalid={!!emailError}
+              onInput={(event) => {
+                const value = event.currentTarget.value;
+                setEmailError(value && !event.currentTarget.validity.valid
+                  ? "이메일 형식으로 입력해 주세요."
+                  : "");
+              }}
             />
+            {emailError && <small className="field-error">{emailError}</small>}
           </label>
           <label className="auth-field">
             비밀번호
