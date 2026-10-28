@@ -4,6 +4,8 @@ import { logout } from '../../api/auth';
 import { clearToken, getCurrentUser } from '../../api/client';
 import DashboardHeader from '../../components/dashboard-header';
 import Sidebar from '../../components/sidebar';
+import DateFactoryFilters from '../../components/date-factory-filters';
+import { useTheme } from '../../contexts/theme-context';
 import '../../style/job/job-dashboard.css';
 import '../../style/job/job-dailey-checklist.css';
 
@@ -56,6 +58,8 @@ const inspectionTarget = {
   templateCode: null,
 };
 
+const factoryOptions = ['울산 공장', '여수 공장'];
+
 function getInspectionResult(checklist) {
   const results = allItems.map((item) => checklist[item.itemCode]?.result).filter(Boolean);
   if (results.length !== allItems.length) return null;
@@ -72,21 +76,23 @@ function getToday() {
 function DaileyChecklist() {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [darkMode, setDarkMode] = useState(() => localStorage.getItem('dashboard-theme') === 'dark');
+  const { darkMode, setDarkMode } = useTheme();
   const [user, setUser] = useState(null);
   const [userError, setUserError] = useState('');
   const [checklist, setChecklist] = useState({});
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState('info');
   const [submitted, setSubmitted] = useState(false);
+  const [inspectionDate, setInspectionDate] = useState(getToday);
+  const [selectedFactory, setSelectedFactory] = useState(inspectionTarget.siteName);
 
   const completedCount = allItems.filter((item) => checklist[item.itemCode]?.result).length;
   const issueCount = allItems.filter((item) => checklist[item.itemCode]?.result === 'NG').length;
   const progress = Math.round((completedCount / allItems.length) * 100);
   const userName = user?.name || user?.email || '사용자';
   const userInitial = Array.from(userName)[0] || '사';
-  const today = getToday();
-  const summaryText = `${today} 일일 안전 점검 ${completedCount}/${allItems.length} 항목 확인`;
+  const availableFactories = Array.from(new Set([user?.factory, ...factoryOptions].filter(Boolean)));
+  const summaryText = `${inspectionDate} ${selectedFactory} 일일 안전 점검 ${completedCount}/${allItems.length} 항목 확인`;
   const inspectionResult = getInspectionResult(checklist);
 
   const doLogout = async () => {
@@ -99,15 +105,13 @@ function DaileyChecklist() {
   };
 
   useEffect(() => {
-    document.documentElement.classList.toggle('dark-mode', darkMode);
-    localStorage.setItem('dashboard-theme', darkMode ? 'dark' : 'light');
-  }, [darkMode]);
-
-  useEffect(() => {
     let cancelled = false;
     getCurrentUser()
       .then((currentUser) => {
-        if (!cancelled) setUser(currentUser);
+        if (!cancelled) {
+          setUser(currentUser);
+          if (currentUser?.factory) setSelectedFactory(currentUser.factory);
+        }
       })
       .catch((requestError) => {
         if (!cancelled) setUserError(requestError.message || '사용자 정보를 불러오지 못했습니다.');
@@ -177,7 +181,13 @@ function DaileyChecklist() {
             <div>
               <span className="checklist-eyebrow">ZONE INSPECTION</span>
               <h1>작업구역 점검</h1>
-              <p><span className="date-text">{today}</span><span className="separator">·</span><span className="site-name">{user?.factory || inspectionTarget.siteName}</span></p>
+              <DateFactoryFilters
+                date={inspectionDate}
+                onDateChange={setInspectionDate}
+                factory={selectedFactory}
+                onFactoryChange={setSelectedFactory}
+                factories={availableFactories}
+              />
             </div>
             <button type="button" className="checklist-back" onClick={() => navigate('/dashboard')}>대시보드로 돌아가기</button>
           </div>
@@ -187,7 +197,8 @@ function DaileyChecklist() {
           <section className="inspection-metadata" aria-label="점검 기록 정보">
             <div><span>점검 대상</span><strong>{inspectionTarget.zoneCode} · {inspectionTarget.zoneName}</strong></div>
             <div><span>대상 유형</span><strong>{inspectionTarget.targetType}</strong></div>
-            <div><span>점검일</span><strong>{today}</strong></div>
+            <div><span>공장</span><strong>{selectedFactory}</strong></div>
+            <div><span>점검일</span><strong>{inspectionDate}</strong></div>
             <div><span>점검자</span><strong>{userName}</strong></div>
             <div><span>template_code</span><strong>{inspectionTarget.templateCode ?? '서버 양식 미연결'}</strong></div>
             <div><span>상태</span><strong>{submitted ? 'PENDING' : 'DRAFT'}</strong></div>

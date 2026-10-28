@@ -1,11 +1,16 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { logout } from "../../api/auth";
 import { getMe, requestEmailChange, updateMe } from "../../api/users";
+import { clearToken } from "../../api/client";
 import { authErrorMessage } from "../../constants/auth-errors";
 import { getDetailMessages, getFieldErrors } from "../../utils/validation-details";
 import AuthAlert from "../../components/auth/auth-alert";
-import FeatureHeader from "../../components/feature-header";
+import DashboardHeader from "../../components/dashboard-header";
+import Sidebar from "../../components/sidebar";
+import { useTheme } from "../../contexts/theme-context";
 import "../../style/feature-style.css";
+import "../../style/job/job-dashboard.css";
 
 const labels = {
   name: "이름",
@@ -22,6 +27,9 @@ const roleLabels = {
 };
 
 export default function Me() {
+  const navigate = useNavigate();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { darkMode, setDarkMode } = useTheme();
   const [me, setMe] = useState(null);
   const [message, setMessage] = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
@@ -82,33 +90,45 @@ export default function Me() {
     }
   };
 
+  const doLogout = async () => {
+    try {
+      await logout();
+    } finally {
+      clearToken();
+      navigate("/signin", { replace: true });
+    }
+  };
+
   const user = me?.user;
 
-  if (!me) {
-    return (
-      <div className="feature-page">
-        <FeatureHeader />
-        <main className="page-message">
-          {message || "내 정보를 불러오는 중입니다..."}
-        </main>
+  const shell = (content) => (
+    <div className="dashboard-shell">
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <div className="dashboard-main">
+        <DashboardHeader
+          userInitial={Array.from(user?.name || user?.email || "U")[0]}
+          userName={user?.name || user?.email || "내 계정"}
+          darkMode={darkMode}
+          setDarkMode={setDarkMode}
+          doLogout={doLogout}
+          setSidebarOpen={setSidebarOpen}
+          title="내 정보"
+        />
+        {content}
       </div>
-    );
+    </div>
+  );
+
+  if (!me) {
+    return shell(<main className="page-message">{message || "내 정보를 불러오는 중입니다..."}</main>);
   }
 
-  return (
-    <div className="feature-page">
-      <FeatureHeader />
+  return shell(
       <main className="page-content profile-page">
-        <Link className="back-button" to="/feature">
-          ← 문서 목록으로
-        </Link>
         <div className="page-heading profile-heading">
           <div>
             <p className="eyebrow">MY ACCOUNT</p>
             <h1>내 정보</h1>
-            <p className="muted">
-              개인 정보와 서비스 이용 권한을 확인하고 관리할 수 있습니다.
-            </p>
           </div>
         </div>
         {message && <AuthAlert type="info">{message}</AuthAlert>}
@@ -212,6 +232,5 @@ export default function Me() {
           </div>
         </div>
       </main>
-    </div>
   );
 }
