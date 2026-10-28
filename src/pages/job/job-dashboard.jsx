@@ -4,6 +4,8 @@ import { logout } from '../../api/auth';
 import { clearToken, getCurrentUser } from '../../api/client';
 import DashboardHeader from '../../components/dashboard-header';
 import Sidebar from '../../components/sidebar';
+import DateFactoryFilters from '../../components/date-factory-filters';
+import { useTheme } from '../../contexts/theme-context';
 import { getTagEntries, sampleNearMiss } from '../../utils/agentic-rag-tags';
 // Styles for job dashboard and job search pages
 import '../../style/job/job-dashboard.css';
@@ -81,21 +83,21 @@ const sampleCorrectiveAction = {
 
 const nearMissTagEntries = getTagEntries(sampleNearMiss.tags);
 
+function getLocalDate() {
+  const date = new Date();
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
 function JobDashboard() {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [darkMode, setDarkMode] = useState(() => localStorage.getItem('dashboard-theme') === 'dark');
+  const { darkMode, setDarkMode } = useTheme();
   const [user, setUser] = useState(null);
   const [userError, setUserError] = useState('');
   const [loadingUser, setLoadingUser] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
-  const today = new Date();
-  const dateText = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-
-  useEffect(() => {
-    document.documentElement.classList.toggle('dark-mode', darkMode);
-    localStorage.setItem('dashboard-theme', darkMode ? 'dark' : 'light');
-  }, [darkMode]);
+  const [selectedDate, setSelectedDate] = useState(getLocalDate);
+  const [selectedFactory, setSelectedFactory] = useState('울산 공장');
 
   useEffect(() => {
     let cancelled = false;
@@ -105,6 +107,8 @@ function JobDashboard() {
         if (cancelled) return;
         setUser(currentUser);
         setUserError('');
+        const firstFactory = currentUser?.sites?.find((site) => site.active !== false)?.name;
+        if (firstFactory) setSelectedFactory(firstFactory);
       })
       .catch((requestError) => {
         if (!cancelled) {
@@ -122,7 +126,11 @@ function JobDashboard() {
 
   const userName = user?.user?.name || user?.user?.email || '사용자';
   const userInitial = Array.from(userName)[0] || '사';
-  const userFactory = user?.sites?.map((site) => site.name).join(' · ') || '등록 현장 없음';
+  const factoryOptions = Array.from(new Set([
+    ...(user?.sites?.map((site) => site.name).filter(Boolean) ?? []),
+    '울산 공장',
+    '여수 공장',
+  ]));
 
   const doLogout = async () => {
     try {
@@ -149,11 +157,13 @@ function JobDashboard() {
         <main className="dashboard-content">
           <div className="page-heading">
             <h1>안전 작업 현황</h1>
-            <p>
-              <span className="date-text">{dateText}</span>
-              <span className="separator">·</span>
-              <span className="site-name"><span className="factory-icon">▣</span>{userFactory}</span>
-            </p>
+            <DateFactoryFilters
+              date={selectedDate}
+              onDateChange={setSelectedDate}
+              factory={selectedFactory}
+              onFactoryChange={setSelectedFactory}
+              factories={factoryOptions}
+            />
           </div>
           {userError && (
             <div className="dashboard-error" role="alert">
