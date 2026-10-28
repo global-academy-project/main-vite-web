@@ -95,7 +95,6 @@ function JobDashboard() {
   useEffect(() => {
     document.documentElement.classList.toggle('dark-mode', darkMode);
     localStorage.setItem('dashboard-theme', darkMode ? 'dark' : 'light');
-    return () => document.documentElement.classList.remove('dark-mode');
   }, [darkMode]);
 
   useEffect(() => {

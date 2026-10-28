@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { getMe, requestEmailChange, updateMe } from "../../api/users";
 import { authErrorMessage } from "../../constants/auth-errors";
+import { getDetailMessages, getFieldErrors } from "../../utils/validation-details";
 import AuthAlert from "../../components/auth/auth-alert";
 import FeatureHeader from "../../components/feature-header";
 import "../../style/feature-style.css";
@@ -23,6 +24,7 @@ const roleLabels = {
 export default function Me() {
   const [me, setMe] = useState(null);
   const [message, setMessage] = useState("");
+  const [fieldErrors, setFieldErrors] = useState({});
   const [emailMessage, setEmailMessage] = useState("");
 
   useEffect(() => {
@@ -36,6 +38,8 @@ export default function Me() {
   const save = async (event) => {
     event.preventDefault();
     const values = new FormData(event.currentTarget);
+    setMessage("");
+    setFieldErrors({});
 
     try {
       setMe(await updateMe({
@@ -47,10 +51,14 @@ export default function Me() {
       }));
       setMessage("내 정보가 저장되었습니다.");
     } catch (error) {
+      const errors = getFieldErrors(error);
+      setFieldErrors(errors);
       setMessage(
         error.status === 409
           ? "다른 변경 사항이 있습니다. 새로고침 후 다시 시도해 주세요."
-          : error.message,
+          : Object.keys(errors).length
+            ? ""
+            : getDetailMessages(error).join("\n") || error.message,
       );
     }
   };
@@ -135,7 +143,11 @@ export default function Me() {
                       name={name}
                       defaultValue={user[name] ?? ""}
                       placeholder={`${labels[name]}을 입력하세요`}
+                      aria-invalid={!!fieldErrors[name]}
                     />
+                    {fieldErrors[name] && (
+                      <small className="field-error">{fieldErrors[name]}</small>
+                    )}
                   </label>
                 ))}
                 <div className="profile-form-actions">
