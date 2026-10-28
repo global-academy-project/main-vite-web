@@ -11,10 +11,10 @@ import Upload from "./pages/features/upload";
 import ProtectedRoute from "./components/protected-route";
 // Job Component 모듈
 import JobSearch from "./pages/job/job-search";
+import DaileyChecklist from "./pages/job/dailey-checklist";
 
 function EntryRedirect() {
   return <Navigate to={getToken() ? "/feature" : "/signin"} replace />;
-  // return <Navigate to="/job/list" replace />;
 }
 
 function App() {
@@ -41,11 +41,16 @@ function App() {
           path="/documents/:documentId/runs/:runId"
           element={<ProtectedRoute><DocumentDetail /></ProtectedRoute>}
         />
-        {/* Job List, Details 라우팅 */}
+        {/* Job List, Details 라우팅 / WARNING : ProtectedRoute 없이 현재 테스트용으로 우회 */}
         <Route
           path="/job/list"
           element={<JobSearch />}
         />
+        <Route
+          path="/job/dailey-checklist"
+          element={<DaileyChecklist />}
+        />
+        <Route path="*" element={<Navigate to="/signin" replace />} />
       </Routes>
     </BrowserRouter>
   );
