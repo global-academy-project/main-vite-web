@@ -36,33 +36,35 @@ export default function Signin() {
       <div className="auth-card">
         <h1>로그인</h1>
         <p className="auth-subtitle">회사 이메일로 로그인하세요.</p>
-        <AuthAlert
-          type={error?.code === "ACCOUNT_PENDING" ? "warning" : "error"}
-        >
-          {error && authErrorMessage(error)}
-          {error?.code === "EMAIL_NOT_VERIFIED" && (
-            <>
-              <br />
-              <button
-                className="auth-link"
-                onClick={() => resendVerification(email)}
-              >
-                인증 메일 다시 보내기
-              </button>
-            </>
-          )}
-          {error?.code === "ACCOUNT_LOCKED" && (
-            <>
-              <br />
-              <button
-                className="auth-link"
-                onClick={() => navigate("/forgot-password")}
-              >
-                비밀번호 재설정
-              </button>
-            </>
-          )}
-        </AuthAlert>
+        {error && (
+          <AuthAlert
+            type={error.code === "ACCOUNT_PENDING" ? "warning" : "error"}
+          >
+            {authErrorMessage(error)}
+            {error.code === "EMAIL_NOT_VERIFIED" && (
+              <>
+                <br />
+                <button
+                  className="auth-link"
+                  onClick={() => resendVerification(email)}
+                >
+                  인증 메일 다시 보내기
+                </button>
+              </>
+            )}
+            {error.code === "ACCOUNT_LOCKED" && (
+              <>
+                <br />
+                <button
+                  className="auth-link"
+                  onClick={() => navigate("/forgot-password")}
+                >
+                  비밀번호 재설정
+                </button>
+              </>
+            )}
+          </AuthAlert>
+        )}
         <form className="auth-form" onSubmit={submit}>
           <label className="auth-field">
             이메일
