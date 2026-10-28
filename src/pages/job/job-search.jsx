@@ -4,6 +4,7 @@ import { logout } from '../../api/auth';
 import { clearToken, getCurrentUser } from '../../api/client';
 import DashboardHeader from '../../components/dashboard-header';
 import Sidebar from '../../components/sidebar';
+import { useTheme } from '../../contexts/theme-context';
 import '../../style/job/job-dashboard.css';
 import '../../style/job/job-search.css';
 
@@ -12,17 +13,12 @@ const EMPTY_SITES = [];
 function JobSearch() {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [darkMode, setDarkMode] = useState(() => localStorage.getItem('dashboard-theme') === 'dark');
+  const { darkMode, setDarkMode } = useTheme();
   const [user, setUser] = useState(null);
   const [userError, setUserError] = useState('');
   const [loadingUser, setLoadingUser] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
   const [search, setSearch] = useState('');
-
-  useEffect(() => {
-    document.documentElement.classList.toggle('dark-mode', darkMode);
-    localStorage.setItem('dashboard-theme', darkMode ? 'dark' : 'light');
-  }, [darkMode]);
 
   useEffect(() => {
     let cancelled = false;

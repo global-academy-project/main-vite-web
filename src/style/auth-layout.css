@@ -212,12 +212,18 @@
   border: 1px solid var(--safety-border);
 }
 .auth-link {
-  color: #1d4ed8;
+  color: var(--safety-navy);
   background: none;
   border: 0;
   padding: 0;
   font-size: 0.8125em;
   text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.auth-link:hover:not(:disabled) {
+  color: var(--safety-orange);
+  background: transparent;
+  transform: none;
 }
 .auth-row {
   display: flex;
@@ -328,6 +334,8 @@
 }
 .dark-mode .auth-password-rules { color: #cbd5e1; background: #1f2937; }
 .dark-mode .auth-button--secondary { color: #e5e7eb; border-color: #4b5563; background: #1f2937; }
+.dark-mode .auth-link { color: #bfdbfe; }
+.dark-mode .auth-link:hover:not(:disabled) { color: #f59e0b; background: transparent; }
 .dark-mode .auth-alert--info { color: #bfdbfe; background: #1c2d45; }
 .dark-mode .auth-alert--success { color: #a7f3d0; background: #1d392d; }
 .dark-mode .auth-alert--warning { color: #f6d58e; background: #352e21; }
