@@ -1,15 +1,7 @@
 const TOKEN_KEY = "accessToken";
 const TOKEN_EXPIRY_KEY = "accessTokenExpiresAt";
 
-export const getToken = () => {
-  const token = localStorage.getItem(TOKEN_KEY);
-  const expiresAt = Number(localStorage.getItem(TOKEN_EXPIRY_KEY));
-  if (token && expiresAt && Date.now() >= expiresAt) {
-    clearToken();
-    return null;
-  }
-  return token;
-};
+export const getToken = () => localStorage.getItem(TOKEN_KEY);
 
 export const setToken = (token, expiresIn = 3600) => {
   const seconds = Number(expiresIn);
@@ -36,10 +28,46 @@ export class ApiError extends Error {
 }
 
 const TIMEOUT_MS = 30000;
+let refreshing = null;
+
+function refreshAccessToken() {
+  if (!refreshing) {
+    refreshing = fetch("/api/v1/auth/refresh", {
+      method: "POST",
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    })
+      .then(async (response) => {
+        const payload = await response.json().catch(() => null);
+        if (!response.ok || payload?.success !== true || !payload?.data?.accessToken) {
+          throw new ApiError(
+            payload?.error?.code ?? "UNAUTHORIZED",
+            payload?.error?.message ?? "로그인 상태를 갱신하지 못했습니다.",
+            payload?.error?.details ?? null,
+            response.status,
+          );
+        }
+
+        setToken(payload.data.accessToken, payload.data.expiresIn);
+        return payload.data.accessToken;
+      })
+      .finally(() => {
+        refreshing = null;
+      });
+  }
+
+  return refreshing;
+}
 
 export async function api(
   path,
-  { method = "GET", body, headers = {}, responseType = "json" } = {},
+  {
+    method = "GET",
+    body,
+    headers = {},
+    responseType = "json",
+    skipRefresh = false,
+    retried = false,
+  } = {},
 ) {
   const token = getToken();
   const isForm = body instanceof FormData;
@@ -73,11 +101,39 @@ export async function api(
 
   if (!response.ok || payload?.success === false) {
     const error = payload?.error ?? {};
-    if (response.status === 401) {
+    if (
+      response.status === 401
+      && error.code === "TOKEN_EXPIRED"
+      && !skipRefresh
+      && !retried
+    ) {
+      try {
+        await refreshAccessToken();
+        return api(path, {
+          method,
+          body,
+          headers,
+          responseType,
+          skipRefresh,
+          retried: true,
+        });
+      } catch {
+        // Refresh failure is handled by the common unauthorized branch below.
+      }
+    }
+
+    if (response.status === 401 && !skipRefresh) {
       clearToken();
       if (window.location.pathname !== "/signin") {
         window.location.assign("/signin");
       }
+    }
+    if (
+      response.status === 403
+      && error.code === "PASSWORD_CHANGE_REQUIRED"
+      && window.location.pathname !== "/change-password"
+    ) {
+      window.location.assign("/change-password");
     }
     throw new ApiError(
       error.code ?? "INTERNAL_ERROR",
