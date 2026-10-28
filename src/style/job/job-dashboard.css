@@ -50,6 +50,8 @@
 .notification { font-size: 18px; }
 .notification i { position: absolute; top: -5px; right: -3px; min-width: 17px; padding: 2px; border-radius: 10px; background: #ec4e55; color: #fff; font-size: 10px; font-style: normal; }
 .avatar { display: grid; place-items: center; width: 33px; height: 33px; border-radius: 50%; background: #eaf1ff; color: #2169dc; font-weight: 700; }
+.dashboard-account-link { display: inline-flex; border-radius: 50%; }
+.dashboard-account-link:hover { outline: 3px solid rgba(217, 119, 6, 0.22); }
 .user-info { display: grid; gap: 1px; margin-right: 7px; line-height: 1.1; }
 .user-info strong { font-size: 13px; }
 .user-info span { color: #8994a6; font-size: 11px; }
@@ -135,6 +137,9 @@
 .dark-mode .top-nav-item, .dark-mode .group-heading, .dark-mode .admin-link, .dark-mode .submenu a, .dark-mode .breadcrumb, .dark-mode .page-heading p, .dark-mode .panel th, .dark-mode .stat-card span { color: #aeb9c9; }
 .dark-mode .top-nav-item.active, .dark-mode .submenu a.selected { background: #243b63; color: #93c5fd; }
 .dark-mode .submenu a:hover, .dark-mode .group-heading:hover { background: #273548; }
+.group-heading:hover { background: #102A43; color: #FFFFFF; }
+.group-heading:hover .menu-icon, .group-heading:hover .chevron { color: #FFFFFF; }
+.submenu a:hover { background: #102A43; color: #FFFFFF; }
 .dark-mode .panel td, .dark-mode .panel th, .dark-mode .tasks-panel li { border-color: #374151; }
 .dark-mode .notification, .dark-mode .logout, .dark-mode .mobile-menu-button, .dark-mode .theme-toggle { background: #1f2937; border-color: #4b5563; color: #d1d5db; }
 .dark-mode .role-switch { background: #111827; }

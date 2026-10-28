@@ -6,10 +6,16 @@ import AuthAlert from "../../components/auth/auth-alert";
 export default function ForgotPassword() {
   const nav = useNavigate();
   const [sent, setSent] = useState(false);
+  const [error, setError] = useState("");
   const submit = async (e) => {
     e.preventDefault();
-    await forgotPassword(new FormData(e.currentTarget).get("email"));
-    setSent(true);
+    setError("");
+    try {
+      await forgotPassword(new FormData(e.currentTarget).get("email"));
+      setSent(true);
+    } catch (err) {
+      setError(err.message || "비밀번호 재설정 메일을 보내지 못했습니다.");
+    }
   };
   return (
     <AuthLayout compact>
@@ -25,6 +31,7 @@ export default function ForgotPassword() {
           </AuthAlert>
         ) : (
           <form className="auth-form" onSubmit={submit}>
+            <AuthAlert type="error">{error}</AuthAlert>
             <label className="auth-field">
               이메일
               <input name="email" type="email" required />

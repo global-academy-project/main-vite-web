@@ -1,14 +1,14 @@
 :root {
-  --safety-navy: #172033;
-  --safety-blue: #2563eb;
-  --safety-orange: #f97316;
-  --safety-green: #16a34a;
-  --safety-amber: #f59e0b;
-  --safety-red: #dc2626;
-  --safety-bg: #f5f7fb;
-  --safety-border: #cbd5e1;
-  --safety-text: #172033;
-  --safety-muted: #64748b;
+  --safety-navy: #102A43;
+  --safety-blue: #243B53;
+  --safety-orange: #D97706;
+  --safety-green: #15803D;
+  --safety-amber: #F59E0B;
+  --safety-red: #B42318;
+  --safety-bg: #F7F9FC;
+  --safety-border: #CBD5E1;
+  --safety-text: #243B53;
+  --safety-muted: #627D98;
 }
 .auth-page {
   min-height: 100vh;
@@ -62,11 +62,16 @@
   color: #aeb9c9;
   line-height: 1.7;
 }
+.auth-brand__description--legacy {
+  display: none;
+}
 .auth-brand small {
   color: #718096;
   font-size: 1.25em;
 }
-.auth-page--register { grid-template-columns: inherit; }
+.auth-page--register {
+  grid-template-columns: clamp(28.75em, 42vw, 42.5em) 1fr;
+}
 .auth-page--register .auth-brand {
   padding: 32px 22px;
   overflow: hidden;
@@ -77,7 +82,9 @@
 }
 
 @media (max-width: 1180px) {
-  .auth-page--register { grid-template-columns: inherit; }
+  .auth-page--register {
+    grid-template-columns: clamp(28.75em, 42vw, 42.5em) 1fr;
+  }
 }
 .auth-page--register .auth-brand small {
   font-size: 1.25em;
@@ -120,6 +127,52 @@
   font-size: 0.875em;
   margin: 0 0 22px;
 }
+.register-process {
+  display: grid;
+  gap: 0.75em;
+  width: fit-content;
+  max-width: 100%;
+  margin: 1.5em auto 0;
+  color: #fff;
+  font-size: 0.875em;
+  line-height: 1.5;
+}
+.register-process p {
+  display: grid;
+  grid-template-columns: 1.8em 1fr;
+  column-gap: 0.55em;
+  row-gap: 0.15em;
+  margin: 0;
+}
+.register-process strong {
+  display: contents;
+  color: #fff;
+}
+.register-process span {
+  color: #fff;
+}
+.register-process__number {
+  display: inline-grid;
+  place-items: center;
+  grid-row: 1 / span 2;
+  align-self: center;
+  justify-self: center;
+  width: 1.8em;
+  height: 1.8em;
+  flex: 0 0 1.8em;
+  border-radius: 50%;
+  background: var(--safety-orange);
+  color: #000 !important;
+  font-weight: 700;
+}
+.register-process__label {
+  align-self: center;
+  text-align: left;
+}
+.register-process p > span:not(.register-process__number):not(.register-process__label) {
+  grid-column: 2;
+  text-align: left;
+}
 .auth-form {
   display: grid;
   gap: 16px;
@@ -149,7 +202,7 @@
   min-height: 46px;
   border: 0;
   border-radius: 8px;
-  background: var(--safety-blue);
+  background: var(--safety-orange);
   color: #fff;
   font-weight: 700;
 }
