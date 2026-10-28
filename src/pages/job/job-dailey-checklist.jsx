@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { logout } from '../../api/auth';
 import { clearToken, getCurrentUser } from '../../api/client';
+import DashboardHeader from '../../components/dashboard-header';
 import Sidebar from '../../components/sidebar';
 import '../../style/job/job-dashboard.css';
 import '../../style/job/job-dailey-checklist.css';
@@ -87,6 +89,15 @@ function DaileyChecklist() {
   const summaryText = `${today} 일일 안전 점검 ${completedCount}/${allItems.length} 항목 확인`;
   const inspectionResult = getInspectionResult(checklist);
 
+  const doLogout = async () => {
+    try {
+      await logout();
+    } finally {
+      clearToken();
+      navigate('/signin', { replace: true });
+    }
+  };
+
   useEffect(() => {
     document.documentElement.classList.toggle('dark-mode', darkMode);
     localStorage.setItem('dashboard-theme', darkMode ? 'dark' : 'light');
@@ -154,26 +165,14 @@ function DaileyChecklist() {
     <div className="dashboard-shell">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="dashboard-main">
-        <header className="dashboard-header">
-          <div className="header-leading">
-            <button className="mobile-menu-button" onClick={() => setSidebarOpen(true)} aria-label="메뉴 열기">☰</button>
-            <div className="breadcrumb"><span>작업관리</span><b>›</b><strong>일일 점검표</strong></div>
-          </div>
-          <div className="header-actions">
-            <button className="theme-toggle" onClick={() => setDarkMode((value) => !value)} aria-label="다크모드 전환">{darkMode ? '☀' : '☾'}</button>
-            <div className="avatar" aria-hidden="true">{userInitial}</div>
-            <div className="user-info"><strong>{userName}</strong><span>작성자</span></div>
-            <button
-              className="logout"
-              onClick={() => {
-                clearToken();
-                navigate('/signin', { replace: true });
-              }}
-            >
-              ⇥ 로그아웃
-            </button>
-          </div>
-        </header>
+        <DashboardHeader
+          userInitial={userInitial}
+          userName={userName}
+          darkMode={darkMode}
+          setDarkMode={setDarkMode}
+          doLogout={doLogout}
+          setSidebarOpen={setSidebarOpen}
+        />
         <main className="dashboard-content checklist-page">
           <div className="page-heading checklist-heading">
             <div>
@@ -181,7 +180,7 @@ function DaileyChecklist() {
               <h1>작업구역 점검</h1>
               <p><span className="date-text">{today}</span><span className="separator">·</span><span className="site-name">{user?.factory || inspectionTarget.siteName}</span></p>
             </div>
-            <button type="button" className="checklist-back" onClick={() => navigate('/job/list')}>현황으로 돌아가기</button>
+            <button type="button" className="checklist-back" onClick={() => navigate('/dashboard')}>대시보드로 돌아가기</button>
           </div>
 
           {userError && <div className="dashboard-error" role="alert">{userError}</div>}

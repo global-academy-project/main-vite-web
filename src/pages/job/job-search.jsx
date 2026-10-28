@@ -1,84 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Link } from 'react-router-dom';
 import { logout } from '../../api/auth';
 import { clearToken, getCurrentUser } from '../../api/client';
+import DashboardHeader from '../../components/dashboard-header';
 import Sidebar from '../../components/sidebar';
-import { getTagEntries, sampleNearMiss } from '../../utils/agentic-rag-tags';
 import '../../style/job/job-dashboard.css';
 import '../../style/job/job-search.css';
 
-const sampleWorkers = [
-  {
-    status: 'ACTIVE',
-    name: '김용접',
-    jobType: '용접',
-    team: { name: '정비팀', teamType: 'INTERNAL' },
-    sites: [
-      { siteId: 1, name: '울산 공장', active: true },
-      { siteId: 2, name: '여수 공장', active: true },
-    ],
-    qualification: { qualType: 'TRAINING', qualCode: 'CONFINED_SPACE_SPECIAL', qualName: '밀폐공간 특별교육', issuedOn: daysFromToday(-30), expiresOn: null },
-  },
-  {
-    status: 'ACTIVE',
-    name: '이감시',
-    jobType: '감시인',
-    team: { name: '정비팀', teamType: 'INTERNAL' },
-    sites: [{ siteId: 1, name: '울산 공장', active: true }],
-    qualification: null,
-  },
-];
-
-function daysFromToday(days) {
-  const date = new Date();
-  date.setDate(date.getDate() + days);
-  return date;
-}
-
-function formatDate(value) {
-  if (!value) return '-';
-  return new Date(value).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' });
-}
-
-const sampleSiteChemical = {
-  siteId: 1,
-  zoneId: 1,
-  casNo: '108-88-3',
-  name: '톨루엔',
-  maxQuantity: 2000,
-  unit: 'L',
-  active: true,
-};
-
-const sampleWork = { id: 1, siteId: 1, zoneId: 1, workType: 'CONFINED' };
-
-const sampleWarning = {
-  siteId: 1,
-  workId: sampleWork.id,
-  sourceType: 'NEAR_MISS',
-  nearMissId: sampleNearMiss.id,
-  severity: 'WARN',
-  message: '3일 전 같은 구역에서 미끄러짐 아차사고가 있었습니다.',
-  acknowledgedBy: 1,
-  acknowledgedAt: new Date(),
-  ackNote: '맨홀 주변 흡착포 설치',
-  acknowledgedByName: '작성자',
-};
-
-const sampleCorrectiveAction = {
-  siteId: 1,
-  sourceType: 'NEAR_MISS',
-  sourceId: sampleNearMiss.id,
-  title: '맨홀 주변 유출 방지턱 설치',
-  assigneeId: 1,
-  assigneeName: '작성자',
-  dueDate: daysFromToday(7),
-  status: 'OPEN',
-  createdBy: 2,
-};
-
-const nearMissTagEntries = getTagEntries(sampleNearMiss.tags);
+const EMPTY_SITES = [];
 
 function JobSearch() {
   const navigate = useNavigate();
@@ -88,8 +17,7 @@ function JobSearch() {
   const [userError, setUserError] = useState('');
   const [loadingUser, setLoadingUser] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
-  const today = new Date();
-  const dateText = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark-mode', darkMode);
@@ -99,17 +27,15 @@ function JobSearch() {
 
   useEffect(() => {
     let cancelled = false;
-
     getCurrentUser()
       .then((currentUser) => {
-        if (cancelled) return;
-        setUser(currentUser);
-        setUserError('');
+        if (!cancelled) {
+          setUser(currentUser);
+          setUserError('');
+        }
       })
       .catch((requestError) => {
-        if (!cancelled) {
-          setUserError(requestError.message || '사용자 정보를 불러오지 못했습니다.');
-        }
+        if (!cancelled) setUserError(requestError.message || '현장 목록을 불러오지 못했습니다.');
       })
       .finally(() => {
         if (!cancelled) setLoadingUser(false);
@@ -122,7 +48,14 @@ function JobSearch() {
 
   const userName = user?.user?.name || user?.user?.email || '사용자';
   const userInitial = Array.from(userName)[0] || '사';
-  const userFactory = user?.sites?.map((site) => site.name).join(' · ') || '등록 현장 없음';
+  const sites = Array.isArray(user?.sites) ? user.sites : EMPTY_SITES;
+  const filteredSites = useMemo(() => {
+    const query = search.trim().toLocaleLowerCase('ko-KR');
+    if (!query) return sites;
+    return sites.filter((site) => `${site.name ?? site.siteName ?? ''} ${site.address ?? ''} ${site.siteId ?? ''}`
+      .toLocaleLowerCase('ko-KR')
+      .includes(query));
+  }, [search, sites]);
 
   const doLogout = async () => {
     try {
@@ -137,32 +70,19 @@ function JobSearch() {
     <div className="dashboard-shell">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="dashboard-main">
-        <header className="dashboard-header">
-          <div className="header-leading">
-            <button className="mobile-menu-button" onClick={() => setSidebarOpen(true)} aria-label="메뉴 열기">☰</button>
-            <div className="breadcrumb"><span>대시보드</span><b>›</b><strong>안전 작업 현황</strong></div>
-          </div>
-          <div className="header-actions">
-            <button className="notification" aria-label="알림">♧<i>3</i></button>
-            <button className="theme-toggle" onClick={() => setDarkMode((value) => !value)} aria-label="다크모드 전환">{darkMode ? '☀' : '☾'}</button>
-            <div className="avatar" aria-hidden="true">{userInitial}</div>
-            <div className="user-info"><strong>{userName}</strong><span>로그인 사용자</span></div>
-            <button
-              className="logout"
-              onClick={doLogout}
-            >
-              ⇥ 로그아웃
-            </button>
-          </div>
-        </header>
+        <DashboardHeader
+          userInitial={userInitial}
+          userName={userName}
+          darkMode={darkMode}
+          setDarkMode={setDarkMode}
+          doLogout={doLogout}
+          setSidebarOpen={setSidebarOpen}
+          title="현장목록"
+        />
         <main className="dashboard-content">
           <div className="page-heading">
-            <h1>안전 작업 현황</h1>
-            <p>
-              <span className="date-text">{dateText}</span>
-              <span className="separator">·</span>
-              <span className="site-name"><span className="factory-icon">▣</span>{userFactory}</span>
-            </p>
+            <h1>현장목록</h1>
+            <p>계정에 등록된 현장을 확인합니다.</p>
           </div>
           {userError && (
             <div className="dashboard-error" role="alert">
@@ -171,7 +91,6 @@ function JobSearch() {
                 type="button"
                 onClick={() => {
                   setLoadingUser(true);
-                  setUserError('');
                   setRefreshKey((value) => value + 1);
                 }}
               >
@@ -179,103 +98,50 @@ function JobSearch() {
               </button>
             </div>
           )}
-          {loadingUser && <p className="dashboard-message" role="status">사용자 정보를 불러오는 중입니다...</p>}
-          <section className="stat-grid" aria-label="안전관리 요약">
-            <div className="stat-card"><span>활성 작업자</span><strong>{sampleWorkers.filter((worker) => worker.status === 'ACTIVE').length}<small>명</small></strong></div>
-            <div className="stat-card"><span>배치 현장</span><strong>2<small>곳</small></strong></div>
-            <div className="stat-card"><span>아차사고 후속 경고</span><strong className="blue">{sampleWarning.acknowledgedAt ? '확인' : '미확인'}</strong></div>
-            <div className="stat-card"><span>미완료 개선조치</span><strong className="red">{sampleCorrectiveAction.status === 'OPEN' ? '1' : '0'}<small>건</small></strong></div>
-          </section>
-          <section className="dashboard-panels safety-panels">
-            <div className="panel">
-              <h2>작업자 및 현장 배치</h2>
+          <section className="panel site-list-panel" aria-label="등록된 현장 목록">
+            <div className="site-list-toolbar">
+              <h2>등록된 현장 <small>{sites.length}곳</small></h2>
+              <label>
+                <span className="sr-only">현장 검색</span>
+                <input
+                  type="search"
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  placeholder="현장명 검색"
+                />
+              </label>
+            </div>
+            {loadingUser ? (
+              <p className="dashboard-message" role="status">현장 목록을 불러오는 중입니다...</p>
+            ) : filteredSites.length ? (
               <div className="table-scroll">
                 <table>
-                  <thead><tr><th>작업자</th><th>소속</th><th>직종</th><th>활성 현장 배치</th><th>교육·자격</th></tr></thead>
+                  <thead>
+                    <tr><th>현장명</th><th>현장 ID</th><th>주소</th><th>상태</th></tr>
+                  </thead>
                   <tbody>
-                    {sampleWorkers.map((worker) => (
-                      <tr key={worker.name}>
-                        <td>{worker.name}</td>
-                        <td>{worker.team.name}<small className="table-meta">{worker.team.teamType}</small></td>
-                        <td>{worker.jobType}</td>
-                        <td>{worker.sites.filter((site) => site.active).map((site) => site.name).join(', ')}</td>
+                    {filteredSites.map((site, index) => (
+                      <tr key={site.siteId ?? site.id ?? `${site.name ?? site.siteName}-${index}`}>
+                        <td>{site.name ?? site.siteName ?? '이름 없음'}</td>
+                        <td>{site.siteId ?? site.id ?? '-'}</td>
+                        <td>{site.address ?? '-'}</td>
                         <td>
-                          {worker.qualification ? (
-                            <>
-                              {worker.qualification.qualName}
-                              <small className="table-meta">{worker.qualification.qualType} · {worker.qualification.qualCode}</small>
-                              <small className="table-meta">유효기간 {worker.qualification.expiresOn ? formatDate(worker.qualification.expiresOn) : '없음'}</small>
-                            </>
-                          ) : '등록된 자격 없음'}
+                          <span className={`pill ${site.active === false ? 'status-blocked' : 'status-approved'}`}>
+                            {site.active === false ? '비활성' : site.active === true ? '활성' : '상태 미지정'}
+                          </span>
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-              <p className="sample-note">현장 배치는 worker_sites.active, 작업자 상태는 workers.status 기준입니다.</p>
-            </div>
-            <div className="panel">
-              <h2>현장 취급 물질 <small>site_chemicals</small></h2>
-              <div className="detail-list">
-                <div><span>물질명</span><strong>{sampleSiteChemical.name}</strong></div>
-                <div><span>CAS No.</span><strong>{sampleSiteChemical.casNo}</strong></div>
-                <div><span>보관 한도</span><strong>{sampleSiteChemical.maxQuantity.toLocaleString('ko-KR')} {sampleSiteChemical.unit}</strong></div>
-                <div><span>관리 위치</span><strong>울산 공장 · T-105</strong></div>
-                <div><span>활성 상태</span><strong>{sampleSiteChemical.active ? 'ACTIVE' : 'INACTIVE'}</strong></div>
+            ) : (
+              <div className="site-list-empty">
+                <h3>{sites.length ? '검색 결과가 없습니다' : '등록된 현장이 없습니다'}</h3>
+                <p>{sites.length ? '검색어를 바꾸어 다시 확인해 주세요.' : '현장이 계정에 등록되면 이곳에 표시됩니다.'}</p>
               </div>
-              <h3 className="subheading">작업자 자격</h3>
-              <div className="qualification-row">
-                <span><strong>김용접 · {sampleWorkers[0].qualification.qualName}</strong><small>{sampleWorkers[0].qualification.qualCode} · 발급 {formatDate(sampleWorkers[0].qualification.issuedOn)} · 만료일 미지정</small></span>
-                <span className="pill status-approved">{sampleWorkers[0].qualification.qualType}</span>
-              </div>
-            </div>
-            <div className="panel incident-panel">
-              <h2>아차사고 및 작업 경고 <small>near_misses · record_tags · work_warnings</small></h2>
-              <div className="incident-heading">
-                <span className={`pill ${sampleNearMiss.status === 'CLOSED' ? 'status-approved' : 'status-waiting'}`}>{sampleNearMiss.status}</span>
-                <strong>{sampleNearMiss.title}</strong>
-                <small>{formatDate(sampleNearMiss.occurredAt)}</small>
-              </div>
-              <p className="incident-description">{sampleNearMiss.description}</p>
-              <div className="incident-tags" aria-label="record_tags 분류 축">
-                {nearMissTagEntries.map(({ axis, label, values }) => (
-                  <div className="incident-tag-axis" key={axis}>
-                    <span>{label}</span>
-                    <div className="tag-chip-list">
-                      {values.length ? values.map(({ code, label: valueLabel, source, confidence }) => (
-                        <span className="tag-chip" key={code} title={`${source}${confidence === null ? '' : ` · 신뢰도 ${Math.round(confidence * 100)}%`}`}>
-                          {valueLabel}
-                        </span>
-                      )) : <span className="tag-unspecified">미분류</span>}
-                    </div>
-                  </div>
-                ))}
-              </div>
-              {sampleNearMiss.immediateAction && <p className="incident-description">즉시 조치: {sampleNearMiss.immediateAction}</p>}
-              <div className="warning-box">
-                <strong>{sampleWarning.sourceType} · {sampleWarning.severity} 경고 · 작업 #{sampleWarning.workId}</strong>
-                <p>{sampleWarning.message}</p>
-                <div className="acknowledgement">
-                  <span>{sampleWarning.acknowledgedByName} · {sampleWarning.ackNote}</span>
-                  <span className={`pill ${sampleWarning.acknowledgedAt ? 'status-approved' : 'status-waiting'}`}>{sampleWarning.acknowledgedAt ? '확인 완료' : '미확인'}</span>
-                </div>
-              </div>
-            </div>
-            <div className="panel">
-              <h2>개선조치 <small>corrective_actions</small></h2>
-              <div className="action-card">
-                <span className="action-icon" aria-hidden="true">!</span>
-                <div>
-                  <strong>{sampleCorrectiveAction.title}</strong>
-                  <p>{sampleCorrectiveAction.sourceType} #{sampleCorrectiveAction.sourceId} 후속 조치 · 담당: {sampleCorrectiveAction.assigneeName}</p>
-                  <small>기한 {formatDate(sampleCorrectiveAction.dueDate)}</small>
-                </div>
-                <span className={`pill ${sampleCorrectiveAction.status === 'OPEN' ? 'status-waiting' : 'status-approved'}`}>{sampleCorrectiveAction.status}</span>
-              </div>
-            </div>
+            )}
           </section>
-          <p className="scenario-notice">주석 SQL 시나리오 기반 시연 데이터입니다. 실제 작업자·현장 데이터 연동은 아직 적용되지 않았습니다.</p>
         </main>
       </div>
     </div>

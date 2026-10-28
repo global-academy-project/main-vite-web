@@ -42,7 +42,7 @@ function FeatureHeader({ onLogout }) {
     <header className="feature-topbar">
       <div className="feature-brand">
         <div className="feature-brand-mark">G</div>
-        <Link to="/job/list">Global Academy · 문서 OCR</Link>
+        <Link to="/dashboard">Global Academy · 문서 OCR</Link>
       </div>
       <div className="feature-header-actions">
         <Link className="feature-link-button" to="/me">

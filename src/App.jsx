@@ -17,10 +17,12 @@ import Upload from "./pages/features/upload";
 import ProtectedRoute from "./components/protected-route";
 // Job Component 모듈
 import JobSearch from "./pages/job/job-search";
+import JobDashboard from "./pages/job/job-dashboard";
 import DaileyChecklist from "./pages/job/job-dailey-checklist";
+import Dashboard from "./pages/dashboard";
 
 function EntryRedirect() {
-  return <Navigate to={getToken() ? "/feature" : "/signin"} replace />;
+  return <Navigate to={getToken() ? "/dashboard" : "/signin"} replace />;
 }
 
 function App() {
@@ -74,6 +76,8 @@ function App() {
               <JobSearch />
           }
         />
+        <Route path="/job/dashboard" element={<JobDashboard />} />
+        <Route path="/dashboard" element={<Dashboard />} />
         <Route
           path="/job/dailey-checklist"
           element={<DaileyChecklist />}

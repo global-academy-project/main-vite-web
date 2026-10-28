@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 
 const menuGroups = [
-  ['site', '현장관리', ['현장목록', '작업자관리', '오늘현화']],
-  ['work', '작업관리', ['작업관리', '작업 위험성평가', '작업허가', '위험·근접 사고', 'TBM', '교육자료 관리']],
+  ['site', '현장관리', ['현장목록', '작업자관리']],
+  ['work', '작업관리', ['작업 현황', '작업 위험성평가', '작업허가', '위험·근접 사고', 'TBM', '교육자료 관리']],
   ['record', '기록관리', ['점검 체크리스트', '작성문서 이력', '사진 기록(AI)']],
   ['report', '보고서관리', ['부서 보고(PDF)', '중대재해 통계', '통계·분석']],
 ];
@@ -32,13 +32,9 @@ export default function Sidebar({ isOpen = false, onClose }) {
           AI Safety
         </div>
         <nav className="primary-nav">
-          <NavLink to="/job/list" className="top-nav-item">
+          <NavLink to="/dashboard" end className={({ isActive }) => `top-nav-item${isActive ? ' active' : ''}`}>
             <Icon>⌂</Icon>
             대시보드
-          </NavLink>
-          <NavLink to="/job/list" className="top-nav-item active">
-            <Icon>▦</Icon>
-            오늘 현황
           </NavLink>
         </nav>
         <div className="nav-divider" />
@@ -54,7 +50,23 @@ export default function Sidebar({ isOpen = false, onClose }) {
               </button>
               {open[key] && (
                 <div className="submenu">
-                  {items.map((item, index) => item === '점검 체크리스트' ? (
+                  {items.map((item, index) => item === '작업 현황' ? (
+                    <NavLink
+                      to="/job/dashboard"
+                      className={({ isActive }) => isActive ? 'selected' : ''}
+                      key={item}
+                    >
+                      {item}
+                    </NavLink>
+                  ) : item === '현장목록' ? (
+                    <NavLink
+                      to="/job/list"
+                      className={({ isActive }) => isActive ? 'selected' : ''}
+                      key={item}
+                    >
+                      {item}
+                    </NavLink>
+                  ) : item === '점검 체크리스트' ? (
                     <NavLink
                       to="/job/dailey-checklist"
                       className={({ isActive }) => isActive ? 'selected' : ''}

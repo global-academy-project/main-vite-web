@@ -24,7 +24,7 @@ export default function Signin() {
         rememberMe: data.get("rememberMe") === "on",
       });
       setToken(result.accessToken, result.expiresIn);
-      navigate(result.mustChangePassword ? "/change-password" : "/job/list");
+      navigate(result.mustChangePassword ? "/change-password" : "/dashboard");
     } catch (err) {
       setError(err);
     } finally {
