@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Link } from 'react-router-dom';
+import { logout } from '../../api/auth';
 import { clearToken, getCurrentUser } from '../../api/client';
 import Sidebar from '../../components/sidebar';
 import '../../style/job/job-dashboard.css';
@@ -59,9 +60,18 @@ function JobSearch() {
     };
   }, [refreshKey]);
 
-  const userName = user?.name || user?.email || '사용자';
+  const userName = user?.user?.name || user?.user?.email || '사용자';
   const userInitial = Array.from(userName)[0] || '사';
-  const userFactory = user?.factory || '울산 공장 · 여수 공장';
+  const userFactory = user?.sites?.map((site) => site.name).join(' · ') || '등록 현장 없음';
+
+  const doLogout = async () => {
+    try {
+      await logout();
+    } finally {
+      clearToken();
+      navigate('/signin', { replace: true });
+    }
+  };
 
   return (
     <div className="dashboard-shell">
@@ -81,10 +91,7 @@ function JobSearch() {
             <div className="user-info"><strong>{userName}</strong><span>로그인 사용자</span></div>
             <button
               className="logout"
-              onClick={() => {
-                clearToken();
-                navigate('/signin', { replace: true });
-              }}
+              onClick={doLogout}
             >
               ⇥ 로그아웃
             </button>
