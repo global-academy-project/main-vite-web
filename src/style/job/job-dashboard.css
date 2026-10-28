@@ -53,8 +53,8 @@
 .breadcrumb strong { overflow: hidden; color: #202b3e; font-size: 15px; text-overflow: ellipsis; }
 .header-actions { display: flex; flex: 0 0 auto; align-items: center; gap: 11px; }
 .notification, .logout { position: relative; min-height: 36px; padding: 7px 12px; border: 1px solid #e2e7ef; border-radius: 10px; background: #fff; color: #56637a; font-size: 13px; font-weight: 500; }
-.notification { font-size: 18px; }
-.notification i { position: absolute; top: -5px; right: -3px; min-width: 17px; padding: 2px; border-radius: 10px; background: #ec4e55; color: #fff; font-size: 10px; font-style: normal; text-align: center; }
+.notification { display: grid; width: 36px; place-items: center; padding: 7px; cursor: pointer; }
+.notification svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.7; }
 .logout { cursor: pointer; }
 .notification:hover, .logout:hover { background: #f6f8fc; transform: none; }
 .avatar { display: grid; width: 34px; height: 34px; flex: 0 0 34px; place-items: center; border-radius: 50%; background: #eaf1ff; color: #2169dc; font-weight: 700; }

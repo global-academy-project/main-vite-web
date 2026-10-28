@@ -29,6 +29,41 @@
 .qualification-row small { font-size: 11px; line-height: 1.5; }
 .sample-note, .scenario-notice { color: #77839a; font-size: 11px; line-height: 1.6; }
 .sample-note { margin: 10px 8px 0; }
+.dashboard-question { margin-top: 20px; }
+.dashboard-question > p { margin: -8px 0 14px; color: #687995; font-size: 13px; }
+.dashboard-question form { display: flex; gap: 10px; }
+.dashboard-question input { min-width: 0; min-height: 42px; flex: 1; padding: 9px 12px; border: 1px solid #dfe5ee; border-radius: 8px; background: #fff; color: #24334e; font: inherit; }
+.dashboard-question form button { padding: 9px 16px; border-radius: 8px; background: #246be2; color: #fff; font-size: 13px; }
+.dashboard-question form button:hover { background: #1858c5; }
+.dashboard-question .question-notice { margin: 10px 0 0; color: #a87300; font-size: 12px; }
+.site-list-panel { margin-top: 22px; }
+.site-list-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 12px; }
+.site-list-toolbar h2 { margin: 0; }
+.site-list-toolbar h2 small { margin-left: 7px; color: #8994a6; font-size: 12px; font-weight: 500; }
+.site-list-toolbar input { width: min(260px, 42vw); min-height: 38px; padding: 8px 11px; border: 1px solid #dfe5ee; border-radius: 8px; background: #fff; color: #24334e; font: inherit; }
+.site-list-empty { padding: 38px 16px; text-align: center; }
+.site-list-empty h3 { margin: 0 0 8px; color: #24334e; font-size: 15px; }
+.site-list-empty p { margin: 0; color: #687995; font-size: 13px; }
+.ai-dashboard-content { display: grid; min-height: calc(100vh - 64px); place-items: center; }
+.ai-assistant { width: min(100%, 820px); padding: 42px 20px; text-align: center; }
+.ai-assistant-mark { display: inline-grid; width: 52px; height: 52px; place-items: center; border: 1px solid #cfe0ff; border-radius: 17px; background: #eef5ff; color: #246be2; font-size: 17px; font-weight: 800; }
+.ai-assistant-eyebrow { margin: 20px 0 8px; color: #246be2; font-size: 11px; font-weight: 700; letter-spacing: .12em; }
+.ai-assistant h1 { margin: 0; color: #172033; font-size: clamp(24px, 4vw, 34px); }
+.ai-assistant-description { margin: 12px 0 26px; color: #687995; font-size: 14px; }
+.ai-user-error { align-self: start; color: #a33138; font-size: 13px; }
+.ai-question-form { padding: 14px; border: 1px solid #dfe5ee; border-radius: 16px; background: #fff; box-shadow: 0 12px 32px rgba(32, 54, 91, .08); text-align: left; }
+.ai-question-form textarea { display: block; width: 100%; min-height: 100px; resize: vertical; border: 0; outline: 0; background: transparent; color: #24334e; font: inherit; line-height: 1.6; }
+.ai-question-form textarea::placeholder { color: #9aa5b5; }
+.ai-question-form-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 10px; border-top: 1px solid #edf0f5; }
+.ai-question-form-footer > span { color: #8994a6; font-size: 11px; }
+.ai-question-form-footer button { padding: 9px 14px; border-radius: 9px; background: #246be2; color: #fff; font-size: 13px; }
+.ai-question-form-footer button:disabled { background: #aebbd0; }
+.ai-question-notice { margin: 14px 0 0; color: #a87300; font-size: 13px; }
+.ai-suggestions { margin-top: 28px; }
+.ai-suggestions h2 { margin: 0 0 12px; color: #687995; font-size: 12px; font-weight: 600; }
+.ai-suggestions > div { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.ai-suggestions button { padding: 9px 12px; border: 1px solid #dfe5ee; border-radius: 999px; background: #fff; color: #59657a; font-size: 12px; font-weight: 500; }
+.ai-suggestions button:hover { border-color: #b7cdf4; background: #f5f8ff; color: #246be2; transform: none; }
 .incident-heading { display: flex; flex-wrap: wrap; align-items: center; gap: 9px; }
 .incident-heading strong { color: #24334e; font-size: 14px; }
 .incident-heading small { margin-left: auto; color: #8994a6; font-size: 11px; white-space: nowrap; }
@@ -72,6 +107,22 @@
 .dark-mode .detail-list strong, .dark-mode .incident-heading strong, .dark-mode .action-card strong,
 .dark-mode .subheading { color: #e5e7eb; }
 .dark-mode .qualification-row { background: #273548; }
+.dark-mode .dashboard-question > p { color: #aeb9c9; }
+.dark-mode .dashboard-question input { border-color: #475569; background: #111827; color: #e5e7eb; }
+.dark-mode .dashboard-question .question-notice { color: #f6d58e; }
+.dark-mode .site-list-toolbar h2 small, .dark-mode .site-list-empty p { color: #aeb9c9; }
+.dark-mode .site-list-toolbar input { border-color: #475569; background: #111827; color: #e5e7eb; }
+.dark-mode .site-list-empty h3, .dark-mode .ai-assistant h1 { color: #f3f4f6; }
+.dark-mode .ai-assistant-description, .dark-mode .ai-suggestions h2 { color: #aeb9c9; }
+.dark-mode .ai-user-error { color: #fda4af; }
+.dark-mode .ai-assistant-mark { border-color: #33517b; background: #243b63; color: #93c5fd; }
+.dark-mode .ai-question-form { border-color: #374151; background: #1f2937; }
+.dark-mode .ai-question-form textarea { color: #e5e7eb; }
+.dark-mode .ai-question-form-footer { border-color: #374151; }
+.dark-mode .ai-question-form-footer > span { color: #aeb9c9; }
+.dark-mode .ai-suggestions button { border-color: #475569; background: #1f2937; color: #d1d5db; }
+.dark-mode .ai-suggestions button:hover { background: #243b63; color: #93c5fd; }
+.dark-mode .ai-question-notice { color: #f6d58e; }
 .dark-mode .tag-chip { border-color: #475569; background: #273548; color: #d1d5db; }
 .dark-mode .warning-box { border-color: #70572e; background: #352e21; }
 .dark-mode .warning-box > strong { color: #f6d58e; }
@@ -89,6 +140,12 @@
 }
 
 @media (max-width: 520px) {
+  .ai-dashboard-content { min-height: calc(100vh - 60px); padding: 15px 12px 28px; }
+  .ai-assistant { padding: 28px 2px; }
+  .ai-question-form-footer { align-items: flex-start; flex-direction: column; }
+  .ai-question-form-footer button { align-self: flex-end; }
+  .site-list-toolbar { align-items: stretch; flex-direction: column; }
+  .site-list-toolbar input { width: 100%; }
   .stat-grid { grid-template-columns: 1fr 1fr; gap: 9px; margin-top: 17px; }
   .stat-card { min-height: 88px; padding: 14px 12px; }
   .stat-card > span { font-size: 11px; line-height: 1.4; }

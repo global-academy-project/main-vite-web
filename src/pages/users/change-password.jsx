@@ -40,7 +40,7 @@ export default function ChangePassword() {
         newPassword: f.get("newPassword"),
       });
       setToken(result.accessToken, result.expiresIn);
-      nav("/job/list");
+      nav("/dashboard");
     } catch (err) {
       setError(authErrorMessage(err));
     }
