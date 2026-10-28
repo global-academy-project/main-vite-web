@@ -14,7 +14,7 @@ export default function VerifyEmail() {
       .then(() => setStatus("success"))
       .catch((error) =>
         setStatus(
-          error.code === "TOKEN_EXPIRED"
+          error.code === "TOKEN_EXPIRED_LINK"
             ? "expired"
             : error.code === "TOKEN_ALREADY_USED"
               ? "used"
