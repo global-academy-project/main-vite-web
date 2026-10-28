@@ -25,6 +25,23 @@
   font-weight: 700;
 }
 
+.feature-header-actions { display: flex; align-items: center; gap: 8px; }
+
+/* My account */
+.profile-page { max-width: 1040px; }
+.profile-heading { margin-top: 4px; margin-bottom: 26px; }
+.profile-layout { display: grid; grid-template-columns: 270px minmax(0, 1fr); gap: 22px; align-items: start; }
+.profile-summary, .profile-card { border: 1px solid #e5e9f0; border-radius: 16px; background: #fff; box-shadow: 0 8px 22px rgba(45, 61, 98, .04); }
+.profile-summary { padding: 30px 25px; text-align: center; }
+.profile-avatar { display: grid; width: 76px; height: 76px; place-items: center; margin: 0 auto 16px; border-radius: 25px; color: #fff; background: linear-gradient(135deg, #5a7cff, #8958e7); font-size: 1.75rem; font-weight: 800; box-shadow: 0 10px 20px rgba(91, 105, 233, .24); }
+.profile-summary h2, .profile-card h2 { margin: 0; color: #26324b; font-size: 1.08rem; }.profile-summary > p { margin: 7px 0 14px; overflow-wrap: anywhere; color: #778198; font-size: .86rem; }
+.profile-chip, .role-badge { display: inline-flex; padding: 5px 10px; border-radius: 99px; color: #176b46; background: #e8f7ee; font-size: .75rem; font-weight: 750; }
+.profile-quick-info { display: grid; gap: 14px; margin: 28px 0 0; padding-top: 22px; border-top: 1px solid #edf0f5; text-align: left; }.profile-quick-info div { display: flex; justify-content: space-between; gap: 12px; }.profile-quick-info dt { color: #8992a4; font-size: .78rem; }.profile-quick-info dd { margin: 0; color: #4c586e; font-size: .83rem; font-weight: 650; text-align: right; }
+.profile-sections { display: grid; gap: 18px; }.profile-card { padding: 25px; }.card-title-row { margin-bottom: 22px; }.profile-card h2 + p { margin: 7px 0 0; color: #7b8495; font-size: .86rem; }
+.profile-form { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }.profile-field { display: grid; gap: 8px; color: #4a566c; font-size: .83rem; font-weight: 700; }.profile-field--full, .profile-form-actions { grid-column: 1 / -1; }.profile-field input { width: 100%; height: 44px; padding: 0 12px; border: 1px solid #dfe4ed; border-radius: 9px; color: #28334b; background: #fff; font-size: .9rem; outline: none; }.profile-field input:focus { border-color: #7589f5; box-shadow: 0 0 0 3px rgba(90, 124, 255, .12); }.profile-field input[readonly] { color: #7c8699; background: #f7f8fb; }.profile-form-actions { display: flex; justify-content: flex-end; margin-top: 3px; }
+.site-list { display: grid; gap: 10px; padding: 0; margin: 0; list-style: none; }.site-list li { display: flex; align-items: center; gap: 12px; padding: 13px; border-radius: 10px; background: #fafbfe; }.site-list li > span:nth-child(2) { display: grid; gap: 3px; flex: 1; }.site-list strong { color: #38445b; font-size: .9rem; }.site-list small { color: #8992a4; font-size: .76rem; }.site-icon { display: grid; width: 33px; height: 33px; place-items: center; border-radius: 9px; color: #5d70dc; background: #eef1ff; }.role-badge { color: #5465c4; background: #eef1ff; }.profile-empty { padding: 22px; border: 1px dashed #dbe0eb; border-radius: 10px; color: #7b8495; text-align: center; font-size: .88rem; }
+.security-card { display: flex; align-items: center; justify-content: space-between; gap: 18px; }.outline-button { display: inline-flex; flex: 0 0 auto; align-items: center; min-height: 42px; padding: 10px 14px; border: 1px solid #d8deeb; border-radius: 10px; color: #5366c9; background: #fff; font-size: .86rem; font-weight: 750; }
+
 .feature-brand-mark {
   display: grid;
   width: 36px;
@@ -697,4 +714,51 @@
   .confidence-row {
     flex-wrap: wrap;
   }
+
+  .profile-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-summary {
+    padding: 23px;
+  }
+
+  .profile-quick-info {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .profile-form {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-field--full,
+  .profile-form-actions {
+    grid-column: auto;
+  }
+
+  .security-card {
+    align-items: flex-start;
+    flex-direction: column;
+  }
 }
+
+/* Safety theme tokens and restrained controls */
+:root {
+  --safety-primary: #102A43;
+  --safety-secondary: #243B53;
+  --safety-accent: #D97706;
+  --safety-warning: #F59E0B;
+  --safety-bg: #F7F9FC;
+  --safety-muted: #627D98;
+  --safety-success: #15803D;
+  --safety-danger: #B42318;
+}
+.feature-page { color: var(--safety-secondary); background: var(--safety-bg); }
+.feature-brand-mark { background: var(--safety-primary); }
+.feature-link-button { color: var(--safety-primary); }
+.feature-link-button:hover { color: var(--safety-accent); }
+.primary-button { background: var(--safety-accent); box-shadow: none; }
+.primary-button:hover:not(:disabled) { background: #B45309; }
+.secondary-btn, .outline-button { color: var(--safety-primary); border-color: var(--safety-primary); }
+.status-done, .status-completed, .network-badge { color: var(--safety-success); }
+.status-failed { color: var(--safety-danger); }

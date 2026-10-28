@@ -4,6 +4,11 @@ import { getToken } from "./api/client";
 import Register from "./pages/users/register";
 import RegisterDone from "./pages/users/register-done";
 import Signin from "./pages/users/signin";
+import Me from "./pages/users/me";
+import ChangePassword from "./pages/users/change-password";
+import ForgotPassword from "./pages/users/forgot-password";
+import ResetPassword from "./pages/users/reset-password";
+import VerifyEmail from "./pages/users/verify-email";
 // Feature Component 모듈
 import DocumentDetail from "./pages/features/document-detail";
 import Feature from "./pages/features/feature";
@@ -25,6 +30,25 @@ function App() {
         <Route path="/signin" element={<Signin />} />
         <Route path="/register" element={<Register />} />
         <Route path="/register/done" element={<RegisterDone />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/verify-email" element={<VerifyEmail />} />
+        <Route
+          path="/me"
+          element={
+            <ProtectedRoute>
+              <Me />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/change-password"
+          element={
+            <ProtectedRoute>
+              <ChangePassword />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="/feature"
           element={<ProtectedRoute><Feature /></ProtectedRoute>}
@@ -44,7 +68,11 @@ function App() {
         {/* Job List, Details 라우팅 / WARNING : ProtectedRoute 없이 현재 테스트용으로 우회 */}
         <Route
           path="/job/list"
-          element={<JobSearch />}
+          element={
+            <ProtectedRoute>
+              <JobSearch />
+            </ProtectedRoute>
+          }
         />
         <Route
           path="/job/dailey-checklist"

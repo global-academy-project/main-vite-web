@@ -141,6 +141,18 @@
   }
 }
 
+/* Safety theme overrides */
+.register-page { background: #F7F9FC; }
+.register-card { background: #FFFFFF; border-color: #CBD5E1; box-shadow: 0 8px 24px rgba(16, 42, 67, 0.08); backdrop-filter: none; }
+.register-brand-wrap { color: #102A43; }
+.register-brand-mark { background: #102A43; box-shadow: none; }
+.register-card h1 { color: #243B53; }
+.register-input-group input:focus { border-color: #D97706; box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.14); }
+.register-btn { background: #D97706; box-shadow: none; }
+.register-btn:hover { background: #B45309; transform: translateY(1px); }
+.register-secondary-btn { background: #FFFFFF; color: #102A43; border: 1px solid #102A43; }
+.register-secondary-btn:hover { background: #EAF0F5; transform: translateY(1px); }
+
 /* 생성한 파일
 - register-style.css: 회원가입 페이지의 스타일을 정의하는 CSS 파일 
 - 다른 파일들과의 관계

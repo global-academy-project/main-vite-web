@@ -1,7 +1,7 @@
 :root {
   font-family: Inter, "Segoe UI", system-ui, sans-serif;
-  color: #172033;
-  background: #f6f8fc;
+  color: #243B53;
+  background: #F7F9FC;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -30,16 +30,17 @@ button {
   padding: 15px 18px;
   border: 0;
   border-radius: 12px;
-  color: #394c7d;
-  background: #eef3ff;
+  color: #FFFFFF;
+  background: #102A43;
   font-size: 1rem;
   font-weight: 700;
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+  transition: background-color 0.15s ease, transform 0.1s ease, opacity 0.15s ease;
 }
 
 button:hover:not(:disabled) {
-  transform: translateY(-1px);
+  background: #243B53;
+  transform: translateY(1px);
 }
 
 button:disabled {
@@ -48,7 +49,7 @@ button:disabled {
 }
 
 button:focus-visible {
-  outline: 3px solid rgba(122, 90, 248, 0.28);
+  outline: 3px solid rgba(217, 119, 6, 0.3);
   outline-offset: 2px;
 }
 

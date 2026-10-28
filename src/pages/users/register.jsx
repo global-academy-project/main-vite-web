@@ -81,7 +81,7 @@ export default function Register() {
           <button className="auth-button" disabled={loading}>
             {loading ? "가입 중…" : "가입하기"}
           </button>
-          <div className="auth-help" style={{ textAlign: "center" }}>
+          <div className="register-footer" style={{ textAlign: "center" }}>
             이미 계정이 있나요?{" "}
             <button
               type="button"

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { clearToken, getCurrentUser } from '../../api/client';
 import Sidebar from '../../components/sidebar';
 import '../../style/job/job-dashboard.css';
@@ -74,7 +75,9 @@ function JobSearch() {
           <div className="header-actions">
             <button className="notification" aria-label="알림">♧<i>3</i></button>
             <button className="theme-toggle" onClick={() => setDarkMode((value) => !value)} aria-label="다크모드 전환">{darkMode ? '☀' : '☾'}</button>
-            <div className="avatar" aria-hidden="true">{userInitial}</div>
+            <Link className="dashboard-account-link" to="/me" aria-label="내 정보">
+              <div className="avatar" aria-hidden="true">{userInitial}</div>
+            </Link>
             <div className="user-info"><strong>{userName}</strong><span>로그인 사용자</span></div>
             <button
               className="logout"

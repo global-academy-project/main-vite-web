@@ -9,10 +9,15 @@ export default function ResetPassword() {
   const [q] = useSearchParams(),
     nav = useNavigate();
   const [error, setError] = useState("");
+  const token = q.get("token");
   const submit = async (e) => {
     e.preventDefault();
     const f = new FormData(e.currentTarget),
       p = f.get("password");
+    if (!token) {
+      setError("비밀번호 재설정 링크가 없습니다.");
+      return;
+    }
     if (!validPassword(p) || p !== f.get("confirm")) {
       setError("비밀번호 규칙과 일치 여부를 확인해주세요.");
       return;
