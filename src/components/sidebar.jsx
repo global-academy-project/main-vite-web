@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 
 const menuGroups = [
@@ -12,12 +12,26 @@ const Icon = ({ children }) => <span className="menu-icon">{children}</span>;
 
 export default function Sidebar({ isOpen = false, onClose }) {
   const location = useLocation();
-  const [open, setOpen] = useState({
-    site: true,
-    work: false,
-    record: location.pathname === '/job/dailey-checklist',
-    report: false,
+  const [open, setOpen] = useState(() => {
+    const saved = localStorage.getItem('sidebar-menu-groups');
+    if (saved) {
+      try {
+        return { site: true, work: false, record: false, report: false, ...JSON.parse(saved) };
+      } catch {
+        localStorage.removeItem('sidebar-menu-groups');
+      }
+    }
+    return {
+      site: true,
+      work: false,
+      record: location.pathname === '/job/dailey-checklist',
+      report: false,
+    };
   });
+
+  useEffect(() => {
+    localStorage.setItem('sidebar-menu-groups', JSON.stringify(open));
+  }, [open]);
 
   return (
     <aside className={`dashboard-sidebar ${isOpen ? 'mobile-open' : ''}`}>

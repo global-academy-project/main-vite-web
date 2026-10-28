@@ -762,3 +762,20 @@
 .secondary-btn, .outline-button { color: var(--safety-primary); border-color: var(--safety-primary); }
 .status-done, .status-completed, .network-badge { color: var(--safety-success); }
 .status-failed { color: var(--safety-danger); }
+
+.dark-mode .feature-page { color: #e5e7eb; background: #111827; }
+.dark-mode .feature-topbar, .dark-mode .profile-summary, .dark-mode .profile-card,
+.dark-mode .document-card, .dark-mode .detail-panel, .dark-mode .upload-panel,
+.dark-mode .processing-panel, .dark-mode .result-panel {
+  border-color: #374151;
+  background: #1f2937;
+}
+.dark-mode .feature-topbar, .dark-mode .feature-topbar a, .dark-mode .feature-link-button,
+.dark-mode .page-heading h1, .dark-mode .profile-summary h2, .dark-mode .profile-card h2,
+.dark-mode .document-card h2, .dark-mode .detail-panel h2 { color: #f3f4f6; }
+.dark-mode .muted, .dark-mode .profile-summary > p, .dark-mode .profile-card h2 + p,
+.dark-mode .profile-field, .dark-mode .profile-quick-info dt, .dark-mode .profile-quick-info dd,
+.dark-mode .document-card p, .dark-mode .detail-panel p { color: #aeb9c9; }
+.dark-mode .site-list li, .dark-mode .profile-field input[readonly] { background: #273548; }
+.dark-mode .site-list strong, .dark-mode .outline-button { color: #e5e7eb; }
+.dark-mode .outline-button { border-color: #93c5fd; }

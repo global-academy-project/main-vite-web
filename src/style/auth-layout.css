@@ -313,3 +313,22 @@
     padding: 0;
   }
 }
+
+.dark-mode .auth-page {
+  color: #e5e7eb;
+  background: #111827;
+}
+.dark-mode .auth-content { background: #111827; }
+.dark-mode .auth-card h1 { color: #f9fafb; }
+.dark-mode .auth-subtitle, .dark-mode .auth-help { color: #aeb9c9; }
+.dark-mode .auth-field input, .dark-mode .auth-field select {
+  border-color: #4b5563;
+  color: #f3f4f6;
+  background: #1f2937;
+}
+.dark-mode .auth-password-rules { color: #cbd5e1; background: #1f2937; }
+.dark-mode .auth-button--secondary { color: #e5e7eb; border-color: #4b5563; background: #1f2937; }
+.dark-mode .auth-alert--info { color: #bfdbfe; background: #1c2d45; }
+.dark-mode .auth-alert--success { color: #a7f3d0; background: #1d392d; }
+.dark-mode .auth-alert--warning { color: #f6d58e; background: #352e21; }
+.dark-mode .auth-alert--error { color: #fda4af; background: #3b2024; }

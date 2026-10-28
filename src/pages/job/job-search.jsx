@@ -22,7 +22,6 @@ function JobSearch() {
   useEffect(() => {
     document.documentElement.classList.toggle('dark-mode', darkMode);
     localStorage.setItem('dashboard-theme', darkMode ? 'dark' : 'light');
-    return () => document.documentElement.classList.remove('dark-mode');
   }, [darkMode]);
 
   useEffect(() => {
@@ -82,7 +81,6 @@ function JobSearch() {
         <main className="dashboard-content">
           <div className="page-heading">
             <h1>현장목록</h1>
-            <p>계정에 등록된 현장을 확인합니다.</p>
           </div>
           {userError && (
             <div className="dashboard-error" role="alert">

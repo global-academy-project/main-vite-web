@@ -32,7 +32,11 @@
 .chevron { color: #8a96a9; font-size: 19px; }
 .submenu { display: grid; padding: 2px 0 6px 36px; }
 .submenu a { padding: 8px; border-radius: 6px; color: #647087; font-size: 13px; }
-.submenu a:hover, .submenu a.selected { background: #f1f6ff; color: #1765da; font-weight: 600; }
+.submenu a:hover, .submenu a.selected { background: #eef5ff; color: #145fd7; font-weight: 600; }
+.top-nav-item:hover, .top-nav-item:focus-visible, .group-heading:hover, .group-heading:focus-visible {
+  color: #145fd7;
+  background: #eef5ff;
+}
 .sidebar-footer { margin-top: 22px; padding-top: 15px; border-top: 1px solid #e8ecf2; }
 .admin-link { gap: 9px; padding: 7px; color: #7d899d; }
 .admin-badge { margin-left: auto; padding: 4px 8px; border-radius: 12px; background: #f1f3f7; font-size: 11px; }
@@ -88,6 +92,8 @@
 .dark-mode .top-nav-item.active, .dark-mode .submenu a.selected { background: #243b63; color: #93c5fd; }
 .dark-mode .submenu a:hover, .dark-mode .group-heading:hover { background: #273548; }
 .dark-mode .group-heading:hover, .dark-mode .submenu a:hover { color: #f3f4f6; }
+.dark-mode .top-nav-item:hover, .dark-mode .top-nav-item:focus-visible,
+.dark-mode .group-heading:focus-visible { color: #f3f4f6; background: #273548; }
 .dark-mode .role-switch { background: #111827; }
 .dark-mode .role-switch button { color: #aeb9c9; }
 .dark-mode .role-switch button.chosen { background: #374151; color: #f3f4f6; }
