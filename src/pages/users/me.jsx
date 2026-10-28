@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { getMe, updateMe } from "../../api/users";
-import { clearToken } from "../../api/client";
+import { Link } from "react-router-dom";
+import { getMe, requestEmailChange, updateMe } from "../../api/users";
+import { authErrorMessage } from "../../constants/auth-errors";
 import AuthAlert from "../../components/auth/auth-alert";
 import FeatureHeader from "../../components/feature-header";
 import "../../style/feature-style.css";
@@ -13,44 +13,38 @@ const labels = {
   jobTitle: "직책",
 };
 
+const roleLabels = {
+  WRITER: "작성자",
+  APPROVER: "승인자",
+  SITE_ADMIN: "현장 관리자",
+  ADMIN: "관리자",
+};
+
 export default function Me() {
-  const [user, setUser] = useState(null);
+  const [me, setMe] = useState(null);
   const [message, setMessage] = useState("");
-  const navigate = useNavigate();
+  const [emailMessage, setEmailMessage] = useState("");
 
   useEffect(() => {
     getMe()
-      .then(setUser)
+      .then(setMe)
       .catch((error) => {
-        setUser({
-          name: "홍길동",
-          email: "hong.gildong@example.com",
-          phone: "010-1234-5678",
-          department: "안전관리팀",
-          jobTitle: "관리자",
-          sites: [
-            {
-              siteId: "preview-site",
-              name: "서울 본사 현장",
-              role: "관리자",
-            },
-          ],
-        });
-        setMessage(`미리보기 · ${error.message}`);
+        setMessage(error.message);
       });
   }, []);
 
-  const logout = () => {
-    clearToken();
-    navigate("/signin", { replace: true });
-  };
-
   const save = async (event) => {
     event.preventDefault();
-    const values = Object.fromEntries(new FormData(event.currentTarget));
+    const values = new FormData(event.currentTarget);
 
     try {
-      setUser(await updateMe({ ...values, lockVersion: user.lockVersion }));
+      setMe(await updateMe({
+        name: values.get("name"),
+        phone: values.get("phone"),
+        department: values.get("department"),
+        jobTitle: values.get("jobTitle"),
+        lockVersion: me.lockVersion,
+      }));
       setMessage("내 정보가 저장되었습니다.");
     } catch (error) {
       setMessage(
@@ -61,10 +55,31 @@ export default function Me() {
     }
   };
 
-  if (!user) {
+  const changeEmail = async (event) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const values = new FormData(form);
+
+    try {
+      await requestEmailChange(
+        values.get("newEmail"),
+        values.get("currentPassword"),
+      );
+      form.reset();
+      setEmailMessage(
+        "새 주소로 확인 메일을 보냈습니다. 10분 안에 링크를 눌러야 바뀝니다.",
+      );
+    } catch (error) {
+      setEmailMessage(authErrorMessage(error));
+    }
+  };
+
+  const user = me?.user;
+
+  if (!me) {
     return (
       <div className="feature-page">
-        <FeatureHeader onLogout={logout} />
+        <FeatureHeader />
         <main className="page-message">
           {message || "내 정보를 불러오는 중입니다..."}
         </main>
@@ -74,7 +89,7 @@ export default function Me() {
 
   return (
     <div className="feature-page">
-      <FeatureHeader onLogout={logout} />
+      <FeatureHeader />
       <main className="page-content profile-page">
         <Link className="back-button" to="/feature">
           ← 문서 목록으로
@@ -135,13 +150,15 @@ export default function Me() {
                 <h2>소속 및 권한</h2>
                 <p>현재 접근 가능한 현장과 역할입니다.</p>
               </div>
-              {user.sites?.length ? (
+              {me.sites?.length ? (
                 <ul className="site-list">
-                  {user.sites.map((site) => (
+                  {me.sites.map((site) => (
                     <li key={site.siteId}>
                       <span className="site-icon">⌂</span>
                       <span><strong>{site.name}</strong><small>현장 구성원</small></span>
-                      <span className="role-badge">{site.role}</span>
+                      <span className="role-badge">
+                        {roleLabels[site.role] ?? site.role}
+                      </span>
                     </li>
                   ))}
                 </ul>
@@ -157,6 +174,28 @@ export default function Me() {
               <Link className="outline-button" to="/change-password">
                 비밀번호 변경
               </Link>
+            </section>
+            <section className="profile-card">
+              <div className="card-title-row">
+                <h2>이메일 변경</h2>
+                <p>새 이메일로 전송된 확인 링크를 눌러야 변경이 완료됩니다.</p>
+              </div>
+              {emailMessage && <AuthAlert type="info">{emailMessage}</AuthAlert>}
+              <form className="profile-form" onSubmit={changeEmail}>
+                <label className="profile-field">
+                  새 이메일
+                  <input name="newEmail" type="email" required />
+                </label>
+                <label className="profile-field">
+                  현재 비밀번호
+                  <input name="currentPassword" type="password" required />
+                </label>
+                <div className="profile-form-actions">
+                  <button className="primary-button" type="submit">
+                    확인 메일 보내기
+                  </button>
+                </div>
+              </form>
             </section>
           </div>
         </div>
