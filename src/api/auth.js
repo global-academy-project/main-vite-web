@@ -29,3 +29,9 @@ export const resetPassword = (token, newPassword) =>
     body: { token, newPassword },
     skipRefresh: true,
   });
+export const confirmEmailChange = (token) =>
+  api("/api/v1/auth/email/change/confirm", {
+    method: "POST",
+    body: { token },
+    skipRefresh: true,
+  });
