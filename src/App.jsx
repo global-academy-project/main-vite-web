@@ -9,6 +9,7 @@ import ChangePassword from "./pages/users/change-password";
 import ForgotPassword from "./pages/users/forgot-password";
 import ResetPassword from "./pages/users/reset-password";
 import VerifyEmail from "./pages/users/verify-email";
+import VerifyEmailChange from "./pages/users/verify-email-change";
 // Feature Component 모듈
 import DocumentDetail from "./pages/features/document-detail";
 import Feature from "./pages/features/feature";
@@ -33,6 +34,7 @@ function App() {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/verify-email" element={<VerifyEmail />} />
+        <Route path="/verify-email-change" element={<VerifyEmailChange />} />
         <Route
           path="/me"
           element={
