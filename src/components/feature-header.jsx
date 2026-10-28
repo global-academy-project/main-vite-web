@@ -1,17 +1,19 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import { getCurrentUser } from "../api/client";
+import { Link, useNavigate } from "react-router-dom";
+import { logout } from "../api/auth";
+import { clearToken, getCurrentUser } from "../api/client";
 
 function FeatureHeader({ onLogout }) {
   const [userName, setUserName] = useState("내 계정");
+  const navigate = useNavigate();
 
   useEffect(() => {
     let cancelled = false;
 
     getCurrentUser()
-      .then((user) => {
+      .then((data) => {
         if (!cancelled) {
-          setUserName(user?.name || user?.email || "내 계정");
+          setUserName(data?.user?.name || data?.user?.email || "내 계정");
         }
       })
       .catch(() => {
@@ -22,6 +24,19 @@ function FeatureHeader({ onLogout }) {
       cancelled = true;
     };
   }, []);
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } finally {
+      clearToken();
+      if (onLogout) {
+        onLogout();
+      } else {
+        navigate("/signin", { replace: true });
+      }
+    }
+  };
 
   return (
     <header className="feature-topbar">
@@ -36,7 +51,7 @@ function FeatureHeader({ onLogout }) {
         <button
           className="feature-link-button"
           type="button"
-          onClick={onLogout}
+          onClick={handleLogout}
         >
           로그아웃
         </button>
