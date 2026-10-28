@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 
 const menuGroups = [
   ['site', '현장관리', ['현장목록', '작업자관리', '오늘현화']],
@@ -11,10 +11,11 @@ const menuGroups = [
 const Icon = ({ children }) => <span className="menu-icon">{children}</span>;
 
 export default function Sidebar({ isOpen = false, onClose }) {
+  const location = useLocation();
   const [open, setOpen] = useState({
     site: true,
     work: false,
-    record: false,
+    record: location.pathname === '/job/dailey-checklist',
     report: false,
   });
 
@@ -53,7 +54,15 @@ export default function Sidebar({ isOpen = false, onClose }) {
               </button>
               {open[key] && (
                 <div className="submenu">
-                  {items.map((item, index) => (
+                  {items.map((item, index) => item === '점검 체크리스트' ? (
+                    <NavLink
+                      to="/job/dailey-checklist"
+                      className={({ isActive }) => isActive ? 'selected' : ''}
+                      key={item}
+                    >
+                      {item}
+                    </NavLink>
+                  ) : (
                     <a
                       href="#"
                       className={key === 'site' && index === 0 ? 'selected' : ''}

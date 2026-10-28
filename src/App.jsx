@@ -17,7 +17,7 @@ import Upload from "./pages/features/upload";
 import ProtectedRoute from "./components/protected-route";
 // Job Component 모듈
 import JobSearch from "./pages/job/job-search";
-import DaileyChecklist from "./pages/job/dailey-checklist";
+import DaileyChecklist from "./pages/job/job-dailey-checklist";
 
 function EntryRedirect() {
   return <Navigate to={getToken() ? "/feature" : "/signin"} replace />;
@@ -71,9 +71,7 @@ function App() {
         <Route
           path="/job/list"
           element={
-            <ProtectedRoute>
               <JobSearch />
-            </ProtectedRoute>
           }
         />
         <Route
