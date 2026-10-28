@@ -1,13 +1,32 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { changePassword } from "../../api/users";
-import { clearToken } from "../../api/client";
+import { logout } from "../../api/auth";
+import { changePassword, getMe } from "../../api/users";
+import { clearToken, setToken } from "../../api/client";
+import { authErrorMessage } from "../../constants/auth-errors";
 import AuthLayout from "../../components/auth/auth-layout";
 import AuthAlert from "../../components/auth/auth-alert";
 import PasswordRules from "../../components/auth/password-rules";
 export default function ChangePassword() {
   const nav = useNavigate();
   const [error, setError] = useState("");
+  const [mustChangePassword, setMustChangePassword] = useState(false);
+
+  useEffect(() => {
+    getMe()
+      .then((me) => setMustChangePassword(me?.user?.mustChangePassword === true))
+      .catch(() => {});
+  }, []);
+
+  const doLogout = async () => {
+    try {
+      await logout();
+    } finally {
+      clearToken();
+      nav("/signin", { replace: true });
+    }
+  };
+
   const submit = async (e) => {
     e.preventDefault();
     const f = new FormData(e.currentTarget);
@@ -16,21 +35,24 @@ export default function ChangePassword() {
       return;
     }
     try {
-      await changePassword({
+      const result = await changePassword({
         currentPassword: f.get("currentPassword"),
         newPassword: f.get("newPassword"),
       });
+      setToken(result.accessToken, result.expiresIn);
       nav("/job/list");
     } catch (err) {
-      setError(err.message);
+      setError(authErrorMessage(err));
     }
   };
   return (
     <AuthLayout compact>
       <div className="auth-card">
-        <AuthAlert type="warning">
-          임시 비밀번호로 로그인했습니다. 계속하려면 새 비밀번호를 설정하세요.
-        </AuthAlert>
+        {mustChangePassword && (
+          <AuthAlert type="warning">
+            임시 비밀번호로 로그인했습니다. 계속하려면 새 비밀번호를 설정하세요.
+          </AuthAlert>
+        )}
         <h1>비밀번호 변경</h1>
         <form className="auth-form" onSubmit={submit}>
           <label className="auth-field">
@@ -51,10 +73,7 @@ export default function ChangePassword() {
           <button
             type="button"
             className="auth-link"
-            onClick={() => {
-              clearToken();
-              nav("/signin");
-            }}
+            onClick={doLogout}
           >
             로그아웃
           </button>
