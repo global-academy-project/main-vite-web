@@ -23,7 +23,7 @@ function requirePermit(permit, siteId) {
     || !Array.isArray(permit.measurements) || typeof permit.canSubmit !== 'boolean'
     || !['HOT', 'CONFINED', 'HEIGHT'].includes(permit.permitType)
     || !['DRAFT', 'CHECKING', 'BLOCKED', 'PENDING', 'APPROVED', 'SUSPENDED', 'REJECTED', 'CLOSED', 'SUPERSEDED'].includes(permit.status)
-    || (permit.lastEvaluation !== null && (!permit.lastEvaluation
+    || (permit.lastEvaluation != null && (!permit.lastEvaluation
       || !['PASS', 'WARN', 'BLOCK'].includes(permit.lastEvaluation.result)
       || !Array.isArray(permit.lastEvaluation.violations)))) {
     throw new Error('허가서 응답 형식이 올바르지 않습니다.');
@@ -77,13 +77,28 @@ export const updatePermit = async (id, body, siteId) =>
   requirePermit(await api(`/api/v1/permits/${jobId(id)}`, { method: 'PUT', body }), siteId);
 export const saveMeasurements = async (id, items, siteId) =>
   requirePermit(await api(`/api/v1/permits/${jobId(id)}/measurements`, { method: 'POST', body: { items } }), siteId);
+export function requireRuleEvaluation(evaluation) {
+  if (!evaluation || !['PASS', 'WARN', 'BLOCK'].includes(evaluation.result)
+    || !Number.isInteger(evaluation.rulesApplied) || evaluation.rulesApplied < 0
+    || !Array.isArray(evaluation.violations) || !Array.isArray(evaluation.unusedFields)
+    || !Array.isArray(evaluation.checks) || evaluation.checks.length !== evaluation.rulesApplied
+    || !evaluation.checks.every((item) => item && typeof item.ruleCode === 'string'
+      && typeof item.category === 'string' && ['PASS', 'FAIL', 'MISSING'].includes(item.status)
+      && ['BLOCK', 'WARN'].includes(item.severity)
+      && typeof item.target === 'string' && typeof item.expected === 'string'
+      && ['actual', 'message', 'action', 'legalBasis', 'sourceUrl'].every((field) =>
+        item[field] == null || typeof item[field] === 'string'))) {
+    throw new Error('규칙 상세 판정(checks) 응답 형식이 올바르지 않습니다. 갱신된 서버가 적용되었는지 확인해 주세요.');
+  }
+  return evaluation;
+}
+
 export async function checkPermit(id) {
   const result = await api(`/api/v1/permits/${jobId(id)}/check`, { method: 'POST' });
-  if (result?.permitId !== jobId(id) || !['PASS', 'WARN', 'BLOCK'].includes(result.evaluation?.result)
-    || !Number.isInteger(result.evaluation.rulesApplied) || result.evaluation.rulesApplied < 0
-    || !Array.isArray(result.evaluation.violations) || !Array.isArray(result.evaluation.unusedFields)) {
+  if (result?.permitId !== jobId(id)) {
     throw new Error('허가서 판정 응답 형식이 올바르지 않습니다.');
   }
+  requireRuleEvaluation(result.evaluation);
   return result;
 }
 export const submitPermit = async (id, siteId) =>
