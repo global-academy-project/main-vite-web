@@ -28,7 +28,12 @@
 .nav-divider { height: 1px; margin: 12px 0; background: #edf0f5; }
 .group-heading { width: 100%; justify-content: space-between; padding: 10px 7px; border: 0; border-radius: 8px; background: transparent; color: #344158; font-size: 14px; font-weight: 600; text-align: left; cursor: pointer; }
 .group-heading > span:first-child { display: flex; align-items: center; gap: 10px; }
-.group-heading:hover { background: #f6f8fc; }
+.group-heading:hover:not(:disabled) {
+  background: #f1f6ff;
+  color: #1765da;
+  font-weight: 600;
+  transform: none;
+}
 .chevron { color: #8a96a9; font-size: 19px; }
 .submenu { display: grid; padding: 2px 0 6px 36px; }
 .submenu a { padding: 8px; border-radius: 6px; color: #647087; font-size: 13px; }

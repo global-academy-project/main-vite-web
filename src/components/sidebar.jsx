@@ -88,6 +88,34 @@ export default function Sidebar({ isOpen = false, onClose }) {
                     >
                       {item}
                     </NavLink>
+                  ) : item === '작성문서 이력' ? (
+                    <NavLink to="/job/document-history" className={({ isActive }) => isActive ? 'selected' : ''} key={item}>
+                      {item}
+                    </NavLink>
+                  ) : item === '위험·근접 사고' ? (
+                    <NavLink to="/job/incidents" className={({ isActive }) => isActive ? 'selected' : ''} key={item}>
+                      {item}
+                    </NavLink>
+                  ) : item === '작업허가' ? (
+                    <NavLink to="/job/permits" className={({ isActive }) => isActive ? 'selected' : ''} key={item}>
+                      {item}
+                    </NavLink>
+                  ) : item === '작업 위험성평가' ? (
+                    <NavLink to="/job/risk-assessment" className={({ isActive }) => isActive ? 'selected' : ''} key={item}>
+                      {item}
+                    </NavLink>
+                  ) : item === 'TBM' ? (
+                    <NavLink to="/job/tbm" className={({ isActive }) => isActive ? 'selected' : ''} key={item}>
+                      {item}
+                    </NavLink>
+                  ) : item === '교육자료 관리' ? (
+                    <NavLink to="/job/training-materials" className={({ isActive }) => isActive ? 'selected' : ''} key={item}>
+                      {item}
+                    </NavLink>
+                  ) : item === '작업자관리' ? (
+                    <NavLink to="/admin/users" className={({ isActive }) => isActive ? 'selected' : ''} key={item}>
+                      {item}
+                    </NavLink>
                   ) : (
                     <a
                       href="#"

@@ -19,6 +19,13 @@ import ProtectedRoute from "./components/protected-route";
 import JobSearch from "./pages/job/job-search";
 import JobDashboard from "./pages/job/job-dashboard";
 import DaileyChecklist from "./pages/job/job-dailey-checklist";
+import JobDocumentHistory from "./pages/job/job-document-history";
+import JobIncidents from "./pages/job/job-incidents";
+import JobPermits from "./pages/job/job-permits";
+import JobRiskAssessment from "./pages/job/job-risk-assessment";
+import JobTbm from "./pages/job/job-tbm";
+import JobTrainingMaterials from "./pages/job/job-training-materials";
+import AdminUsers from "./pages/admin/users";
 import Dashboard from "./pages/dashboard";
 
 function EntryRedirect() {
@@ -82,6 +89,13 @@ function App() {
           path="/job/dailey-checklist"
           element={<DaileyChecklist />}
         />
+        <Route path="/job/document-history" element={<JobDocumentHistory />} />
+        <Route path="/job/incidents" element={<JobIncidents />} />
+        <Route path="/job/permits" element={<JobPermits />} />
+        <Route path="/job/risk-assessment" element={<JobRiskAssessment />} />
+        <Route path="/job/tbm" element={<JobTbm />} />
+        <Route path="/job/training-materials" element={<JobTrainingMaterials />} />
+        <Route path="/admin/users" element={<AdminUsers />} />
         <Route path="*" element={<Navigate to="/signin" replace />} />
       </Routes>
     </BrowserRouter>
