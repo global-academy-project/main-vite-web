@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   checkPermit, createPermit, createWork, getPermit, getWork, jobId, measurementItems,
-  requireWork, saveMeasurements, submitPermit, updatePermit, validatePeriod,
+  requireRuleEvaluation, requireWork, saveMeasurements, submitPermit, updatePermit, validatePeriod,
 } from './jobs.js';
 
 const work = {
@@ -45,6 +45,25 @@ test('work response is checked against the selected site', () => {
   assert.equal(requireWork(work, 1), work);
   assert.throws(() => requireWork(work, 2), /현장/);
   assert.throws(() => requireWork({ siteId: 1 }, 1), /형식/);
+});
+
+test('rule evaluations require all checks and preserve PASS, FAIL, MISSING and zero-rule results', () => {
+  const checks = ['PASS', 'FAIL', 'MISSING'].map((status) => ({
+    ruleCode: `HOT_${status}`, category: 'REQUIRED_FIELD', target: 'form.extinguisher_ready',
+    status, actual: status === 'MISSING' ? null : status === 'PASS' ? 'true' : 'false',
+    expected: '확인 필요', severity: 'BLOCK',
+  }));
+  const evaluation = { result: 'BLOCK', rulesApplied: 3, checks, violations: [], unusedFields: [] };
+  assert.equal(requireRuleEvaluation(evaluation), evaluation);
+  assert.doesNotThrow(() => requireRuleEvaluation({
+    result: 'PASS', rulesApplied: 0, checks: [], violations: [], unusedFields: [],
+  }));
+  for (const invalid of [
+    { ...evaluation, checks: undefined }, { ...evaluation, checks: [] },
+    { ...evaluation, checks: [null, ...checks.slice(1)] },
+    { ...evaluation, checks: [{ ...checks[0], status: 'UNKNOWN' }, ...checks.slice(1)] },
+    { ...evaluation, checks: [{ ...checks[0], actual: false }, ...checks.slice(1)] },
+  ]) assert.throws(() => requireRuleEvaluation(invalid), /checks/);
 });
 
 test('work and permit API HTTP contracts, state transitions and failures', async (t) => {
@@ -90,6 +109,13 @@ test('work and permit API HTTP contracts, state transitions and failures', async
   await getPermit(11, 1);
   assert.equal(requests.at(-1).method, 'GET');
   assert.equal(requests.at(-1).path, '/api/v1/permits/11');
+  const withoutEvaluation = { ...permit };
+  delete withoutEvaluation.lastEvaluation;
+  respond(withoutEvaluation);
+  assert.deepEqual(await getPermit(11, 1), withoutEvaluation);
+  respond({ ...permit, lastEvaluation: { result: 'INVALID', violations: [] } });
+  await assert.rejects(getPermit(11, 1), /형식/);
+  respond(permit);
   await updatePermit(11, { ...content, lockVersion: 0 }, 1);
   assert.equal(requests.at(-1).method, 'PUT');
   assert.deepEqual(requests.at(-1).body, { ...content, lockVersion: 0 });
@@ -101,12 +127,20 @@ test('work and permit API HTTP contracts, state transitions and failures', async
 
   const blocked = {
     permitId: 11, status: 'BLOCKED', canSubmit: false,
-    evaluation: { evaluationId: 8, result: 'BLOCK', rulesApplied: 5, violations: [], unusedFields: [] },
+    evaluation: {
+      evaluationId: 8, result: 'BLOCK', rulesApplied: 1, violations: [], unusedFields: [],
+      checks: [{
+        ruleCode: 'HOT_EXTINGUISHER', category: 'REQUIRED_FIELD', target: 'form.extinguisher_ready',
+        status: 'MISSING', expected: '확인 필요', severity: 'BLOCK',
+      }],
+    },
   };
   respond(blocked);
   assert.deepEqual(await checkPermit(11), blocked);
   assert.equal(requests.at(-1).path, '/api/v1/permits/11/check');
   assert.equal(requests.at(-1).body, undefined);
+  respond({ ...blocked, evaluation: { ...blocked.evaluation, checks: undefined } });
+  await assert.rejects(checkPermit(11), /checks/);
   respond({ ...permit, status: 'PENDING', lockVersion: 3 });
   assert.equal((await submitPermit(11, 1)).status, 'PENDING');
   assert.equal(requests.at(-1).path, '/api/v1/permits/11/submit');

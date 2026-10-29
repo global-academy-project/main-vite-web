@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { api, getCurrentUser } from './client';
 import { setLastSite } from './users';
+import { requireRuleEvaluation } from './jobs.js';
 
 export const workTypes = { GENERAL: '일반', HOT: '화기', CONFINED: '밀폐공간', HEIGHT: '고소' };
 export const typeClass = { GENERAL: 'type-normal', HOT: 'type-hot', CONFINED: 'type-closed', HEIGHT: 'type-height' };
@@ -8,11 +9,11 @@ export const statusClass = { BLOCKED: 'status-blocked', PENDING: 'status-waiting
 export const siteRoles = { ADMIN: '회사 관리자', WRITER: '작성자', APPROVER: '승인자', SITE_ADMIN: '현장 관리자' };
 
 // Stateless preview; persisted permit evaluations use /permits/{id}/check.
-export function checkWorkRules({ siteId, workType, input }) {
-  return api('/api/v1/rules/check', {
+export async function checkWorkRules({ siteId, workType, input }) {
+  return requireRuleEvaluation(await api('/api/v1/rules/check', {
     method: 'POST',
     body: { siteId, workType, input },
-  });
+  }));
 }
 
 export function useWorkSite() {
