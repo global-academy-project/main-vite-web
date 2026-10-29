@@ -17,6 +17,7 @@ function TrainingFields() {
         <label className="job-field-wide">파일 선택 (업로드되지 않음)<input type="file" accept=".pdf,.ppt,.pptx,.doc,.docx,.hwp,.hwpx,.txt" required onChange={(event) => setFile(event.target.files?.[0] ?? null)} /></label>
       </div>
       <p className="job-help">교육자료 분류는 화면용입니다. 지식 원본·청크·MSDS는 AI 서비스 소유이며, 브라우저에서 지식 DB나 외부 API 인증키로 직접 접근하지 않습니다.</p>
+      <p className="job-help">공공 데이터 연동 대상은 물질안전보건자료(MSDS), 코샤가이드, 사망사고 고위험요인(SIF)입니다. AI 서버의 수집·검색 API가 연결되기 전까지 이 화면에서는 조회하거나 파일을 전송하지 않습니다.</p>
       {file && (
         <section className="job-file-summary" aria-label="선택한 자료 정보">
           <h2>선택한 파일</h2>

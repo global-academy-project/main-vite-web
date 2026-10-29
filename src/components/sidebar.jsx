@@ -48,7 +48,7 @@ export default function Sidebar({ isOpen = false, onClose }) {
         <nav className="primary-nav">
           <NavLink to="/dashboard" end className={({ isActive }) => `top-nav-item${isActive ? ' active' : ''}`}>
             <Icon>⌂</Icon>
-            대시보드
+            대시보드 · AI 질문
           </NavLink>
         </nav>
         <div className="nav-divider" />

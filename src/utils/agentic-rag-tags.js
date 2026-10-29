@@ -6,7 +6,7 @@ export const TAG_AXES = [
   { axis: 'SUBSTANCE', label: '물질(CAS)' },
 ];
 
-const TAG_LABELS = {
+export const TAG_LABELS = {
   SEVERITY: {
     NEAR_MISS: '아차사고',
     MINOR: '경상',
@@ -94,10 +94,21 @@ function assertTags(tags) {
     if (tag.source !== undefined && !['AI', 'USER'].includes(tag.source)) {
       throw new Error(`알 수 없는 태그 출처: ${tag.source}`);
     }
-    if (tag.confidence !== undefined && (tag.confidence < 0 || tag.confidence > 1)) {
+    if (tag.confidence != null && (!Number.isFinite(tag.confidence) || tag.confidence < 0 || tag.confidence > 1)) {
       throw new RangeError('태그 confidence는 0과 1 사이여야 합니다.');
     }
   }
+}
+
+export function toIncidentFilters(tags) {
+  assertTags(tags);
+  const keys = {
+    SEVERITY: 'severity', ACCIDENT_TYPE: 'accidentType', HAZARD: 'hazard',
+    WORK_TYPE: 'workType', SUBSTANCE: 'cas',
+  };
+  return Object.fromEntries(TAG_AXES.map(({ axis }) => [
+    keys[axis], [...new Set(tags.filter((tag) => tag.axis === axis).map((tag) => tag.value))],
+  ]));
 }
 
 export function getTagEntries(tags) {
