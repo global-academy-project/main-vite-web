@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 
 const menuGroups = [
-  ['site', '현장관리', ['현장목록', '작업자관리']],
+  ['site', '현장관리', ['현장목록', '가입 승인·현장 권한']],
   ['work', '작업관리', ['작업 현황', '작업 위험성평가', '작업허가', '위험·근접 사고', 'TBM', '교육자료 관리']],
   ['record', '기록관리', ['점검 체크리스트', '작성문서 이력', '사진 기록(AI)']],
   ['report', '보고서관리', ['부서 보고(PDF)', '중대재해 통계', '통계·분석']],
@@ -112,7 +112,7 @@ export default function Sidebar({ isOpen = false, onClose }) {
                     <NavLink to="/job/training-materials" className={({ isActive }) => isActive ? 'selected' : ''} key={item}>
                       {item}
                     </NavLink>
-                  ) : item === '작업자관리' ? (
+                  ) : item === '가입 승인·현장 권한' ? (
                     <NavLink to="/admin/users" className={({ isActive }) => isActive ? 'selected' : ''} key={item}>
                       {item}
                     </NavLink>
