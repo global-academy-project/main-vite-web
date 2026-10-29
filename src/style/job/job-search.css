@@ -84,6 +84,10 @@
 .action-card strong { color: #24334e; font-size: 13px; line-height: 1.5; }
 .action-card p { margin: 7px 0; color: #687995; font-size: 12px; }
 .action-card small { color: #8994a6; font-size: 11px; }
+.prework-action-list { display: grid; gap: 10px; margin-bottom: 16px; }
+.prework-action { display: flex; align-items: flex-start; gap: 10px; color: #344158; font-size: 13px; line-height: 1.5; }
+.prework-action > span { display: grid; width: 22px; height: 22px; flex: 0 0 22px; place-items: center; border-radius: 50%; background: #eaf1ff; color: #246be2; font-size: 11px; font-weight: 700; }
+.prework-action strong { padding-top: 2px; font-weight: 600; }
 .scenario-notice { margin: 12px 4px 0; text-align: right; }
 .pill { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; line-height: 1.4; white-space: nowrap; }
 .type-hot { background: #fff0ed; color: #ed625c; }
@@ -106,6 +110,8 @@
 .dark-mode .panel td, .dark-mode .panel th, .dark-mode .detail-list > div { border-color: #374151; }
 .dark-mode .detail-list strong, .dark-mode .incident-heading strong, .dark-mode .action-card strong,
 .dark-mode .subheading { color: #e5e7eb; }
+.dark-mode .prework-action { color: #d1d5db; }
+.dark-mode .prework-action > span { background: #243b63; color: #93c5fd; }
 .dark-mode .qualification-row { background: #273548; }
 .dark-mode .dashboard-question > p { color: #aeb9c9; }
 .dark-mode .dashboard-question input { border-color: #475569; background: #111827; color: #e5e7eb; }

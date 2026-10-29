@@ -1,0 +1,35 @@
+.job-management .job-demo-notice { margin: 20px 0; padding: 14px 16px; border: 1px solid #e8d39e; border-radius: 10px; background: #fffaf0; color: #805a15; font-size: 13px; line-height: 1.7; }
+.job-form { margin-top: 20px; }
+.job-form h2 { margin: 22px 0 12px; }
+.job-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.job-fields label { display: grid; align-content: start; gap: 8px; color: #344158; font-size: 13px; font-weight: 600; }
+.job-field-wide { grid-column: 1 / -1; }
+.job-fields input, .job-fields select, .job-fields textarea { width: 100%; min-width: 0; min-height: 42px; padding: 10px 12px; border: 1px solid #dfe5ee; border-radius: 8px; background: #fff; color: #24334e; font: inherit; font-weight: 400; }
+.job-fields textarea { resize: vertical; min-height: 85px; line-height: 1.6; }
+.job-fields :is(input, select, textarea):focus-visible { outline: 2px solid #2876ee; outline-offset: 2px; }
+.job-form fieldset { min-width: 0; margin: 22px 0 12px; padding: 18px; border: 1px solid #dfe5ee; border-radius: 10px; }
+.job-form legend { padding: 0 8px; color: #344158; font-size: 14px; font-weight: 700; }
+.job-management .job-help { color: #687995; font-size: 12px; line-height: 1.7; }
+.job-form-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 24px; padding-top: 20px; border-top: 1px solid #e8ecf2; }
+.job-form-actions button { padding: 10px 18px; border-radius: 8px; background: #246be2; font-size: 13px; }
+.job-form-actions span { color: #687995; font-size: 12px; }
+.job-form .job-secondary-button { padding: 8px 12px; border: 1px solid #cbd6e5; border-radius: 8px; background: #f5f8fc; color: #344158; font-size: 12px; }
+.job-review-notice { padding: 12px; border-radius: 8px; background: #eef5ff; color: #145fd7; font-size: 13px; line-height: 1.7; }
+.job-example { margin-top: 20px; }
+.job-demo-notice a { text-decoration: underline; font-weight: 700; }
+.job-history-refresh, .job-history-pagination button { padding: 8px 12px; border: 1px solid #cbd6e5; border-radius: 8px; background: #eef5ff; color: #145fd7; font-size: 12px; }
+.job-history-pagination { display: flex; justify-content: center; align-items: center; gap: 16px; margin-top: 20px; font-size: 13px; }
+.dark-mode .job-history-refresh, .dark-mode .job-history-pagination button { border-color: #475569; background: #243b63; color: #93c5fd; }
+.job-example h3 { font-size: 15px; }
+.job-example > p, .job-file-summary p { color: #59657a; font-size: 13px; overflow-wrap: anywhere; }
+.dark-mode .job-management .job-demo-notice { border-color: #70572e; background: #352e21; color: #f6d58e; }
+.dark-mode .job-fields label, .dark-mode .job-form legend, .dark-mode .job-example h3 { color: #e5e7eb; }
+.dark-mode .job-fields input, .dark-mode .job-fields select, .dark-mode .job-fields textarea { border-color: #475569; background: #111827; color: #e5e7eb; color-scheme: dark; }
+.dark-mode .job-form fieldset, .dark-mode .job-form-actions { border-color: #475569; }
+.dark-mode .job-management .job-help, .dark-mode .job-form-actions span, .dark-mode .job-example > p, .dark-mode .job-file-summary p { color: #aeb9c9; }
+.dark-mode .job-form .job-secondary-button { border-color: #475569; background: #273548; color: #d1d5db; }
+.dark-mode .job-review-notice { background: #243b63; color: #93c5fd; }
+@media (max-width: 720px) {
+  .job-fields { grid-template-columns: minmax(0, 1fr); }
+  .job-form fieldset { padding: 12px; }
+}
