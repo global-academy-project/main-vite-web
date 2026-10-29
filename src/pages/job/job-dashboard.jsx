@@ -12,6 +12,7 @@ function WorkWorkspace({ site, disabled }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+  const [creationUncertain, setCreationUncertain] = useState(false);
   const pending = useRef(false);
   const mounted = useRef(false);
   useEffect(() => {
@@ -19,7 +20,7 @@ function WorkWorkspace({ site, disabled }) {
     return () => { mounted.current = false; };
   }, []);
 
-  const run = async (action, success) => {
+  const run = async (action, success, creating = false) => {
     if (pending.current || disabled) return;
     pending.current = true;
     setBusy(true);
@@ -31,9 +32,13 @@ function WorkWorkspace({ site, disabled }) {
         setWork(saved);
         setLookupId(String(saved.workId));
         setMessage(success);
+        if (creating) setCreationUncertain(false);
       }
     } catch (requestError) {
-      if (mounted.current) setError(requestError.message || '작업 요청에 실패했습니다.');
+      if (mounted.current) {
+        if (creating && requestError.code === 'WRITE_OUTCOME_UNKNOWN') setCreationUncertain(true);
+        setError(requestError.message || '작업 요청에 실패했습니다.');
+      }
     } finally {
       pending.current = false;
       if (mounted.current) setBusy(false);
@@ -41,6 +46,7 @@ function WorkWorkspace({ site, disabled }) {
   };
   const create = (event) => {
     event.preventDefault();
+    if (creationUncertain) return;
     const fields = Object.fromEntries(new FormData(event.currentTarget));
     void run(() => {
       if (fields.startAt && fields.endAt) validatePeriod(fields.startAt, fields.endAt);
@@ -54,16 +60,24 @@ function WorkWorkspace({ site, disabled }) {
         description: fields.description.trim() || null, workType: fields.workType,
         startAt: fields.startAt || null, endAt: fields.endAt || null, workerCount,
       });
-    }, '작업을 서버에 저장했습니다. 작업 승인은 별도 절차입니다.');
+    }, '작업을 서버에 저장했습니다. 작업 승인은 별도 절차입니다.', true);
   };
   return (
     <>
       {error && <p className="dashboard-error" role="alert">{error}</p>}
       {message && <p className="job-review-notice" role="status">{message}</p>}
+      {creationUncertain && <section className="job-demo-notice" role="alert">
+        <p>작업 생성 결과가 불확실하여 추가 등록을 중지했습니다. 작업 ID를 알면 먼저 조회하세요. 작업 목록 API가 없으므로 ID도 모르면 관리자에게 저장 여부를 확인해야 합니다.</p>
+        <button type="button" disabled={busy || disabled} onClick={() => {
+          if (window.confirm('관리자 또는 작업 ID 조회로 저장 여부를 확인했으며, 새 작업 등록을 진행하시겠습니까? 중복 작업이 생길 수 있습니다.')) {
+            setCreationUncertain(false); setError('');
+          }
+        }}>반영 여부 확인 후 등록 잠금 해제</button>
+      </section>}
       <div className="job-work-grid">
       <form className="panel job-form" onSubmit={create}>
         <div className="job-section-heading"><div><span className="job-eyebrow">NEW WORK</span><h2>작업 등록</h2><p className="job-help">작업 기본 정보를 저장하고 허가서 작성으로 이어갑니다.</p></div><span className="job-status-badge">서버 연결</span></div>
-        <fieldset disabled={disabled || busy}>
+        <fieldset disabled={disabled || busy || creationUncertain}>
           <legend>{site.name}</legend>
           <div className="job-fields">
             <label>작업명<input name="title" required maxLength={200} placeholder="예: 저장탱크 주변 용접 작업" /></label>

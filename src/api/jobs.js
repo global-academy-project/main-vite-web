@@ -1,4 +1,20 @@
-import { api } from './client.js';
+import { api, ApiError } from './client.js';
+
+export async function jobWrite(request) {
+  try {
+    return await request();
+  } catch (error) {
+    if (error.code === 'NETWORK_ERROR' || error.code === 'INVALID_RESPONSE'
+      || error.status >= 500 || !error.code) {
+      const uncertain = new ApiError('WRITE_OUTCOME_UNKNOWN',
+        `${error.message || '쓰기 요청 응답 오류'} 저장 결과를 확인할 수 없습니다. 서버에는 반영되었을 수 있으므로 재전송 전에 반영 여부를 확인하세요.`,
+        null, error.status ?? 0);
+      uncertain.cause = error;
+      throw uncertain;
+    }
+    throw error;
+  }
+}
 
 export function jobId(value) {
   const text = String(value ?? '').trim();
@@ -67,16 +83,20 @@ export function measurementItems(type, values) {
 }
 
 export const createWork = async (body) =>
-  requireWork(await api('/api/v1/works', { method: 'POST', body }), body.siteId);
+  jobWrite(async () => requireWork(await api('/api/v1/works', { method: 'POST', body }), body.siteId));
 export const getWork = (id) => api(`/api/v1/works/${jobId(id)}`);
 export const getPermit = async (id, siteId) =>
   requirePermit(await api(`/api/v1/permits/${jobId(id)}`), siteId);
 export const createPermit = async (body, siteId) =>
-  requirePermit(await api('/api/v1/permits', { method: 'POST', body }), siteId);
-export const updatePermit = async (id, body, siteId) =>
-  requirePermit(await api(`/api/v1/permits/${jobId(id)}`, { method: 'PUT', body }), siteId);
-export const saveMeasurements = async (id, items, siteId) =>
-  requirePermit(await api(`/api/v1/permits/${jobId(id)}/measurements`, { method: 'POST', body: { items } }), siteId);
+  jobWrite(async () => requirePermit(await api('/api/v1/permits', { method: 'POST', body }), siteId));
+export async function updatePermit(id, body, siteId) {
+  const path = `/api/v1/permits/${jobId(id)}`;
+  return jobWrite(async () => requirePermit(await api(path, { method: 'PUT', body }), siteId));
+}
+export async function saveMeasurements(id, items, siteId) {
+  const path = `/api/v1/permits/${jobId(id)}/measurements`;
+  return jobWrite(async () => requirePermit(await api(path, { method: 'POST', body: { items } }), siteId));
+}
 export function requireRuleEvaluation(evaluation) {
   if (!evaluation || !['PASS', 'WARN', 'BLOCK'].includes(evaluation.result)
     || !Number.isInteger(evaluation.rulesApplied) || evaluation.rulesApplied < 0
@@ -94,12 +114,17 @@ export function requireRuleEvaluation(evaluation) {
 }
 
 export async function checkPermit(id) {
-  const result = await api(`/api/v1/permits/${jobId(id)}/check`, { method: 'POST' });
-  if (result?.permitId !== jobId(id)) {
-    throw new Error('허가서 판정 응답 형식이 올바르지 않습니다.');
-  }
-  requireRuleEvaluation(result.evaluation);
-  return result;
+  const permitId = jobId(id);
+  return jobWrite(async () => {
+    const result = await api(`/api/v1/permits/${permitId}/check`, { method: 'POST' });
+    if (result?.permitId !== permitId) {
+      throw new Error('허가서 판정 응답 형식이 올바르지 않습니다.');
+    }
+    requireRuleEvaluation(result.evaluation);
+    return result;
+  });
 }
-export const submitPermit = async (id, siteId) =>
-  requirePermit(await api(`/api/v1/permits/${jobId(id)}/submit`, { method: 'POST' }), siteId);
+export async function submitPermit(id, siteId) {
+  const path = `/api/v1/permits/${jobId(id)}/submit`;
+  return jobWrite(async () => requirePermit(await api(path, { method: 'POST' }), siteId));
+}
