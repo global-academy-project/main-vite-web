@@ -12,8 +12,6 @@ import { toIncidentFilters } from '../../utils/agentic-rag-tags';
 import { JobSiteSelector } from './job-work-form';
 import '../../style/job/job-incidents.css';
 
-const incidentApiEnabled = import.meta.env.VITE_ENABLE_INCIDENT_API === 'true';
-
 function IncidentWorkspace({ site, reporter, disabled, initialId }) {
   const [resources, setResources] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -206,10 +204,8 @@ export default function JobIncidents() {
     <JobPageLayout title="위험·근접 사고" user={context.account?.user} contentClassName="job-management">
       <JobPageHeading title="위험·근접 사고" description="보고 저장 → 자동 태깅 → 사용자 검토 → 관련 사고 검색 → 작업 경고 확인" />
       <JobSiteSelector context={context} />
-      <p className="job-demo-notice" role="status">{incidentApiEnabled
-        ? '호환 서버용 아차사고 API 연결을 명시적으로 활성화했습니다. 서버가 해당 계약을 구현했는지 확인하세요. 자동 태깅은 여전히 비활성화되어 있습니다.'
-        : '현재 main-server에는 아차사고·태그·구역·검색·경고 API가 없습니다. 존재하지 않는 경로로 요청하지 않도록 보고·검색·경고 기능을 비활성화했습니다. 작업 등록·작업허가는 각 화면에서 사용할 수 있습니다.'}</p>
-      {incidentApiEnabled && context.currentSite && <IncidentWorkspace key={context.currentSite.siteId} site={context.currentSite}
+      <p className="job-demo-notice" role="status">현재 main-server에는 아차사고·태그·구역·검색·경고 API가 구현되어 있지 않습니다. 아래는 해당 계약을 지원하는 서버용 연동 화면이며, 조회 실패 시 저장할 수 없습니다. 일반 작업·작업허가는 별도 화면에서 사용하세요.</p>
+      {context.currentSite && <IncidentWorkspace key={context.currentSite.siteId} site={context.currentSite}
         reporter={context.account?.user} disabled={context.selecting} initialId={params.get('incidentId')} />}
     </JobPageLayout>
   );

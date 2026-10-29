@@ -1,5 +1,4 @@
-import { api } from './client.js';
-import { jobId } from './jobs.js';
+import { api } from './client';
 
 const incidentPath = (id) => `/api/v1/near-misses/${encodeURIComponent(id)}`;
 const requireIncident = (incident) => {
@@ -16,16 +15,8 @@ export const getIncident = async (id) => requireIncident(await api(incidentPath(
 export const createIncident = async (body) => requireIncident(await api('/api/v1/near-misses', { method: 'POST', body }));
 export const reviewIncidentTags = async (id, lockVersion, tags) =>
   requireIncident(await api(`${incidentPath(id)}/tags`, { method: 'PUT', body: { lockVersion, tags } }));
-export async function autoTagIncident(id, lockVersion) {
-  if (!Number.isSafeInteger(lockVersion) || lockVersion < 0) {
-    throw new Error('보고의 최신 버전 번호가 필요합니다.');
-  }
-  const started = await api(`${incidentPath(jobId(id))}/auto-tags`, { method: 'POST', body: { lockVersion } });
-  if (!Number.isSafeInteger(started?.runId) || started.runId < 1) {
-    throw new Error('자동 태깅 실행 시작 응답 형식이 올바르지 않습니다.');
-  }
-  return started;
-}
+export const autoTagIncident = async (id, lockVersion) =>
+  requireIncident(await api(`${incidentPath(id)}/auto-tags`, { method: 'POST', body: { lockVersion } }));
 export const searchIncidents = (body) => api('/api/v1/incident-search', { method: 'POST', body });
 export { getWork } from './jobs.js';
 export const getWorkWarnings = (workId) => api(`/api/v1/works/${encodeURIComponent(workId)}/near-miss-warnings`);
