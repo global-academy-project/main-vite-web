@@ -4,6 +4,7 @@ import { useWorkSite, workTypes } from '../../api/workers';
 import { createWork, getWork, requireWork, validatePeriod } from '../../api/jobs';
 import JobPageLayout, { JobPageHeading } from '../../components/job-page-layout';
 import { JobSiteSelector } from './job-work-form';
+import JobWorkAgent from './job-work-agent';
 
 function WorkWorkspace({ site, disabled }) {
   const [work, setWork] = useState(null);
@@ -124,6 +125,7 @@ export default function JobDashboard() {
         <div className="panel"><h2>허가·필수 조치</h2><p className="job-help">현장별 허가·필수 조치 요약 API는 없습니다. 개별 작업 조회 후 허가서 작성 화면에서 허가서 조회·판정·승인 요청을 진행할 수 있습니다.</p></div>
       </section>
       {context.currentSite && <section className="job-overview-workspace" aria-labelledby="job-workspace-title">
+        <JobWorkAgent key={`agent-${context.currentSite.siteId}`} siteId={context.currentSite.siteId} disabled={context.selecting} />
         <div className="job-section-heading">
           <div><span className="job-eyebrow">WORK MANAGEMENT</span><h2 id="job-workspace-title">작업 등록·조회</h2><p className="job-help">위 현황과 별개로, 선택 현장의 개별 작업은 실제 서버에 저장하고 조회할 수 있습니다.</p></div>
         </div>
