@@ -70,6 +70,7 @@ function PermitWorkspace({ siteId, disabled, initialWorkId }) {
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
+  const [creationUncertain, setCreationUncertain] = useState(false);
   const mounted = useRef(false);
   const pending = useRef(false);
   useEffect(() => {
@@ -91,6 +92,7 @@ function PermitWorkspace({ siteId, disabled, initialWorkId }) {
     setConflict(false);
     setValues({});
     setEvaluation(null);
+    setCreationUncertain(false);
   };
   const run = async (action) => {
     if (pending.current || disabled) return;
@@ -102,20 +104,28 @@ function PermitWorkspace({ siteId, disabled, initialWorkId }) {
       await action();
     } catch (requestError) {
       if (mounted.current) {
-        if (requestError.code === 'CONFLICT_MODIFIED') setConflict(true);
-        setError(`${requestError.message || '허가서 요청에 실패했습니다.'}${requestError.code === 'CONFLICT_MODIFIED' ? ' 최신 허가서를 다시 조회한 뒤 수정하세요.' : ''}`);
+        const mustReload = ['CONFLICT_MODIFIED', 'INVALID_STATE', 'WRITE_OUTCOME_UNKNOWN'].includes(requestError.code);
+        if (mustReload && permit) { setConflict(true); setEvaluation(null); }
+        if (requestError.code === 'WRITE_OUTCOME_UNKNOWN' && !permit) setCreationUncertain(true);
+        setError(`${requestError.message || '허가서 요청에 실패했습니다.'}${mustReload && permit ? ' 최신 허가서를 다시 조회한 뒤 수정하세요.' : ''}`);
       }
     } finally {
       pending.current = false;
       if (mounted.current) setBusy(false);
     }
   };
-  const load = (id) => run(async () => {
-    const saved = await getPermit(id, siteId);
-    if (mounted.current) { apply(saved); setMessage('서버의 허가서를 조회했습니다.'); }
-  });
+  const confirmReplacement = () => !(dirty || Object.values(values).some((value) => String(value).trim()))
+    || window.confirm('저장하지 않은 내용과 측정값을 버리고 계속하시겠습니까?');
+  const load = (id) => {
+    if (!confirmReplacement()) return;
+    return run(async () => {
+      const saved = await getPermit(id, siteId);
+      if (mounted.current) { apply(saved); setMessage('서버의 허가서를 조회했습니다.'); }
+    });
+  };
   const save = (event) => {
     event.preventDefault();
+    if (conflict || creationUncertain) return;
     void run(async () => {
       validatePeriod(form.validFrom, form.validTo);
       const body = {
@@ -128,7 +138,11 @@ function PermitWorkspace({ siteId, disabled, initialWorkId }) {
         const work = requireWork(await getWork(workId), siteId);
         saved = await createPermit({ ...body, workId: work.workId, permitType: type }, siteId);
       }
-      if (mounted.current) { apply(saved); setMessage('허가서 내용을 서버에 저장했습니다. 측정값 저장 후 판정하세요.'); }
+      if (mounted.current) {
+        apply(saved);
+        setValues(values);
+        setMessage('허가서 내용을 서버에 저장했습니다. 측정값 저장 후 판정하세요.');
+      }
     });
   };
   const update = (field, value) => {
@@ -156,24 +170,36 @@ function PermitWorkspace({ siteId, disabled, initialWorkId }) {
       {error && <p className="dashboard-error" role="alert">{error}</p>}
       {conflict && <p className="job-demo-notice" role="status">최신 버전 확인이 필요합니다. 허가서 ID로 다시 조회한 뒤 수정·판정·승인 요청하세요.</p>}
       {message && <p className="job-review-notice" role="status">{message}</p>}
+      {creationUncertain && <section className="job-demo-notice" role="alert">
+        <p>허가서 생성 여부가 불확실하여 재등록을 중지했습니다. 허가서 ID로 조회하거나 관리자에게 저장 여부를 확인하세요. 기존 허가서가 있으면 새로 만들지 말고 조회하세요.</p>
+        <button type="button" disabled={busy || disabled} onClick={() => {
+          if (window.confirm('허가서 저장 여부를 확인했으며 새 등록을 진행하시겠습니까?')) {
+            setCreationUncertain(false); setError('');
+          }
+        }}>반영 여부 확인 후 등록 잠금 해제</button>
+      </section>}
       <form className="panel job-form job-lookup job-lookup-wide" onSubmit={(event) => { event.preventDefault(); void load(permitId); }}>
         <div><span className="job-eyebrow">FIND PERMIT</span><h2>기존 허가서 조회</h2><p className="job-help">이어서 작성할 허가서의 ID를 입력해 주세요.</p></div>
         <fieldset disabled={locked}>
           <label>허가서 ID<input required inputMode="numeric" placeholder="허가서 ID 입력" value={permitId} onChange={(event) => setPermitId(event.target.value)} /></label>
           <button type="submit">허가서 조회 (입력 내용 교체)</button>
           {permit && <button type="button" className="job-secondary-button" onClick={() => {
+            if (!confirmReplacement()) return;
             setPermit(null); setPermitId(''); setForm(emptyForm); setValues({}); setDirty(false);
-            setConflict(false); setEvaluation(null); setError(''); setMessage('');
+            setConflict(false); setCreationUncertain(false); setEvaluation(null); setError(''); setMessage('');
           }}>새 허가서 작성</button>}
         </fieldset>
       </form>
       <form className="panel job-form" onSubmit={save}>
         <div className="job-section-heading"><div><span className="job-eyebrow">PERMIT DETAILS</span><h2>{permit ? permit.permitNo : '작업허가서 작성'}</h2><p className="job-help">작업과 유효기간을 확인하고 유형별 안전 확인사항을 입력하세요.</p></div><span className="job-status-badge">{permit ? permit.status : '새 허가서'}</span></div>
-        <fieldset disabled={locked || !editable || conflict}>
+        <fieldset disabled={locked || !editable || conflict || creationUncertain}>
           <legend>허가서 내용</legend>
           <div className="job-fields">
-            <label>작업 ID<input required inputMode="numeric" disabled={!!permit} value={workId} onChange={(event) => setWorkId(event.target.value)} /></label>
-            <label>허가 유형<select disabled={!!permit} value={type} onChange={(event) => { setType(event.target.value); setForm((current) => ({ ...current, form: {} })); setValues({}); }}>{Object.entries({ HOT: '화기', CONFINED: '밀폐공간', HEIGHT: '고소' }).map(([code, label]) => <option key={code} value={code}>{label}</option>)}</select></label>
+            <label>작업 ID<input required inputMode="numeric" disabled={!!permit} value={workId} onChange={(event) => { setWorkId(event.target.value); setDirty(true); }} /></label>
+            <label>허가 유형<select disabled={!!permit} value={type} onChange={(event) => {
+              if (!confirmReplacement()) return;
+              setType(event.target.value); update('form', {}); setValues({});
+            }}>{Object.entries({ HOT: '화기', CONFINED: '밀폐공간', HEIGHT: '고소' }).map(([code, label]) => <option key={code} value={code}>{label}</option>)}</select></label>
             <label>유효 시작<input type="datetime-local" step="any" required value={form.validFrom} onChange={(event) => update('validFrom', event.target.value)} /></label>
             <label>유효 종료<input type="datetime-local" step="any" required value={form.validTo} onChange={(event) => update('validTo', event.target.value)} /></label>
             <div><label>감시자<input maxLength={50} value={form.watcherName} onChange={(event) => update('watcherName', event.target.value)} /></label>
