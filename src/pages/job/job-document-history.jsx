@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getOriginalPdf, getDocuments } from '../../api/documents';
+import JobPageLayout, { JobPageHeading } from '../../components/job-page-layout';
 
 const PAGE_SIZE = 10;
 
@@ -57,11 +58,9 @@ export default function JobDocumentHistory() {
 
   const data = !loading ? result?.data : null;
   return (
-    <>
-      <div className="page-heading">
-        <h1>작성문서 이력</h1>
-        <p>로그인한 사용자의 기존 OCR PDF 이력과 원본을 조회합니다.</p>
-      </div>
+    <JobPageLayout title="작성문서 이력" contentClassName="job-management">
+      <JobPageHeading title="작성문서 이력" description="로그인한 사용자의 기존 OCR PDF 이력과 원본을 조회합니다." />
+      <p className="job-demo-notice" role="status">현재 목록은 제거 예정인 기존 OCR API입니다. 에이전트 실행 연결 후 서버에서 제거할 예정이며, 현장 업무 이력 API가 제공되면 교체합니다. 현재는 기존 OCR 문서 조회·다운로드만 유지합니다.</p>
       <section className="panel job-form">
         <h2>기존 문서 등록</h2>
         <p className="job-help">OCR 없이 원본을 보관하는 API가 제공되지 않아 이 화면의 등록은 비활성화했습니다. PDF OCR 업로드로 대체하지 않습니다.</p>
@@ -105,6 +104,6 @@ export default function JobDocumentHistory() {
           ) : <p className="job-help">조회할 기존 PDF 문서가 없습니다.</p>
         )}
       </section>
-    </>
+    </JobPageLayout>
   );
 }
