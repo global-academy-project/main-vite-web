@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { api, getCurrentUser } from './client';
 import { setLastSite } from './users';
+import { useEffect, useState } from 'react';
+import { getCurrentUser } from './client';
+import { setLastSite } from './users';
+
+export var typeClass = { 화기: 'type-hot', 밀폐: 'type-closed', 고소: 'type-height', 일반: 'type-normal', TBM: 'type-tbm' };
 
 export const workTypes = { GENERAL: '일반', HOT: '화기', CONFINED: '밀폐공간', HEIGHT: '고소' };
 export const typeClass = { GENERAL: 'type-normal', HOT: 'type-hot', CONFINED: 'type-closed', HEIGHT: 'type-height' };
@@ -74,3 +79,51 @@ export function useWorkSite() {
     reload: () => { setAccount(null); setLoading(true); setError(''); setRevision((value) => value + 1); },
   };
 }
+export function useWorkSite() {
+  const [account, setAccount] = useState(null);
+  const [selectedSiteId, setSelectedSiteId] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [selecting, setSelecting] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    let cancelled = false;
+
+    getCurrentUser()
+      .then((currentAccount) => {
+        if (cancelled) return;
+        const sites = Array.isArray(currentAccount?.sites) ? currentAccount.sites : [];
+        setAccount(currentAccount);
+        setSelectedSiteId(String(sites[0]?.siteId ?? ''));
+      })
+      .catch((requestError) => {
+        if (!cancelled) setError(requestError.message || '현장 정보를 불러오지 못했습니다.');
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const sites = Array.isArray(account?.sites) ? account.sites : [];
+  const currentSite = sites.find((site) => String(site.siteId) === selectedSiteId) ?? null;
+
+  const selectSite = async (siteId) => {
+    setSelecting(true);
+    setError('');
+    try {
+      await setLastSite(siteId);
+      setSelectedSiteId(String(siteId));
+    } catch (requestError) {
+      setError(requestError.message || '현장을 변경하지 못했습니다.');
+    } finally {
+      setSelecting(false);
+    }
+  };
+
+  return { account, currentSite, loading, selecting, error, selectSite };
+}
+
