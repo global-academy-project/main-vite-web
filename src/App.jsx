@@ -27,6 +27,12 @@ import JobTbm from "./pages/job/job-tbm";
 import JobTrainingMaterials from "./pages/job/job-training-materials";
 import AdminUsers from "./pages/admin/users";
 import Dashboard from "./pages/dashboard";
+import ApprovalInbox from "./pages/approvals/approval-inbox";
+import ApprovalDetail from "./pages/approvals/approval-detail";
+import ApprovalResult from "./pages/approvals/approval-result";
+import ApprovalRevision from "./pages/approvals/approval-revision";
+import RecordSearch from "./pages/records/record-search";
+import RecordDetail from "./pages/records/record-detail";
 
 function EntryRedirect() {
   return <Navigate to={getToken() ? "/dashboard" : "/signin"} replace />;
@@ -84,6 +90,12 @@ function App() {
           }
         />
         <Route path="/job/dashboard" element={<ProtectedRoute><JobDashboard /></ProtectedRoute>} />
+        <Route path="/approvals" element={<ProtectedRoute><ApprovalInbox /></ProtectedRoute>} />
+        <Route path="/approvals/:approvalId" element={<ProtectedRoute><ApprovalDetail /></ProtectedRoute>} />
+        <Route path="/approvals/:approvalId/result" element={<ProtectedRoute><ApprovalResult /></ProtectedRoute>} />
+        <Route path="/approvals/:approvalId/revision" element={<ProtectedRoute><ApprovalRevision /></ProtectedRoute>} />
+        <Route path="/records/search" element={<ProtectedRoute><RecordSearch /></ProtectedRoute>} />
+        <Route path="/records/:recordType/:recordId" element={<ProtectedRoute><RecordDetail /></ProtectedRoute>} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route
           path="/job/dailey-checklist"
