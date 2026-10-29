@@ -1,5 +1,5 @@
 import { api } from './client.js';
-import { jobId, jobWrite } from './jobs.js';
+import { jobId } from './jobs.js';
 
 const runStatuses = ['PROCESSING', 'WAITING_INPUT', 'DONE', 'FAILED'];
 const positiveId = (value) => Number.isSafeInteger(value) && value > 0;
@@ -12,15 +12,13 @@ export async function startWorkRegister({ siteId, message, conversationId, permi
     ...(conversationId != null ? { conversationId: jobId(conversationId) } : {}),
     ...(permitId != null ? { permitId: jobId(permitId) } : {}),
   };
-  return jobWrite(async () => {
-    const started = await api('/api/v1/agent/work-register', { method: 'POST', body });
-    if (!positiveId(started?.runId) || !positiveId(started.conversationId)
-      || !runStatuses.includes(started.status)
-      || (body.conversationId && body.conversationId !== started.conversationId)) {
-      throw new Error('에이전트 실행 시작 응답 형식이 올바르지 않습니다.');
-    }
-    return started;
-  });
+  const started = await api('/api/v1/agent/work-register', { method: 'POST', body });
+  if (!positiveId(started?.runId) || !positiveId(started.conversationId)
+    || !runStatuses.includes(started.status)
+    || (body.conversationId && body.conversationId !== started.conversationId)) {
+    throw new Error('에이전트 실행 시작 응답 형식이 올바르지 않습니다.');
+  }
+  return started;
 }
 
 export async function getAgentRun(runId, { conversationId, taskType = 'WORK_REGISTER' } = {}) {

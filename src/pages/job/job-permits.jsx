@@ -9,24 +9,12 @@ import JobPageLayout, { JobPageHeading } from '../../components/job-page-layout'
 import { JobSiteSelector } from './job-work-form';
 
 const hotChecks = {
-  extinguisher_ready: '가연물 방호·소화기 비치',
-  spark_prevention: '불꽃·불티 비산방지조치',
-  flammable_vapor_removed: '인화성 증기·가스 제거',
+  extinguisher_ready: '소화기 비치',
+  spark_prevention: '불티 비산 방지',
+  flammable_vapor_removed: '인화성 증기 제거',
 };
 const emptyForm = { validFrom: '', validTo: '', watcherName: '', supervisorName: '', form: {} };
 const ruleCheckLabels = { PASS: '통과', FAIL: '기준 미충족', MISSING: '입력 누락' };
-
-function requireRuleChecks(evaluation) {
-  if (!Array.isArray(evaluation.checks) || evaluation.checks.length !== evaluation.rulesApplied
-    || !evaluation.checks.every((item) => item && typeof item.ruleCode === 'string'
-      && Object.hasOwn(ruleCheckLabels, item.status) && ['BLOCK', 'WARN'].includes(item.severity)
-      && typeof item.target === 'string' && typeof item.expected === 'string'
-      && ['actual', 'message', 'action', 'legalBasis', 'sourceUrl'].every((field) =>
-        item[field] == null || typeof item[field] === 'string'))) {
-    throw new Error('규칙 상세 판정(checks) 응답 형식이 올바르지 않습니다. 갱신된 서버가 적용되었는지 확인해 주세요.');
-  }
-  return evaluation;
-}
 
 function RuleChecks({ evaluation }) {
   return (
@@ -58,8 +46,8 @@ function RuleChecks({ evaluation }) {
   );
 }
 
-function MeasurementCheck({ checks, code }) {
-  const results = checks.filter((item) => item.target === `measurement.${code}`);
+function FieldRuleChecks({ checks, target }) {
+  const results = checks.filter((item) => item.target === target);
   return results.length ? results.map((item) => (
     <p className="job-help" key={item.ruleCode}>
       <strong>{ruleCheckLabels[item.status]} ({item.status})</strong>
@@ -188,21 +176,34 @@ function PermitWorkspace({ siteId, disabled, initialWorkId }) {
             <label>허가 유형<select disabled={!!permit} value={type} onChange={(event) => { setType(event.target.value); setForm((current) => ({ ...current, form: {} })); setValues({}); }}>{Object.entries({ HOT: '화기', CONFINED: '밀폐공간', HEIGHT: '고소' }).map(([code, label]) => <option key={code} value={code}>{label}</option>)}</select></label>
             <label>유효 시작<input type="datetime-local" step="any" required value={form.validFrom} onChange={(event) => update('validFrom', event.target.value)} /></label>
             <label>유효 종료<input type="datetime-local" step="any" required value={form.validTo} onChange={(event) => update('validTo', event.target.value)} /></label>
-            <label>감시자<input maxLength={50} value={form.watcherName} onChange={(event) => update('watcherName', event.target.value)} /></label>
+            <div><label>감시자<input maxLength={50} value={form.watcherName} onChange={(event) => update('watcherName', event.target.value)} /></label>
+              {visibleChecks && <FieldRuleChecks checks={visibleChecks} target="form.watcher_name" />}
+            </div>
             <label>작업책임자<input maxLength={50} value={form.supervisorName} onChange={(event) => update('supervisorName', event.target.value)} /></label>
             {type === 'HOT' && Object.entries(hotChecks).map(([code, label]) => (
-              <label key={code}>{label}<select value={form.form[code] === undefined ? '' : String(form.form[code])}
-                onChange={(event) => {
-                  const next = { ...form.form };
-                  if (event.target.value === '') delete next[code];
-                  else next[code] = event.target.value === 'true';
-                  update('form', next);
-                }}><option value="">미확인</option><option value="true">확인</option><option value="false">미조치</option></select></label>
+              <div key={code}>
+                <label className="job-safety-check"><input type="checkbox" checked={form.form[code] === true}
+                  aria-describedby={`${code}-state`} onChange={(event) => {
+                    update('form', { ...form.form, [code]: event.target.checked });
+                  }} />{label}</label>
+                <p className="job-help" id={`${code}-state`}>현재: {form.form[code] === undefined ? '미확인' : form.form[code] ? '조치 확인' : '미조치'}</p>
+                <div className="job-action-row">
+                  <button type="button" className="job-secondary-button" onClick={() => update('form', { ...form.form, [code]: false })}>미조치로 기록 · {label}</button>
+                  <button type="button" className="job-secondary-button" disabled={form.form[code] === undefined} onClick={() => {
+                    const next = { ...form.form };
+                    delete next[code];
+                    update('form', next);
+                  }}>미확인으로 초기화 · {label}</button>
+                </div>
+                {visibleChecks && <FieldRuleChecks checks={visibleChecks} target={`form.${code}`} />}
+              </div>
             ))}
           </div>
           <div className="job-form-actions"><span>내용 변경 후에는 다시 판정해야 합니다.</span><button type="submit">{permit ? '내용 변경 저장 (판정 무효화)' : '허가서 저장'}</button></div>
         </fieldset>
         <p className="job-help">감시자 이름은 작업자 배치가 아닙니다. 기존 양식의 추가 필드는 수정 저장 시 보존합니다. 구역·작업자 배치 API는 미지원입니다.</p>
+        {type === 'HOT' && <p className="job-help">체크하면 조치 확인(true), 체크를 해제하거나 미조치로 기록하면 false입니다. 미확인으로 초기화한 항목은 키를 보내지 않습니다. 미확인은 MISSING, 미조치는 FAIL로 차단됩니다.</p>}
+        <p className="job-help">화기는 측정값·화재감시자·안전 확인 3항목을 판정합니다. 현재 등록된 판정 규칙이 없는 유형은 고소입니다.</p>
       </form>
       {permit && <>
         <section className="panel job-form">
@@ -212,7 +213,7 @@ function PermitWorkspace({ siteId, disabled, initialWorkId }) {
               {measurementFields[type].map(({ code, label }) => <div key={code}>
                 <label>{label}<input type="number" min="0" max={['O2', 'CO2', 'LEL'].includes(code) ? 100 : undefined} step="any" value={values[code] ?? ''}
                   onChange={(event) => { setValues((current) => ({ ...current, [code]: event.target.value })); setMessage(''); }} /></label>
-                {visibleChecks && <MeasurementCheck checks={visibleChecks} code={code} />}
+                {visibleChecks && <FieldRuleChecks checks={visibleChecks} target={`measurement.${code}`} />}
               </div>)}
             </div>
             {measurementFields[type].length > 0 && <button type="button" onClick={() => run(async () => {
@@ -231,10 +232,10 @@ function PermitWorkspace({ siteId, disabled, initialWorkId }) {
           {(dirty || measurementDirty) && <p className="job-demo-notice" role="status">미저장 입력이 있습니다. 내용과 측정값을 저장한 뒤 판정·승인 요청하세요.</p>}
           <div className="job-action-row">
           <button type="button" disabled={locked || !editable || conflict || dirty || measurementDirty} onClick={() => run(async () => {
-            const checked = await checkPermit(permit.permitId);
-            // The check response omits lockVersion; discard the old snapshot even if reload fails.
+            // A check can persist even if its response is lost or invalid.
             if (mounted.current) { setConflict(true); setEvaluation(null); }
-            const checkedEvaluation = requireRuleChecks(checked.evaluation);
+            const checked = await checkPermit(permit.permitId);
+            const checkedEvaluation = checked.evaluation;
             const saved = await getPermit(permit.permitId, siteId);
             if (mounted.current) {
               apply(saved); setEvaluation(checkedEvaluation);
