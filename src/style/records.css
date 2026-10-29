@@ -40,6 +40,19 @@
 .dashboard-record-list { display:grid; gap:8px; margin:0; padding:0; list-style:none; }
 .dashboard-record-list li { display:flex; justify-content:space-between; gap:10px; padding:9px 0; border-bottom:1px solid #edf0f5; }
 .dashboard-record-list span { color:#687995; font-size:11px; }
+.approval-filter-row { display:flex; flex-wrap:wrap; align-items:end; gap:10px; }
+.approval-filter-row label { display:grid; gap:5px; min-width:120px; color:#687995; font-size:11px; }
+.approval-filter-row input,.approval-filter-row select { min-height:34px; padding:7px 8px; border:1px solid #dfe5ee; border-radius:7px; background:#fff; color:#24334e; }
+.approval-filter-keyword { flex:1 1 160px; }
+.approval-refresh { min-height:34px; padding:7px 12px; border:1px solid #dfe5ee; border-radius:7px; background:#f8fafc; color:#425570; cursor:pointer; }
+.approval-empty { padding:28px 12px; text-align:center; color:#687995; }
+.approval-empty strong { color:#425570; }
+.approval-empty p { margin:7px 0 14px; font-size:12px; }
+.approval-empty button { padding:8px 12px; border:0; border-radius:7px; background:#246be2; color:#fff; }
+.approval-overdue { color:#c43d4b; font-weight:700; }
+.approval-status-pending { background:#fff5d9; color:#a87300; }
+.approval-status-approved { background:#e6f7ef; color:#21966a; }
+.approval-status-rejected,.approval-status-revision_requested { background:#fff0f0; color:#c43d4b; }
 .approval-result { max-width:760px; margin:36px auto; padding:42px 32px; text-align:center; }
 .approval-result-icon { display:grid; width:56px; height:56px; margin:0 auto 18px; place-items:center; border-radius:50%; background:#e6f7ef; color:#21966a; font-size:25px; font-weight:800; }
 .approval-result-rejected .approval-result-icon,.approval-result-revision .approval-result-icon { background:#fff0f0; color:#c43d4b; }
