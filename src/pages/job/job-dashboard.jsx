@@ -1,286 +1,134 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { logout } from '../../api/auth';
-import { clearToken, getCurrentUser } from '../../api/client';
-import DashboardHeader from '../../components/dashboard-header';
-import Sidebar from '../../components/sidebar';
-import DateFactoryFilters from '../../components/date-factory-filters';
-import { useTheme } from '../../contexts/theme-context';
-import { getTagEntries, sampleNearMiss } from '../../utils/agentic-rag-tags';
-// Styles for job dashboard and job search pages
-import '../../style/job/job-dashboard.css';
-import '../../style/job/job-search.css';
+import { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { useWorkSite, workTypes } from '../../api/workers';
+import { createWork, getWork, requireWork, validatePeriod } from '../../api/jobs';
+import JobPageLayout, { JobPageHeading } from '../../components/job-page-layout';
+import { JobSiteSelector } from './job-work-form';
 
-const sampleWorkers = [
-  {
-    status: 'ACTIVE',
-    name: '김용접',
-    jobType: '용접',
-    team: { name: '정비팀', teamType: 'INTERNAL' },
-    sites: [
-      { siteId: 1, name: '울산 공장', active: true },
-      { siteId: 2, name: '여수 공장', active: true },
-    ],
-    qualification: { qualType: 'TRAINING', qualCode: 'CONFINED_SPACE_SPECIAL', qualName: '밀폐공간 특별교육', issuedOn: daysFromToday(-30), expiresOn: null },
-  },
-  {
-    status: 'ACTIVE',
-    name: '이감시',
-    jobType: '감시인',
-    team: { name: '정비팀', teamType: 'INTERNAL' },
-    sites: [{ siteId: 1, name: '울산 공장', active: true }],
-    qualification: null,
-  },
-];
-
-function daysFromToday(days) {
-  const date = new Date();
-  date.setDate(date.getDate() + days);
-  return date;
-}
-
-function formatDate(value) {
-  if (!value) return '-';
-  return new Date(value).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' });
-}
-
-const sampleSiteChemical = {
-  siteId: 1,
-  zoneId: 1,
-  casNo: '108-88-3',
-  name: '톨루엔',
-  maxQuantity: 2000,
-  unit: 'L',
-  active: true,
-};
-
-const sampleWork = { id: 1, siteId: 1, zoneId: 1, workType: 'CONFINED' };
-
-const sampleWarning = {
-  siteId: 1,
-  workId: sampleWork.id,
-  sourceType: 'NEAR_MISS',
-  nearMissId: sampleNearMiss.id,
-  severity: 'WARN',
-  message: '3일 전 같은 구역에서 미끄러짐 아차사고가 있었습니다.',
-  acknowledgedBy: 1,
-  acknowledgedAt: new Date(),
-  ackNote: '맨홀 주변 흡착포 설치',
-  acknowledgedByName: '작성자',
-};
-
-const sampleCorrectiveAction = {
-  siteId: 1,
-  sourceType: 'NEAR_MISS',
-  sourceId: sampleNearMiss.id,
-  title: '맨홀 주변 유출 방지턱 설치',
-  assigneeId: 1,
-  assigneeName: '작성자',
-  dueDate: daysFromToday(7),
-  status: 'OPEN',
-  createdBy: 2,
-};
-
-const nearMissTagEntries = getTagEntries(sampleNearMiss.tags);
-
-function getLocalDate() {
-  const date = new Date();
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-}
-
-function JobDashboard() {
-  const navigate = useNavigate();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { darkMode, setDarkMode } = useTheme();
-  const [user, setUser] = useState(null);
-  const [userError, setUserError] = useState('');
-  const [loadingUser, setLoadingUser] = useState(true);
-  const [refreshKey, setRefreshKey] = useState(0);
-  const [selectedDate, setSelectedDate] = useState(getLocalDate);
-  const [selectedFactory, setSelectedFactory] = useState('울산 공장');
-
+function WorkWorkspace({ site, disabled }) {
+  const [work, setWork] = useState(null);
+  const [lookupId, setLookupId] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
+  const pending = useRef(false);
+  const mounted = useRef(false);
   useEffect(() => {
-    let cancelled = false;
+    mounted.current = true;
+    return () => { mounted.current = false; };
+  }, []);
 
-    getCurrentUser()
-      .then((currentUser) => {
-        if (cancelled) return;
-        setUser(currentUser);
-        setUserError('');
-        const firstFactory = currentUser?.sites?.find((site) => site.active !== false)?.name;
-        if (firstFactory) setSelectedFactory(firstFactory);
-      })
-      .catch((requestError) => {
-        if (!cancelled) {
-          setUserError(requestError.message || '사용자 정보를 불러오지 못했습니다.');
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setLoadingUser(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [refreshKey]);
-
-  const userName = user?.user?.name || user?.user?.email || '사용자';
-  const userInitial = Array.from(userName)[0] || '사';
-  const factoryOptions = Array.from(new Set([
-    ...(user?.sites?.map((site) => site.name).filter(Boolean) ?? []),
-    '울산 공장',
-    '여수 공장',
-  ]));
-
-  const doLogout = async () => {
+  const run = async (action, success) => {
+    if (pending.current || disabled) return;
+    pending.current = true;
+    setBusy(true);
+    setError('');
+    setMessage('');
     try {
-      await logout();
+      const saved = await action();
+      if (mounted.current) {
+        setWork(saved);
+        setLookupId(String(saved.workId));
+        setMessage(success);
+      }
+    } catch (requestError) {
+      if (mounted.current) setError(requestError.message || '작업 요청에 실패했습니다.');
     } finally {
-      clearToken();
-      navigate('/signin', { replace: true });
+      pending.current = false;
+      if (mounted.current) setBusy(false);
     }
   };
-
+  const create = (event) => {
+    event.preventDefault();
+    const fields = Object.fromEntries(new FormData(event.currentTarget));
+    void run(() => {
+      if (fields.startAt && fields.endAt) validatePeriod(fields.startAt, fields.endAt);
+      const workerCount = fields.workerCount ? Number(fields.workerCount) : null;
+      if (workerCount !== null && (!Number.isSafeInteger(workerCount) || workerCount < 1)) {
+        throw new Error('작업 인원은 1 이상의 정수로 입력하세요.');
+      }
+      if (!fields.title.trim()) throw new Error('작업명을 입력하세요.');
+      return createWork({
+        siteId: site.siteId, workDate: fields.workDate, title: fields.title.trim(),
+        description: fields.description.trim() || null, workType: fields.workType,
+        startAt: fields.startAt || null, endAt: fields.endAt || null, workerCount,
+      });
+    }, '작업을 서버에 저장했습니다. 작업 승인은 별도 절차입니다.');
+  };
   return (
-    <div className="dashboard-shell">
-      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-      <div className="dashboard-main">
-        <DashboardHeader
-          userInitial={userInitial}
-          userName={userName}
-          darkMode={darkMode}
-          setDarkMode={setDarkMode}
-          doLogout={doLogout}
-          setSidebarOpen={setSidebarOpen}
-          title="작업 현황"
-        />
-        <main className="dashboard-content">
-          <div className="page-heading">
-            <h1>안전 작업 현황</h1>
-            <DateFactoryFilters
-              date={selectedDate}
-              onDateChange={setSelectedDate}
-              factory={selectedFactory}
-              onFactoryChange={setSelectedFactory}
-              factories={factoryOptions}
-            />
+    <>
+      {error && <p className="dashboard-error" role="alert">{error}</p>}
+      {message && <p className="job-review-notice" role="status">{message}</p>}
+      <div className="job-work-grid">
+      <form className="panel job-form" onSubmit={create}>
+        <div className="job-section-heading"><div><span className="job-eyebrow">NEW WORK</span><h2>작업 등록</h2><p className="job-help">작업 기본 정보를 저장하고 허가서 작성으로 이어갑니다.</p></div><span className="job-status-badge">서버 연결</span></div>
+        <fieldset disabled={disabled || busy}>
+          <legend>{site.name}</legend>
+          <div className="job-fields">
+            <label>작업명<input name="title" required maxLength={200} placeholder="예: 저장탱크 주변 용접 작업" /></label>
+            <label>작업일<input name="workDate" type="date" required /></label>
+            <label>작업 유형<select name="workType">{Object.entries(workTypes).map(([code, label]) => <option key={code} value={code}>{label}</option>)}</select></label>
+            <label>작업 인원<input name="workerCount" type="number" min="1" step="1" /></label>
+            <label>시작 일시<input name="startAt" type="datetime-local" /></label>
+            <label>종료 일시<input name="endAt" type="datetime-local" /></label>
+            <label className="job-field-wide">작업 내용<textarea name="description" placeholder="작업 범위와 확인할 사항을 입력해 주세요." /></label>
           </div>
-          {userError && (
-            <div className="dashboard-error" role="alert">
-              <span>{userError}</span>
-              <button
-                type="button"
-                onClick={() => {
-                  setLoadingUser(true);
-                  setUserError('');
-                  setRefreshKey((value) => value + 1);
-                }}
-              >
-                다시 시도
-              </button>
-            </div>
-          )}
-          {loadingUser && <p className="dashboard-message" role="status">사용자 정보를 불러오는 중입니다...</p>}
-          <section className="stat-grid" aria-label="안전관리 요약">
-            <div className="stat-card"><span>활성 작업자</span><strong>{sampleWorkers.filter((worker) => worker.status === 'ACTIVE').length}<small>명</small></strong></div>
-            <div className="stat-card"><span>배치 현장</span><strong>2<small>곳</small></strong></div>
-            <div className="stat-card"><span>아차사고 후속 경고</span><strong className="blue">{sampleWarning.acknowledgedAt ? '확인' : '미확인'}</strong></div>
-            <div className="stat-card"><span>미완료 개선조치</span><strong className="red">{sampleCorrectiveAction.status === 'OPEN' ? '1' : '0'}<small>건</small></strong></div>
-          </section>
-          <section className="dashboard-panels safety-panels">
-            <div className="panel">
-              <h2>작업자 및 현장 배치</h2>
-              <div className="table-scroll">
-                <table>
-                  <thead><tr><th>작업자</th><th>소속</th><th>직종</th><th>활성 현장 배치</th><th>교육·자격</th></tr></thead>
-                  <tbody>
-                    {sampleWorkers.map((worker) => (
-                      <tr key={worker.name}>
-                        <td>{worker.name}</td>
-                        <td>{worker.team.name}<small className="table-meta">{worker.team.teamType}</small></td>
-                        <td>{worker.jobType}</td>
-                        <td>{worker.sites.filter((site) => site.active).map((site) => site.name).join(', ')}</td>
-                        <td>
-                          {worker.qualification ? (
-                            <>
-                              {worker.qualification.qualName}
-                              <small className="table-meta">{worker.qualification.qualType} · {worker.qualification.qualCode}</small>
-                              <small className="table-meta">유효기간 {worker.qualification.expiresOn ? formatDate(worker.qualification.expiresOn) : '없음'}</small>
-                            </>
-                          ) : '등록된 자격 없음'}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <p className="sample-note">현장 배치는 worker_sites.active, 작업자 상태는 workers.status 기준입니다.</p>
-            </div>
-            <div className="panel">
-              <h2>현장 취급 물질 <small>site_chemicals</small></h2>
-              <div className="detail-list">
-                <div><span>물질명</span><strong>{sampleSiteChemical.name}</strong></div>
-                <div><span>CAS No.</span><strong>{sampleSiteChemical.casNo}</strong></div>
-                <div><span>보관 한도</span><strong>{sampleSiteChemical.maxQuantity.toLocaleString('ko-KR')} {sampleSiteChemical.unit}</strong></div>
-                <div><span>관리 위치</span><strong>울산 공장 · T-105</strong></div>
-                <div><span>활성 상태</span><strong>{sampleSiteChemical.active ? 'ACTIVE' : 'INACTIVE'}</strong></div>
-              </div>
-              <h3 className="subheading">작업자 자격</h3>
-              <div className="qualification-row">
-                <span><strong>김용접 · {sampleWorkers[0].qualification.qualName}</strong><small>{sampleWorkers[0].qualification.qualCode} · 발급 {formatDate(sampleWorkers[0].qualification.issuedOn)} · 만료일 미지정</small></span>
-                <span className="pill status-approved">{sampleWorkers[0].qualification.qualType}</span>
-              </div>
-            </div>
-            <div className="panel incident-panel">
-              <h2>아차사고 및 작업 경고 <small>near_misses · record_tags · work_warnings</small></h2>
-              <div className="incident-heading">
-                <span className={`pill ${sampleNearMiss.status === 'CLOSED' ? 'status-approved' : 'status-waiting'}`}>{sampleNearMiss.status}</span>
-                <strong>{sampleNearMiss.title}</strong>
-                <small>{formatDate(sampleNearMiss.occurredAt)}</small>
-              </div>
-              <p className="incident-description">{sampleNearMiss.description}</p>
-              <div className="incident-tags" aria-label="record_tags 분류 축">
-                {nearMissTagEntries.map(({ axis, label, values }) => (
-                  <div className="incident-tag-axis" key={axis}>
-                    <span>{label}</span>
-                    <div className="tag-chip-list">
-                      {values.length ? values.map(({ code, label: valueLabel, source, confidence }) => (
-                        <span className="tag-chip" key={code} title={`${source}${confidence === null ? '' : ` · 신뢰도 ${Math.round(confidence * 100)}%`}`}>
-                          {valueLabel}
-                        </span>
-                      )) : <span className="tag-unspecified">미분류</span>}
-                    </div>
-                  </div>
-                ))}
-              </div>
-              {sampleNearMiss.immediateAction && <p className="incident-description">즉시 조치: {sampleNearMiss.immediateAction}</p>}
-              <div className="warning-box">
-                <strong>{sampleWarning.sourceType} · {sampleWarning.severity} 경고 · 작업 #{sampleWarning.workId}</strong>
-                <p>{sampleWarning.message}</p>
-                <div className="acknowledgement">
-                  <span>{sampleWarning.acknowledgedByName} · {sampleWarning.ackNote}</span>
-                  <span className={`pill ${sampleWarning.acknowledgedAt ? 'status-approved' : 'status-waiting'}`}>{sampleWarning.acknowledgedAt ? '확인 완료' : '미확인'}</span>
-                </div>
-              </div>
-            </div>
-            <div className="panel">
-              <h2>개선조치 <small>corrective_actions</small></h2>
-              <div className="action-card">
-                <span className="action-icon" aria-hidden="true">!</span>
-                <div>
-                  <strong>{sampleCorrectiveAction.title}</strong>
-                  <p>{sampleCorrectiveAction.sourceType} #{sampleCorrectiveAction.sourceId} 후속 조치 · 담당: {sampleCorrectiveAction.assigneeName}</p>
-                  <small>기한 {formatDate(sampleCorrectiveAction.dueDate)}</small>
-                </div>
-                <span className={`pill ${sampleCorrectiveAction.status === 'OPEN' ? 'status-waiting' : 'status-approved'}`}>{sampleCorrectiveAction.status}</span>
-              </div>
-            </div>
-          </section>
-          <p className="scenario-notice">주석 SQL 시나리오 기반 시연 데이터입니다. 실제 작업자·현장 데이터 연동은 아직 적용되지 않았습니다.</p>
-        </main>
+          <div className="job-form-actions"><span>저장 후 작업 ID가 발급됩니다.</span><button type="submit">{busy ? '처리 중...' : '작업 저장'}</button></div>
+        </fieldset>
+      </form>
+      <div className="job-work-aside">
+      <form className="panel job-form job-lookup" onSubmit={(event) => {
+        event.preventDefault();
+        void run(async () => requireWork(await getWork(lookupId), site.siteId), '서버의 작업을 조회했습니다.');
+      }}>
+        <span className="job-eyebrow">FIND WORK</span>
+        <h2>작업 조회</h2>
+        <fieldset disabled={disabled || busy}>
+          <label>작업 ID<input value={lookupId} placeholder="저장한 작업 ID 입력" onChange={(event) => { setLookupId(event.target.value); setWork(null); setMessage(''); }} required inputMode="numeric" /></label>
+          <button type="submit">조회</button>
+        </fieldset>
+        <p className="job-help">현재 서버에는 현장별 작업 목록·통계 API가 없습니다. 저장한 작업 ID로 다시 조회하세요.</p>
+      </form>
+      {work && <section className="panel job-example" aria-label="저장된 작업">
+        <div className="job-section-heading"><span className="job-eyebrow">WORK #{work.workId}</span><span className="job-status-badge">{work.status}</span></div>
+        <h2>{work.title}</h2>
+        <p>{work.workDate} · {workTypes[work.workType]}</p>
+        <p>{work.description || '작업 내용 없음'}</p>
+        <p>{work.startAt || '시작 미지정'} ~ {work.endAt || '종료 미지정'} · 인원 {work.workerCount ?? '미지정'}</p>
+        <Link className="job-link-button" to={`/job/permits?workId=${work.workId}`}>이 작업의 허가서 작성 <span aria-hidden="true">→</span></Link>
+      </section>}
+      {!work && <section className="job-empty-state" aria-label="작업 조회 안내"><span className="job-eyebrow">WORK DETAILS</span><h3>작업 정보를 이곳에서 확인하세요</h3><p className="job-help">새 작업을 저장하거나 기존 작업 ID를 조회하면 상세 정보와 허가서 작성 링크가 표시됩니다.</p></section>}
       </div>
-    </div>
+      </div>
+    </>
   );
 }
 
-export default JobDashboard;
+export default function JobDashboard() {
+  const context = useWorkSite();
+  return (
+    <JobPageLayout title="작업 현황" user={context.account?.user} contentClassName="job-management job-overview">
+      <JobPageHeading title="안전 작업 현황" description={`${new Date().toLocaleDateString('ko-KR')} · ${context.currentSite?.name ?? '현장 미선택'}`} />
+      <JobSiteSelector context={context} />
+      <p className="scenario-notice">선택 현장과 권한은 실제 사용자 API 정보입니다. 업무 조회 API가 없는 항목은 0건이나 가상 작업으로 대체하지 않습니다.</p>
+      <section className="stat-grid" aria-label="안전관리 요약">
+        <div className="stat-card"><span>접근 가능 현장</span><strong>{context.account ? context.account.sites.length : '미조회'}<small>곳</small></strong></div>
+        <div className="stat-card"><span>오늘 작업 인원</span><strong>미연결</strong></div>
+        <div className="stat-card"><span>작업 승인 상태</span><strong>미연결</strong></div>
+        <div className="stat-card"><span>작업 전 필수 확인</span><strong>미연결</strong></div>
+      </section>
+      <section className="dashboard-panels" aria-label="현장 안전 현황">
+        <div className="panel"><h2>오늘 작업</h2><p className="job-help">현장별 오늘 작업 목록·인원·시간·진행 상태는 아직 조회할 수 없습니다. 아래에서 개별 작업을 등록하거나 작업 ID로 조회할 수 있습니다.</p></div>
+        <div className="panel"><h2>현장 취급 물질</h2><p className="job-help">site_chemicals · work_materials 조회 API가 필요합니다. 물질·수량·단위는 선택 현장 및 작업 ID와 함께 조회해야 합니다.</p></div>
+        <div className="panel"><h2>아차사고·작업 경고</h2><p className="job-help">near_misses · record_tags · work_warnings 조회 API가 필요합니다. 등록된 실제 사고가 있는지는 아직 확인할 수 없습니다.</p></div>
+        <div className="panel"><h2>허가·필수 조치</h2><p className="job-help">현장별 허가·필수 조치 요약 API는 없습니다. 개별 작업 조회 후 허가서 작성 화면에서 허가서 조회·판정·승인 요청을 진행할 수 있습니다.</p></div>
+      </section>
+      {context.currentSite && <section className="job-overview-workspace" aria-labelledby="job-workspace-title">
+        <div className="job-section-heading">
+          <div><span className="job-eyebrow">WORK MANAGEMENT</span><h2 id="job-workspace-title">작업 등록·조회</h2><p className="job-help">위 현황과 별개로, 선택 현장의 개별 작업은 실제 서버에 저장하고 조회할 수 있습니다.</p></div>
+        </div>
+        <WorkWorkspace key={context.currentSite.siteId} site={context.currentSite} disabled={context.selecting} />
+      </section>}
+    </JobPageLayout>
+  );
+}

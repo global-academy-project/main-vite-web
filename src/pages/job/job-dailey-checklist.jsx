@@ -1,19 +1,15 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { logout } from '../../api/auth';
-import { clearToken, getCurrentUser } from '../../api/client';
-import DashboardHeader from '../../components/dashboard-header';
-import Sidebar from '../../components/sidebar';
-import DateFactoryFilters from '../../components/date-factory-filters';
-import { useTheme } from '../../contexts/theme-context';
-import '../../style/job/job-dashboard.css';
+import { useWorkSite } from '../../api/workers';
+import { JobSiteSelector } from './job-work-form';
+import JobPageLayout, { JobPageHeading } from '../../components/job-page-layout';
 import '../../style/job/job-dailey-checklist.css';
 
 const checklistSections = [
   {
     id: 'work',
     title: '탱크 구역 기본 안전',
-    description: '저장탱크 105 구역의 기본 안전 상태를 확인합니다.',
+    description: '탱크 구역의 기본 안전 상태를 확인하는 예시 양식입니다.',
     items: [
       { itemCode: 'TANK_ACCESS', question: '저장탱크 구역의 출입 통제와 안전 표지가 적절한가?', detail: '출입 통제와 작업구역 표지 상태를 확인합니다.' },
       { itemCode: 'TANK_WALKWAY', question: '탱크 주변 통로와 작업 발판에 걸림·미끄럼 위험이 없는가?', detail: '맨홀 주변을 포함해 유출·누출 흔적과 통행로를 확인합니다.' },
@@ -50,16 +46,6 @@ const statusOptions = [
 ];
 
 const allItems = checklistSections.flatMap((section) => section.items);
-const inspectionTarget = {
-  targetType: 'ZONE',
-  siteName: '울산 공장',
-  zoneCode: 'T-105',
-  zoneName: '저장탱크 105',
-  templateCode: null,
-};
-
-const factoryOptions = ['울산 공장', '여수 공장'];
-
 function getInspectionResult(checklist) {
   const results = allItems.map((item) => checklist[item.itemCode]?.result).filter(Boolean);
   if (results.length !== allItems.length) return null;
@@ -73,54 +59,21 @@ function getToday() {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
 
-function DaileyChecklist() {
+function ChecklistWorkspace({ context }) {
   const navigate = useNavigate();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { darkMode, setDarkMode } = useTheme();
-  const [user, setUser] = useState(null);
-  const [userError, setUserError] = useState('');
+  const { account, currentSite, selecting, loading } = context;
   const [checklist, setChecklist] = useState({});
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState('info');
   const [submitted, setSubmitted] = useState(false);
   const [inspectionDate, setInspectionDate] = useState(getToday);
-  const [selectedFactory, setSelectedFactory] = useState(inspectionTarget.siteName);
 
   const completedCount = allItems.filter((item) => checklist[item.itemCode]?.result).length;
   const issueCount = allItems.filter((item) => checklist[item.itemCode]?.result === 'NG').length;
   const progress = Math.round((completedCount / allItems.length) * 100);
-  const userName = user?.name || user?.email || '사용자';
-  const userInitial = Array.from(userName)[0] || '사';
-  const availableFactories = Array.from(new Set([user?.factory, ...factoryOptions].filter(Boolean)));
-  const summaryText = `${inspectionDate} ${selectedFactory} 일일 안전 점검 ${completedCount}/${allItems.length} 항목 확인`;
+  const userName = account?.user?.name || account?.user?.email || '사용자';
+  const summaryText = `${inspectionDate} ${currentSite?.name ?? '현장 미선택'} 일일 안전 점검 ${completedCount}/${allItems.length} 항목 확인`;
   const inspectionResult = getInspectionResult(checklist);
-
-  const doLogout = async () => {
-    try {
-      await logout();
-    } finally {
-      clearToken();
-      navigate('/signin', { replace: true });
-    }
-  };
-
-  useEffect(() => {
-    let cancelled = false;
-    getCurrentUser()
-      .then((currentUser) => {
-        if (!cancelled) {
-          setUser(currentUser);
-          if (currentUser?.factory) setSelectedFactory(currentUser.factory);
-        }
-      })
-      .catch((requestError) => {
-        if (!cancelled) setUserError(requestError.message || '사용자 정보를 불러오지 못했습니다.');
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   function setItemResult(itemCode, result) {
     setChecklist((current) => ({
@@ -160,48 +113,33 @@ function DaileyChecklist() {
     }
 
     setSubmitted(true);
-    setMessageType('success');
+    setMessageType('info');
     setMessage('점검표를 확인했습니다. 현재 결과는 시연용 화면 상태이며 승인 요청이나 서버 저장은 되지 않았습니다.');
   }
 
   return (
-    <div className="dashboard-shell">
-      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-      <div className="dashboard-main">
-        <DashboardHeader
-          userInitial={userInitial}
-          userName={userName}
-          darkMode={darkMode}
-          setDarkMode={setDarkMode}
-          doLogout={doLogout}
-          setSidebarOpen={setSidebarOpen}
-        />
-        <main className="dashboard-content checklist-page">
-          <div className="page-heading checklist-heading">
-            <div>
-              <span className="checklist-eyebrow">ZONE INSPECTION</span>
-              <h1>작업구역 점검</h1>
-              <DateFactoryFilters
-                date={inspectionDate}
-                onDateChange={setInspectionDate}
-                factory={selectedFactory}
-                onFactoryChange={setSelectedFactory}
-                factories={availableFactories}
-              />
-            </div>
-            <button type="button" className="checklist-back" onClick={() => navigate('/dashboard')}>대시보드로 돌아가기</button>
-          </div>
+    <JobPageLayout title="작업구역 점검" user={account?.user} contentClassName="checklist-page">
+      <JobPageHeading
+        title="작업구역 점검"
+        className="checklist-heading"
+        eyebrow={<span className="job-eyebrow">ZONE INSPECTION</span>}
+        actions={<button type="button" className="checklist-back" onClick={() => navigate('/dashboard')}>대시보드로 돌아가기</button>}
+      >
+        <label>점검일<input type="date" value={inspectionDate} onChange={(event) => {
+          setInspectionDate(event.target.value); setSubmitted(false); setMessage('');
+        }} /></label>
+      </JobPageHeading>
 
-          {userError && <div className="dashboard-error" role="alert">{userError}</div>}
+          <JobSiteSelector context={context} />
+          <p className="job-demo-notice">서버의 현장 정보만 연결되어 있습니다. 구역·점검 양식 조회 및 점검 저장·제출 API가 없어 아래는 입력 연습용입니다.</p>
 
           <section className="inspection-metadata" aria-label="점검 기록 정보">
-            <div><span>점검 대상</span><strong>{inspectionTarget.zoneCode} · {inspectionTarget.zoneName}</strong></div>
-            <div><span>대상 유형</span><strong>{inspectionTarget.targetType}</strong></div>
-            <div><span>공장</span><strong>{selectedFactory}</strong></div>
+            <div><span>점검 대상</span><strong>구역 미연결</strong></div>
+            <div><span>대상 유형</span><strong>ZONE (예시 양식)</strong></div>
+            <div><span>공장</span><strong>{currentSite?.name ?? '현장 미선택'}</strong></div>
             <div><span>점검일</span><strong>{inspectionDate}</strong></div>
             <div><span>점검자</span><strong>{userName}</strong></div>
-            <div><span>template_code</span><strong>{inspectionTarget.templateCode ?? '서버 양식 미연결'}</strong></div>
-            <div><span>상태</span><strong>{submitted ? 'PENDING' : 'DRAFT'}</strong></div>
+            <div><span>화면 상태</span><strong>{submitted ? '입력 확인 (미저장)' : '입력 중 (미저장)'}</strong></div>
           </section>
 
           <section className="checklist-summary" aria-label="점검 진행 현황">
@@ -229,10 +167,10 @@ function DaileyChecklist() {
           <section className="checklist-context">
             <span className="context-icon" aria-hidden="true">!</span>
             <div>
-              <strong>이 구역의 최근 작업 경고 · work_warnings</strong>
-              <p>탱크 맨홀 주변 기름 유출 아차사고가 보고되었습니다. 작업 전 흡착포 설치와 미끄럼 위험 제거 여부를 확인하세요.</p>
+              <strong>작업 경고 미연결</strong>
+              <p>현재 서버에는 구역 경고 조회 API가 없습니다. 경고가 없거나 안전하다는 의미가 아닙니다.</p>
             </div>
-            <span className="pill status-waiting">확인 필요</span>
+            <span className="pill status-waiting">API 미지원</span>
           </section>
 
           <div className="checklist-sections">
@@ -266,6 +204,7 @@ function DaileyChecklist() {
                                   key={option.value}
                                   className={`checklist-option ${result === option.value ? `selected ${option.value.toLowerCase()}` : ''}`}
                                   aria-pressed={result === option.value}
+                                  disabled={loading || selecting || !currentSite}
                                   onClick={() => setItemResult(item.itemCode, option.value)}
                                 >
                                   {option.label}
@@ -298,21 +237,23 @@ function DaileyChecklist() {
           <footer className="checklist-footer">
             <span>
               {summaryText}
-              {inspectionResult && <> · inspections.result: <strong>{inspectionResult}</strong></>}
-              {submitted && <> · status: <strong>PENDING</strong></>}
+              {inspectionResult && <> · 화면 계산 결과: <strong>{inspectionResult}</strong></>}
+              {submitted && <> · <strong>입력 확인 (미저장)</strong></>}
             </span>
             <div>
-              <button type="button" className="checklist-save" onClick={saveDraft}>임시 저장</button>
-              <button type="button" className="checklist-submit" onClick={submitChecklist}>점검 제출</button>
+              <button type="button" className="checklist-save" disabled>서버 저장 (API 미지원)</button>
+              <button type="button" className="checklist-save" onClick={saveDraft}>임시 상태 안내</button>
+              <button type="button" className="checklist-submit" disabled={loading || selecting || !currentSite} onClick={submitChecklist}>입력 내용 확인 (미제출)</button>
             </div>
           </footer>
 
           {message && <div className={`checklist-message ${messageType}`} role={messageType === 'error' ? 'alert' : 'status'}>{message}</div>}
           <p className="scenario-notice">DB 매핑: inspections(target_type, inspect_date, template_code, result, status) · inspection_items(item_code, question, result, note). 화면 시연 데이터이며 서버 저장은 연결되지 않았습니다.</p>
-        </main>
-      </div>
-    </div>
+    </JobPageLayout>
   );
 }
 
-export default DaileyChecklist;
+export default function DaileyChecklist() {
+  const context = useWorkSite();
+  return <ChecklistWorkspace key={context.currentSite?.siteId ?? 'no-site'} context={context} />;
+}

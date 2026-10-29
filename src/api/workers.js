@@ -7,7 +7,7 @@ export const typeClass = { GENERAL: 'type-normal', HOT: 'type-hot', CONFINED: 't
 export const statusClass = { BLOCKED: 'status-blocked', PENDING: 'status-waiting', APPROVED: 'status-approved' };
 export const siteRoles = { ADMIN: '회사 관리자', WRITER: '작성자', APPROVER: '승인자', SITE_ADMIN: '현장 관리자' };
 
-// Only existing public APIs are used here; work CRUD is not available yet.
+// Stateless preview; persisted permit evaluations use /permits/{id}/check.
 export function checkWorkRules({ siteId, workType, input }) {
   return api('/api/v1/rules/check', {
     method: 'POST',

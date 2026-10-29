@@ -90,7 +90,7 @@ function App() {
           element={<DaileyChecklist />}
         />
         <Route path="/job/document-history" element={<JobDocumentHistory />} />
-        <Route path="/job/incidents" element={<JobIncidents />} />
+        <Route path="/job/incidents" element={<ProtectedRoute><JobIncidents /></ProtectedRoute>} />
         <Route path="/job/permits" element={<JobPermits />} />
         <Route path="/job/risk-assessment" element={<JobRiskAssessment />} />
         <Route path="/job/tbm" element={<JobTbm />} />
