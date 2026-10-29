@@ -1,10 +1,23 @@
 import { useEffect, useRef, useState } from 'react';
-import { getAgentMessages, getAgentRun, startWorkRegister } from '../../api/agents';
+import { api } from '../../api/client';
 import { getPermit, jobId } from '../../api/jobs';
 
 const statuses = {
   PROCESSING: '처리 중', WAITING_INPUT: '추가 정보 필요', DONE: '초안 처리 완료', FAILED: '실행 실패',
 };
+
+function requireRun(data, execution) {
+  if (!data || data.runId !== execution.runId || !Number.isSafeInteger(data.conversationId)
+    || data.conversationId < 1 || data.taskType !== 'WORK_REGISTER'
+    || !Object.hasOwn(statuses, data.status)
+    || (execution.conversationId && execution.conversationId !== data.conversationId)
+    || !Array.isArray(data.steps) || !Array.isArray(data.citations)
+    || (['DONE', 'WAITING_INPUT'].includes(data.status)
+      && (!data.result || data.result.runStatus !== data.status))) {
+    throw new Error('에이전트 실행 응답 형식이 올바르지 않습니다.');
+  }
+  return data;
+}
 
 function AgentResult({ result }) {
   return (
@@ -70,7 +83,7 @@ export default function JobWorkAgent({ siteId, disabled }) {
     let attempts = 0;
     const poll = async () => {
       try {
-        const saved = await getAgentRun(execution.runId, { conversationId: execution.conversationId });
+        const saved = requireRun(await api(`/api/v1/agent/runs/${execution.runId}`), execution);
         if (cancelled) return;
         setRun(saved);
         if (saved.status === 'PROCESSING') {
@@ -82,7 +95,11 @@ export default function JobWorkAgent({ siteId, disabled }) {
           return;
         }
         if (saved.status === 'FAILED') setError(saved.errorMessage || '에이전트 실행에 실패했습니다.');
-        const history = await getAgentMessages(saved.conversationId);
+        const history = await api(`/api/v1/agent/conversations/${saved.conversationId}/messages`);
+        if (!Array.isArray(history) || !history.every((item) => Number.isSafeInteger(item.messageId)
+          && typeof item.content === 'string' && ['USER', 'ASSISTANT'].includes(item.role))) {
+          throw new Error('대화 메시지 응답 형식이 올바르지 않습니다.');
+        }
         if (!cancelled) { setMessages(history); setPolling(false); }
       } catch (requestError) {
         if (!cancelled) {
@@ -105,15 +122,17 @@ export default function JobWorkAgent({ siteId, disabled }) {
       const text = message.trim();
       if (!text || text.length > 2000) throw new Error('메시지는 1~2000자로 입력하세요.');
       const targetPermitId = permitId.trim() ? jobId(permitId) : undefined;
-      if (targetPermitId) {
-        const permit = await getPermit(targetPermitId, siteId);
-        if (!['DRAFT', 'CHECKING', 'BLOCKED'].includes(permit.status)) {
-          throw new Error('승인 요청된 허가서는 AI 판정에 연결할 수 없습니다. 수정 가능한 허가서를 선택하세요.');
-        }
-      }
-      const started = await startWorkRegister({
-        siteId, message: text, conversationId: run?.conversationId, permitId: targetPermitId,
+      if (targetPermitId) await getPermit(targetPermitId, siteId);
+      const started = await api('/api/v1/agent/work-register', {
+        method: 'POST',
+        body: { siteId, message: text, ...(run ? { conversationId: run.conversationId } : {}),
+          ...(targetPermitId ? { permitId: targetPermitId } : {}) },
       });
+      if (!Number.isSafeInteger(started?.runId) || started.runId < 1
+        || !Number.isSafeInteger(started.conversationId) || started.conversationId < 1
+        || !Object.hasOwn(statuses, started.status)) {
+        throw new Error('에이전트 실행 시작 응답 형식이 올바르지 않습니다.');
+      }
       if (mounted.current) {
         setExecution({ runId: started.runId, conversationId: started.conversationId });
         setRun(null);
@@ -142,7 +161,7 @@ export default function JobWorkAgent({ siteId, disabled }) {
         <fieldset disabled={locked || (execution && !run) || run?.status === 'PROCESSING'}>
           <legend>작업 내용 전달</legend>
           <label>연결할 기존 허가서 ID (선택)<input inputMode="numeric" value={permitId} onChange={(event) => setPermitId(event.target.value)} /></label>
-          <p className="job-help">기존 허가서를 연결하면 AI의 규칙 판정이 해당 허가서에 저장될 수 있습니다. 같은 현장이고 수정 가능한 상태(DRAFT·CHECKING·BLOCKED)인지 먼저 확인합니다.</p>
+          <p className="job-help">기존 허가서를 연결하면 AI의 규칙 판정이 해당 허가서에 저장될 수 있습니다. 같은 현장의 허가서인지 먼저 확인합니다.</p>
           <label>AI 작업 메시지<textarea required maxLength={2000} rows={3} value={message}
             placeholder="작업 장소·종류·시간·인원과 실제 측정값을 알려 주세요."
             onChange={(event) => setMessage(event.target.value)} /></label>
