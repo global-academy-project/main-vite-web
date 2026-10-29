@@ -76,26 +76,26 @@ function App() {
           path="/documents/:documentId/runs/:runId"
           element={<ProtectedRoute><DocumentDetail /></ProtectedRoute>}
         />
-        {/* Job List, Details 라우팅 / WARNING : ProtectedRoute 없이 현재 테스트용으로 우회 */}
+        {/* Job List, Details 라우팅 */}
         <Route
           path="/job/list"
           element={
-              <JobSearch />
+              <ProtectedRoute><JobSearch /></ProtectedRoute>
           }
         />
-        <Route path="/job/dashboard" element={<JobDashboard />} />
+        <Route path="/job/dashboard" element={<ProtectedRoute><JobDashboard /></ProtectedRoute>} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route
           path="/job/dailey-checklist"
-          element={<DaileyChecklist />}
+          element={<ProtectedRoute><DaileyChecklist /></ProtectedRoute>}
         />
-        <Route path="/job/document-history" element={<JobDocumentHistory />} />
+        <Route path="/job/document-history" element={<ProtectedRoute><JobDocumentHistory /></ProtectedRoute>} />
         <Route path="/job/incidents" element={<ProtectedRoute><JobIncidents /></ProtectedRoute>} />
-        <Route path="/job/permits" element={<JobPermits />} />
-        <Route path="/job/risk-assessment" element={<JobRiskAssessment />} />
-        <Route path="/job/tbm" element={<JobTbm />} />
-        <Route path="/job/training-materials" element={<JobTrainingMaterials />} />
-        <Route path="/admin/users" element={<AdminUsers />} />
+        <Route path="/job/permits" element={<ProtectedRoute><JobPermits /></ProtectedRoute>} />
+        <Route path="/job/risk-assessment" element={<ProtectedRoute><JobRiskAssessment /></ProtectedRoute>} />
+        <Route path="/job/tbm" element={<ProtectedRoute><JobTbm /></ProtectedRoute>} />
+        <Route path="/job/training-materials" element={<ProtectedRoute><JobTrainingMaterials /></ProtectedRoute>} />
+        <Route path="/admin/users" element={<ProtectedRoute><AdminUsers /></ProtectedRoute>} />
         <Route path="*" element={<Navigate to="/signin" replace />} />
       </Routes>
     </BrowserRouter>
