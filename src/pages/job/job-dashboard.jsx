@@ -1,286 +1,63 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { logout } from '../../api/auth';
-import { clearToken, getCurrentUser } from '../../api/client';
-import DashboardHeader from '../../components/dashboard-header';
-import Sidebar from '../../components/sidebar';
-import DateFactoryFilters from '../../components/date-factory-filters';
-import { useTheme } from '../../contexts/theme-context';
-import { getTagEntries, sampleNearMiss } from '../../utils/agentic-rag-tags';
-// Styles for job dashboard and job search pages
+import { getSafetyDashboard } from '../../api/dashboard';
+import SafetyPageLayout from '../../components/safety-page-layout';
 import '../../style/job/job-dashboard.css';
-import '../../style/job/job-search.css';
+import '../../style/records.css';
 
-const sampleWorkers = [
-  {
-    status: 'ACTIVE',
-    name: '김용접',
-    jobType: '용접',
-    team: { name: '정비팀', teamType: 'INTERNAL' },
-    sites: [
-      { siteId: 1, name: '울산 공장', active: true },
-      { siteId: 2, name: '여수 공장', active: true },
-    ],
-    qualification: { qualType: 'TRAINING', qualCode: 'CONFINED_SPACE_SPECIAL', qualName: '밀폐공간 특별교육', issuedOn: daysFromToday(-30), expiresOn: null },
-  },
-  {
-    status: 'ACTIVE',
-    name: '이감시',
-    jobType: '감시인',
-    team: { name: '정비팀', teamType: 'INTERNAL' },
-    sites: [{ siteId: 1, name: '울산 공장', active: true }],
-    qualification: null,
-  },
-];
+const today = () => new Date().toISOString().slice(0, 10);
 
-function daysFromToday(days) {
-  const date = new Date();
-  date.setDate(date.getDate() + days);
-  return date;
+function Metric({ label, value, unit = '건', tone = '' }) {
+  return <div className="stat-card"><span>{label}</span><strong className={tone}>{value ?? 0}<small>{unit}</small></strong></div>;
 }
 
-function formatDate(value) {
-  if (!value) return '-';
-  return new Date(value).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' });
-}
-
-const sampleSiteChemical = {
-  siteId: 1,
-  zoneId: 1,
-  casNo: '108-88-3',
-  name: '톨루엔',
-  maxQuantity: 2000,
-  unit: 'L',
-  active: true,
-};
-
-const sampleWork = { id: 1, siteId: 1, zoneId: 1, workType: 'CONFINED' };
-
-const sampleWarning = {
-  siteId: 1,
-  workId: sampleWork.id,
-  sourceType: 'NEAR_MISS',
-  nearMissId: sampleNearMiss.id,
-  severity: 'WARN',
-  message: '3일 전 같은 구역에서 미끄러짐 아차사고가 있었습니다.',
-  acknowledgedBy: 1,
-  acknowledgedAt: new Date(),
-  ackNote: '맨홀 주변 흡착포 설치',
-  acknowledgedByName: '작성자',
-};
-
-const sampleCorrectiveAction = {
-  siteId: 1,
-  sourceType: 'NEAR_MISS',
-  sourceId: sampleNearMiss.id,
-  title: '맨홀 주변 유출 방지턱 설치',
-  assigneeId: 1,
-  assigneeName: '작성자',
-  dueDate: daysFromToday(7),
-  status: 'OPEN',
-  createdBy: 2,
-};
-
-const nearMissTagEntries = getTagEntries(sampleNearMiss.tags);
-
-function getLocalDate() {
-  const date = new Date();
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-}
-
-function JobDashboard() {
-  const navigate = useNavigate();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { darkMode, setDarkMode } = useTheme();
-  const [user, setUser] = useState(null);
-  const [userError, setUserError] = useState('');
-  const [loadingUser, setLoadingUser] = useState(true);
-  const [refreshKey, setRefreshKey] = useState(0);
-  const [selectedDate, setSelectedDate] = useState(getLocalDate);
-  const [selectedFactory, setSelectedFactory] = useState('울산 공장');
+function DashboardContent({ site }) {
+  const [date, setDate] = useState(today);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState('');
+  const siteId = site.currentSite?.siteId;
+  const requestKey = `${siteId || 'none'}:${date}`;
+  const data = result?.key === requestKey ? result.data : null;
+  const loading = Boolean(siteId) && result?.key !== requestKey;
 
   useEffect(() => {
+    if (!siteId) return;
     let cancelled = false;
+    getSafetyDashboard(siteId, date).then((result) => {
+      if (!cancelled) { setResult({ key: requestKey, data: result }); setError(''); }
+    }).catch((requestError) => {
+      if (!cancelled) { setResult({ key: requestKey, data: null }); setError(requestError.message); }
+    });
+    return () => { cancelled = true; };
+  }, [siteId, date, requestKey]);
 
-    getCurrentUser()
-      .then((currentUser) => {
-        if (cancelled) return;
-        setUser(currentUser);
-        setUserError('');
-        const firstFactory = currentUser?.sites?.find((site) => site.active !== false)?.name;
-        if (firstFactory) setSelectedFactory(firstFactory);
-      })
-      .catch((requestError) => {
-        if (!cancelled) {
-          setUserError(requestError.message || '사용자 정보를 불러오지 못했습니다.');
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setLoadingUser(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [refreshKey]);
-
-  const userName = user?.user?.name || user?.user?.email || '사용자';
-  const userInitial = Array.from(userName)[0] || '사';
-  const factoryOptions = Array.from(new Set([
-    ...(user?.sites?.map((site) => site.name).filter(Boolean) ?? []),
-    '울산 공장',
-    '여수 공장',
-  ]));
-
-  const doLogout = async () => {
-    try {
-      await logout();
-    } finally {
-      clearToken();
-      navigate('/signin', { replace: true });
-    }
-  };
-
-  return (
-    <div className="dashboard-shell">
-      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-      <div className="dashboard-main">
-        <DashboardHeader
-          userInitial={userInitial}
-          userName={userName}
-          darkMode={darkMode}
-          setDarkMode={setDarkMode}
-          doLogout={doLogout}
-          setSidebarOpen={setSidebarOpen}
-          title="작업 현황"
-        />
-        <main className="dashboard-content">
-          <div className="page-heading">
-            <h1>안전 작업 현황</h1>
-            <DateFactoryFilters
-              date={selectedDate}
-              onDateChange={setSelectedDate}
-              factory={selectedFactory}
-              onFactoryChange={setSelectedFactory}
-              factories={factoryOptions}
-            />
-          </div>
-          {userError && (
-            <div className="dashboard-error" role="alert">
-              <span>{userError}</span>
-              <button
-                type="button"
-                onClick={() => {
-                  setLoadingUser(true);
-                  setUserError('');
-                  setRefreshKey((value) => value + 1);
-                }}
-              >
-                다시 시도
-              </button>
-            </div>
-          )}
-          {loadingUser && <p className="dashboard-message" role="status">사용자 정보를 불러오는 중입니다...</p>}
-          <section className="stat-grid" aria-label="안전관리 요약">
-            <div className="stat-card"><span>활성 작업자</span><strong>{sampleWorkers.filter((worker) => worker.status === 'ACTIVE').length}<small>명</small></strong></div>
-            <div className="stat-card"><span>배치 현장</span><strong>2<small>곳</small></strong></div>
-            <div className="stat-card"><span>아차사고 후속 경고</span><strong className="blue">{sampleWarning.acknowledgedAt ? '확인' : '미확인'}</strong></div>
-            <div className="stat-card"><span>미완료 개선조치</span><strong className="red">{sampleCorrectiveAction.status === 'OPEN' ? '1' : '0'}<small>건</small></strong></div>
-          </section>
-          <section className="dashboard-panels safety-panels">
-            <div className="panel">
-              <h2>작업자 및 현장 배치</h2>
-              <div className="table-scroll">
-                <table>
-                  <thead><tr><th>작업자</th><th>소속</th><th>직종</th><th>활성 현장 배치</th><th>교육·자격</th></tr></thead>
-                  <tbody>
-                    {sampleWorkers.map((worker) => (
-                      <tr key={worker.name}>
-                        <td>{worker.name}</td>
-                        <td>{worker.team.name}<small className="table-meta">{worker.team.teamType}</small></td>
-                        <td>{worker.jobType}</td>
-                        <td>{worker.sites.filter((site) => site.active).map((site) => site.name).join(', ')}</td>
-                        <td>
-                          {worker.qualification ? (
-                            <>
-                              {worker.qualification.qualName}
-                              <small className="table-meta">{worker.qualification.qualType} · {worker.qualification.qualCode}</small>
-                              <small className="table-meta">유효기간 {worker.qualification.expiresOn ? formatDate(worker.qualification.expiresOn) : '없음'}</small>
-                            </>
-                          ) : '등록된 자격 없음'}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <p className="sample-note">현장 배치는 worker_sites.active, 작업자 상태는 workers.status 기준입니다.</p>
-            </div>
-            <div className="panel">
-              <h2>현장 취급 물질 <small>site_chemicals</small></h2>
-              <div className="detail-list">
-                <div><span>물질명</span><strong>{sampleSiteChemical.name}</strong></div>
-                <div><span>CAS No.</span><strong>{sampleSiteChemical.casNo}</strong></div>
-                <div><span>보관 한도</span><strong>{sampleSiteChemical.maxQuantity.toLocaleString('ko-KR')} {sampleSiteChemical.unit}</strong></div>
-                <div><span>관리 위치</span><strong>울산 공장 · T-105</strong></div>
-                <div><span>활성 상태</span><strong>{sampleSiteChemical.active ? 'ACTIVE' : 'INACTIVE'}</strong></div>
-              </div>
-              <h3 className="subheading">작업자 자격</h3>
-              <div className="qualification-row">
-                <span><strong>김용접 · {sampleWorkers[0].qualification.qualName}</strong><small>{sampleWorkers[0].qualification.qualCode} · 발급 {formatDate(sampleWorkers[0].qualification.issuedOn)} · 만료일 미지정</small></span>
-                <span className="pill status-approved">{sampleWorkers[0].qualification.qualType}</span>
-              </div>
-            </div>
-            <div className="panel incident-panel">
-              <h2>아차사고 및 작업 경고 <small>near_misses · record_tags · work_warnings</small></h2>
-              <div className="incident-heading">
-                <span className={`pill ${sampleNearMiss.status === 'CLOSED' ? 'status-approved' : 'status-waiting'}`}>{sampleNearMiss.status}</span>
-                <strong>{sampleNearMiss.title}</strong>
-                <small>{formatDate(sampleNearMiss.occurredAt)}</small>
-              </div>
-              <p className="incident-description">{sampleNearMiss.description}</p>
-              <div className="incident-tags" aria-label="record_tags 분류 축">
-                {nearMissTagEntries.map(({ axis, label, values }) => (
-                  <div className="incident-tag-axis" key={axis}>
-                    <span>{label}</span>
-                    <div className="tag-chip-list">
-                      {values.length ? values.map(({ code, label: valueLabel, source, confidence }) => (
-                        <span className="tag-chip" key={code} title={`${source}${confidence === null ? '' : ` · 신뢰도 ${Math.round(confidence * 100)}%`}`}>
-                          {valueLabel}
-                        </span>
-                      )) : <span className="tag-unspecified">미분류</span>}
-                    </div>
-                  </div>
-                ))}
-              </div>
-              {sampleNearMiss.immediateAction && <p className="incident-description">즉시 조치: {sampleNearMiss.immediateAction}</p>}
-              <div className="warning-box">
-                <strong>{sampleWarning.sourceType} · {sampleWarning.severity} 경고 · 작업 #{sampleWarning.workId}</strong>
-                <p>{sampleWarning.message}</p>
-                <div className="acknowledgement">
-                  <span>{sampleWarning.acknowledgedByName} · {sampleWarning.ackNote}</span>
-                  <span className={`pill ${sampleWarning.acknowledgedAt ? 'status-approved' : 'status-waiting'}`}>{sampleWarning.acknowledgedAt ? '확인 완료' : '미확인'}</span>
-                </div>
-              </div>
-            </div>
-            <div className="panel">
-              <h2>개선조치 <small>corrective_actions</small></h2>
-              <div className="action-card">
-                <span className="action-icon" aria-hidden="true">!</span>
-                <div>
-                  <strong>{sampleCorrectiveAction.title}</strong>
-                  <p>{sampleCorrectiveAction.sourceType} #{sampleCorrectiveAction.sourceId} 후속 조치 · 담당: {sampleCorrectiveAction.assigneeName}</p>
-                  <small>기한 {formatDate(sampleCorrectiveAction.dueDate)}</small>
-                </div>
-                <span className={`pill ${sampleCorrectiveAction.status === 'OPEN' ? 'status-waiting' : 'status-approved'}`}>{sampleCorrectiveAction.status}</span>
-              </div>
-            </div>
-          </section>
-          <p className="scenario-notice">주석 SQL 시나리오 기반 시연 데이터입니다. 실제 작업자·현장 데이터 연동은 아직 적용되지 않았습니다.</p>
-        </main>
+  return <>
+    <div className="page-heading records-heading">
+      <div><h1>안전 작업 현황</h1><p>현장 기록에서 계산한 승인·점검·TBM 현황입니다.</p></div>
+      <div className="dashboard-live-filters">
+        <input type="date" value={date} onChange={(e) => setDate(e.target.value)}/>
+        <select value={siteId || ''} onChange={(e) => site.selectSite(e.target.value)} disabled={site.loading || site.selecting}>
+          {(site.account?.sites || []).map((item) => <option key={item.siteId} value={item.siteId}>{item.name}</option>)}
+        </select>
       </div>
     </div>
-  );
+    {error && <p className="dashboard-error" role="alert">{error}</p>}
+    {loading && <p role="status">대시보드 데이터를 불러오는 중입니다...</p>}
+    {data && <>
+      <section className="stat-grid" aria-label="안전관리 요약">
+        <Metric label="전체 작업" value={data.workCounts?.total}/><Metric label="승인 완료" value={data.workCounts?.approved} tone="blue"/><Metric label="승인 대기" value={data.workCounts?.pending}/><Metric label="차단 작업" value={data.workCounts?.blocked} tone="red"/>
+        <Metric label="위험성평가" value={data.riskCounts?.total}/><Metric label="작업허가" value={data.permitCounts?.total}/><Metric label="점검표" value={data.inspectionCounts?.total}/><Metric label="TBM" value={data.tbmCounts?.total}/>
+      </section>
+      <section className="dashboard-panels safety-panels">
+        <div className="panel"><h2>미완료 항목</h2><div className="detail-list"><div><span>미완료 개선조치</span><strong>{data.incomplete?.correctiveActions ?? 0}건</strong></div><div><span>서명 누락</span><strong>{data.incomplete?.signatures ?? 0}건</strong></div><div><span>LEL 측정값 누락</span><strong>{data.incomplete?.gasMeasurements ?? 0}건</strong></div><div><span>사진 누락</span><strong>{data.incomplete?.photos ?? 0}건</strong></div><div><span>점검 미완료</span><strong>{data.incomplete?.inspections ?? 0}건</strong></div><div><span>TBM 누락</span><strong>{data.incomplete?.tbm ?? 0}건</strong></div></div></div>
+        <div className="panel"><h2>팀별 작성 현황</h2>{data.teamStatus?.length ? <div className="table-scroll"><table><thead><tr><th>팀</th><th>작업</th><th>승인</th><th>대기</th></tr></thead><tbody>{data.teamStatus.map((row) => <tr key={row.teamId || row.teamName}><td>{row.teamName || '미지정'}</td><td>{row.total}</td><td>{row.approved}</td><td>{row.pending}</td></tr>)}</tbody></table></div> : <p className="records-empty">해당 날짜의 팀별 작업이 없습니다.</p>}</div>
+        <div className="panel"><h2>최근 승인 요청</h2>{data.recentApprovals?.length ? <ul className="dashboard-record-list">{data.recentApprovals.map((row) => <li key={row.approvalId}><strong>{row.targetType} #{row.targetId}</strong><span>{row.status} · {row.requestedAt?.replace('T',' ')}</span></li>)}</ul> : <p className="records-empty">최근 승인 요청이 없습니다.</p>}</div>
+        <div className="panel"><h2>최근 차단 기록</h2>{data.recentBlocked?.length ? <ul className="dashboard-record-list">{data.recentBlocked.map((row) => <li key={`${row.recordType}-${row.recordId}`}><strong>{row.title}</strong><span>{row.recordType} #{row.recordId}</span></li>)}</ul> : <p className="records-empty">최근 차단 기록이 없습니다.</p>}</div>
+        <div className="panel"><h2>최근 변경 이력</h2>{data.recentHistory?.length ? <ul className="dashboard-record-list">{data.recentHistory.map((row) => <li key={row.historyId}><strong>{row.targetType} #{row.targetId}</strong><span>{row.action} · {row.createdAt?.replace('T',' ')}</span></li>)}</ul> : <p className="records-empty">최근 변경 이력이 없습니다.</p>}</div>
+      </section>
+    </>}
+  </>;
 }
 
-export default JobDashboard;
+export default function JobDashboard() {
+  return <SafetyPageLayout title="작업 현황">{(site) => <DashboardContent site={site}/>}</SafetyPageLayout>;
+}
