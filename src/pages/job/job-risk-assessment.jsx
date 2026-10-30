@@ -1,5 +1,79 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { getWorkRiskAssessment } from '../../api/jobs';
 import JobDraftForm from './job-work-form';
+
+function RiskAssessmentLookup({ context, initialWorkId }) {
+  const [workId, setWorkId] = useState(initialWorkId ?? '');
+  const [request, setRequest] = useState(initialWorkId ?? '');
+  const [lookupVersion, setLookupVersion] = useState(0);
+  const [result, setResult] = useState(null);
+  const siteId = context.currentSite?.siteId;
+  const requestKey = `${siteId}:${request}:${lookupVersion}`;
+  const loaded = result?.key === requestKey;
+  const assessment = loaded ? result.assessment : null;
+  const loading = Boolean(request && siteId && !loaded);
+  const error = loaded ? result.error : '';
+
+  useEffect(() => {
+    if (!request || !siteId) return undefined;
+    let cancelled = false;
+    getWorkRiskAssessment(request).then((saved) => {
+      if (saved.siteId !== siteId) {
+        throw new Error('선택한 현장의 위험성평가가 아닙니다.');
+      }
+      if (!cancelled) setResult({ key: requestKey, assessment: saved, error: '' });
+    }).catch((requestError) => {
+      if (!cancelled) setResult({
+        key: requestKey, assessment: null,
+        error: requestError.message || '위험성평가를 불러오지 못했습니다.',
+      });
+    });
+    return () => { cancelled = true; };
+  }, [request, lookupVersion, siteId, requestKey]);
+
+  const lookup = () => {
+    setRequest(workId.trim());
+    setLookupVersion((value) => value + 1);
+  };
+  return (
+    <section className="panel job-example" aria-label="저장된 위험성평가 조회">
+      <h2>작업별 위험성평가 조회</h2>
+      <p className="job-help">작업 목록의 평가 버튼을 누르거나 작업 ID를 입력해 최신 판을 조회합니다.</p>
+      <div className="job-lookup-wide">
+        <fieldset>
+          <label>작업 ID<input inputMode="numeric" value={workId}
+            onChange={(event) => setWorkId(event.target.value)} /></label>
+          <button type="button" disabled={!context.currentSite || !workId.trim()}
+            onClick={lookup}>최신 평가 조회</button>
+        </fieldset>
+      </div>
+      {loading && <p role="status">위험성평가를 불러오는 중입니다...</p>}
+      {error && <p className="dashboard-error" role="alert">{error}</p>}
+      {assessment && <>
+        <div className="job-section-heading">
+          <strong>평가 #{assessment.riskAssessmentId} · 작업 #{assessment.workId}</strong>
+          <span className="job-status-badge">{assessment.status}</span>
+        </div>
+        <p>{assessment.assessDate} · {assessment.assessmentType} · revision {assessment.revision}</p>
+        <p className="job-help">승인 요청 가능: {assessment.canSubmit ? '가능' : '불가'}</p>
+        {assessment.items.length ? <div className="job-risk-list">
+          {assessment.items.map((item) => (
+            <article className="panel" key={item.seq}>
+              <h3>{item.seq}. {item.workStep || '작업 단계 미지정'}</h3>
+              <p><strong>위험요인:</strong> {item.hazard}</p>
+              <p><strong>발생형태:</strong> {item.accidentType || '미지정'}</p>
+              <p><strong>초기 위험도:</strong> {item.frequency ?? '-'} × {item.severity ?? '-'} = {item.riskScore ?? '-'} ({item.riskLevel ?? '미지정'})</p>
+              <p><strong>감소대책:</strong></p>
+              {String(item.controls ?? '').split(/\r?\n/).filter(Boolean).map((control, index) => <p key={index}>{control}</p>)}
+              <p><strong>잔여 위험도:</strong> {item.residualFrequency ?? '-'} × {item.residualSeverity ?? '-'} = {item.residualScore ?? '-'}</p>
+            </article>
+          ))}
+        </div> : <p className="job-help">등록된 위험요인이 없습니다.</p>}
+      </>}
+    </section>
+  );
+}
 
 const initialRisks = [
   { id: 1, step: '', hazard: '', action: '', frequency: '', severity: '' },
@@ -20,7 +94,7 @@ function RiskFields() {
         <label>평가일<input type="date" required /></label>
       </div>
       <h2>위험요인 및 감소대책</h2>
-      <p className="job-help">risk_assessments · risk_assessment_items 입력 연습입니다. 작업 ID·구역 ID 연결 및 저장 API는 미지원입니다. 빈도×강도 계산은 승인 또는 안전 판정이 아닙니다.</p>
+      {/* <p className="job-help">risk_assessments · risk_assessment_items 입력 연습입니다. 작업 ID·구역 ID 연결 및 저장 API는 미지원입니다. 빈도×강도 계산은 승인 또는 안전 판정이 아닙니다.</p> */}
       <div className="job-risk-list">
         {risks.map((risk, index) => (
           <fieldset key={risk.id}>
@@ -43,5 +117,12 @@ function RiskFields() {
 }
 
 export default function JobRiskAssessment() {
-  return <JobDraftForm title="작업 위험성평가" description="작업 단계별 위험요인과 감소대책을 작성합니다."><RiskFields /></JobDraftForm>;
+  const [params] = useSearchParams();
+  return <JobDraftForm title="작업 위험성평가" description="작업 단계별 위험요인과 감소대책을 작성합니다.">
+    {(context) => <>
+      <RiskAssessmentLookup key={`${context.currentSite?.siteId ?? ''}:${params.get('workId') ?? ''}`}
+        context={context} initialWorkId={params.get('workId')} />
+      <RiskFields />
+    </>}
+  </JobDraftForm>;
 }
