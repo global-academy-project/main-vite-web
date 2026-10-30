@@ -56,6 +56,8 @@ export default function JobWorkAgent({ siteId, disabled }) {
   const [polling, setPolling] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [sendUncertain, setSendUncertain] = useState(false);
+  const [restoredRun, setRestoredRun] = useState(false);
   const pending = useRef(false);
   const mounted = useRef(false);
   useEffect(() => {
@@ -97,7 +99,7 @@ export default function JobWorkAgent({ siteId, disabled }) {
 
   const send = async (event) => {
     event.preventDefault();
-    if (pending.current || disabled || polling || (execution && !run) || run?.status === 'PROCESSING') return;
+    if (pending.current || disabled || polling || sendUncertain || (execution && !run) || run?.status === 'PROCESSING') return;
     pending.current = true;
     setBusy(true);
     setError('');
@@ -119,10 +121,14 @@ export default function JobWorkAgent({ siteId, disabled }) {
         setRun(null);
         setLookupId(String(started.runId));
         setMessage('');
+        setRestoredRun(false);
         setPolling(true);
       }
     } catch (requestError) {
-      if (mounted.current) setError(`${requestError.message || '메시지 전송에 실패했습니다.'} 전송 후 응답을 받지 못했다면 서버에 실행이 생성됐을 수 있으므로 중복 전송에 주의하세요.`);
+      if (mounted.current) {
+        if (requestError.code === 'WRITE_OUTCOME_UNKNOWN') setSendUncertain(true);
+        setError(requestError.message || '메시지 전송에 실패했습니다.');
+      }
     } finally {
       pending.current = false;
       if (mounted.current) setBusy(false);
@@ -137,26 +143,37 @@ export default function JobWorkAgent({ siteId, disabled }) {
       </div>
       <p className="job-help">Spring 서버를 통해 AI 처리를 요청합니다. 모델 제공자와 네트워크 모드는 서버 설정을 따릅니다. 개인정보·기밀은 입력하지 마세요. 대화·실행 기록은 저장되지만 작업·서류 초안은 자동 등록되지 않습니다.</p>
       {error && <p className="dashboard-error" role="alert">{error}</p>}
+      {sendUncertain && <p className="job-demo-notice" role="alert">실행 생성 여부가 불확실하여 메시지 재전송을 중지했습니다. 실행 ID를 알면 조회하세요. 모르면 관리자에게 확인한 뒤 새 대화를 시작하세요. 서버 실행은 취소되지 않았습니다.</p>}
+      {sendUncertain && run && run.status !== 'PROCESSING' && <button type="button" disabled={locked} onClick={() => {
+        if (window.confirm('조회한 실행이 응답을 받지 못했던 실행이고 처리가 끝났는지 확인했습니까? 확인 후에만 대화를 이어 보내세요.')) {
+          setSendUncertain(false); setError('');
+        }
+      }}>실행 확인 후 전송 잠금 해제</button>}
       {execution && <p role="status">실행 #{execution.runId}{run && <> · 대화 #{run.conversationId} · {statuses[run.status]}</>}</p>}
       <form onSubmit={send}>
-        <fieldset disabled={locked || (execution && !run) || run?.status === 'PROCESSING'}>
+        <fieldset disabled={locked || sendUncertain || (execution && !run) || run?.status === 'PROCESSING'}>
           <legend>작업 내용 전달</legend>
           <label>연결할 기존 허가서 ID (선택)<input inputMode="numeric" value={permitId} onChange={(event) => setPermitId(event.target.value)} /></label>
           <p className="job-help">기존 허가서를 연결하면 AI의 규칙 판정이 해당 허가서에 저장될 수 있습니다. 같은 현장이고 수정 가능한 상태(DRAFT·CHECKING·BLOCKED)인지 먼저 확인합니다.</p>
+          {restoredRun && <p className="job-demo-notice">실행 조회 응답에는 연결된 허가서 ID가 없습니다. 같은 허가서에 계속 판정하려면 ID를 다시 입력하세요. 비워 두면 허가서 연결 없이 보냅니다.</p>}
           <label>AI 작업 메시지<textarea required maxLength={2000} rows={3} value={message}
             placeholder="작업 장소·종류·시간·인원과 실제 측정값을 알려 주세요."
             onChange={(event) => setMessage(event.target.value)} /></label>
           <div className="job-form-actions"><button type="submit">{busy ? '전송 중...' : run ? '대화 이어 보내기' : '작업 대화 시작'}</button></div>
         </fieldset>
         <button type="button" className="job-secondary-button" disabled={locked || run?.status === 'PROCESSING'} onClick={() => {
+          if ((sendUncertain || message.trim()) && !window.confirm('현재 입력과 대화 연결을 초기화하시겠습니까? 응답을 받지 못한 실행은 서버에서 계속 처리될 수 있습니다.')) return;
           setExecution(null); setRun(null); setMessages([]); setMessage(''); setPermitId(''); setLookupId(''); setError('');
+          setSendUncertain(false); setRestoredRun(false);
         }}>새 대화</button>
       </form>
       <form className="job-lookup" onSubmit={(event) => {
         event.preventDefault();
         try {
           const id = jobId(lookupId);
+          if (message.trim() && !window.confirm('현재 작성 중인 메시지를 버리고 실행을 조회하시겠습니까?')) return;
           setExecution({ runId: id }); setRun(null); setMessages([]); setPermitId(''); setError(''); setPolling(true);
+          setMessage(''); setRestoredRun(true);
         } catch (requestError) { setError(requestError.message); }
       }}>
         <fieldset disabled={locked}><legend>기존 실행 조회</legend>
