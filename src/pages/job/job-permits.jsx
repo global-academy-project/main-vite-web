@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { api } from '../../api/client';
 import { useWorkSite } from '../../api/workers';
 import {
-  checkPermit, createPermit, getPermit, getWork, measurementFields, measurementItems,
-  requireWork, saveMeasurements, submitPermit, updatePermit, validatePeriod,
+  checkPermit, createPermit, getPermit, getWork, jobId, jobWrite, measurementFields,
+  measurementItems, requireWork, saveMeasurements, submitPermit, updatePermit, validatePeriod,
 } from '../../api/jobs';
 import JobPageLayout, { JobPageHeading } from '../../components/job-page-layout';
 import { JobSiteSelector } from './job-work-form';
@@ -15,6 +16,13 @@ const hotChecks = {
 };
 const emptyForm = { validFrom: '', validTo: '', watcherName: '', supervisorName: '', form: {} };
 const ruleCheckLabels = { PASS: '통과', FAIL: '기준 미충족', MISSING: '입력 누락' };
+const permitStatusLabels = {
+  DRAFT: '작성 중', CHECKING: '작성 중', BLOCKED: '작성 중', PENDING: '승인 대기',
+  APPROVED: '승인됨', REJECTED: '반려됨', SUSPENDED: '중지', CLOSED: '종료', SUPERSEDED: '새 버전으로 대체됨',
+};
+const approvalStatusLabels = {
+  PENDING: '승인 대기', APPROVED: '승인됨', REJECTED: '반려됨', CANCELED: '회수됨',
+};
 
 function RuleChecks({ evaluation }) {
   return (
@@ -57,9 +65,9 @@ function FieldRuleChecks({ checks, target }) {
   )) : <p className="job-help">이 항목에 적용된 판정 규칙이 없습니다. 안전성이 검증된 것은 아닙니다.</p>;
 }
 
-function PermitWorkspace({ siteId, disabled, initialWorkId }) {
+function PermitWorkspace({ siteId, disabled, initialWorkId, initialPermitId }) {
   const [workId, setWorkId] = useState(initialWorkId ?? '');
-  const [permitId, setPermitId] = useState('');
+  const [permitId, setPermitId] = useState(initialPermitId ?? '');
   const [verifiedWork, setVerifiedWork] = useState(null);
   const [type, setType] = useState('HOT');
   const [form, setForm] = useState(emptyForm);
@@ -72,6 +80,9 @@ function PermitWorkspace({ siteId, disabled, initialWorkId }) {
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
   const [creationUncertain, setCreationUncertain] = useState(false);
+  const [approvalResult, setApprovalResult] = useState(null);
+  const [approvalRefresh, setApprovalRefresh] = useState(0);
+  const [initialPermitResult, setInitialPermitResult] = useState(null);
   const mounted = useRef(false);
   const pending = useRef(false);
   useEffect(() => {
@@ -79,7 +90,7 @@ function PermitWorkspace({ siteId, disabled, initialWorkId }) {
     return () => { mounted.current = false; };
   }, []);
 
-  const apply = (saved) => {
+  const apply = useCallback((saved) => {
     setPermit(saved);
     setPermitId(String(saved.permitId));
     setWorkId(String(saved.workId));
@@ -94,7 +105,7 @@ function PermitWorkspace({ siteId, disabled, initialWorkId }) {
     setValues({});
     setEvaluation(null);
     setCreationUncertain(false);
-  };
+  }, []);
   const run = async (action) => {
     if (pending.current || disabled) return;
     pending.current = true;
@@ -107,6 +118,9 @@ function PermitWorkspace({ siteId, disabled, initialWorkId }) {
       if (mounted.current) {
         const mustReload = ['CONFLICT_MODIFIED', 'INVALID_STATE', 'WRITE_OUTCOME_UNKNOWN'].includes(requestError.code);
         if (mustReload && permit) { setConflict(true); setEvaluation(null); }
+        if (requestError.code === 'WRITE_OUTCOME_UNKNOWN' && permit) {
+          setApprovalRefresh((value) => value + 1);
+        }
         if (requestError.code === 'WRITE_OUTCOME_UNKNOWN' && !permit) setCreationUncertain(true);
         setError(`${requestError.message || '허가서 요청에 실패했습니다.'}${mustReload && permit ? ' 최신 허가서를 다시 조회한 뒤 수정하세요.' : ''}`);
       }
@@ -132,6 +146,26 @@ function PermitWorkspace({ siteId, disabled, initialWorkId }) {
       if (mounted.current) { apply(saved); setMessage('서버의 허가서를 조회했습니다.'); }
     });
   };
+  const initialPermitKey = `${siteId}:${initialPermitId ?? ''}`;
+  const initialPermitLoaded = initialPermitResult?.key === initialPermitKey;
+  const initialPermitLoading = Boolean(initialPermitId && !initialPermitLoaded);
+  useEffect(() => {
+    if (!initialPermitId) return undefined;
+    let cancelled = false;
+    getPermit(initialPermitId, siteId).then((saved) => {
+      if (!cancelled) {
+        apply(saved);
+        setMessage('저장 결과에서 연결된 허가서를 조회했습니다.');
+        setInitialPermitResult({ key: initialPermitKey, error: '' });
+      }
+    }).catch((requestError) => {
+      if (!cancelled) {
+        setError(requestError.message || '허가서를 불러오지 못했습니다.');
+        setInitialPermitResult({ key: initialPermitKey, error: requestError.message });
+      }
+    });
+    return () => { cancelled = true; };
+  }, [initialPermitId, siteId, initialPermitKey, apply]);
   const save = (event) => {
     event.preventDefault();
     if (conflict || creationUncertain) return;
@@ -161,7 +195,60 @@ function PermitWorkspace({ siteId, disabled, initialWorkId }) {
     setMessage('');
   };
   const editable = !permit || ['DRAFT', 'CHECKING', 'BLOCKED'].includes(permit.status);
-  const locked = busy || disabled;
+  const locked = busy || disabled || initialPermitLoading;
+  const approvalKey = `${siteId}:${permit?.permitId}:${permit?.status}:${approvalRefresh}`;
+  const approvalLoaded = approvalResult?.key === approvalKey;
+  const requestedApproval = approvalLoaded ? approvalResult.approval : null;
+  const approvalError = approvalLoaded ? approvalResult.error : '';
+  const approvalLoading = Boolean(permit && !approvalLoaded);
+  useEffect(() => {
+    if (!permit) return undefined;
+    let cancelled = false;
+    const path = `/api/v1/sites/${jobId(siteId)}/approvals?mine=requested`;
+    api(path).then((approvals) => {
+      if (!Array.isArray(approvals) || !approvals.every((item) => item
+        && Number.isSafeInteger(item.approvalId) && item.approvalId > 0
+        && typeof item.targetType === 'string' && Number.isSafeInteger(Number(item.targetId))
+        && Number(item.targetId) > 0 && typeof item.status === 'string'
+        && (item.requestedAt == null || typeof item.requestedAt === 'string'))) {
+        throw new Error('내 승인 요청 목록 응답 형식이 올바르지 않습니다.');
+      }
+      const relatedApprovals = approvals.filter((item) => item.targetType === 'PERMIT'
+        && Number(item.targetId) === permit.permitId)
+        .sort((left, right) => (right.requestedAt ?? '').localeCompare(left.requestedAt ?? ''));
+      const expectedStatus = {
+        PENDING: 'PENDING', APPROVED: 'APPROVED', REJECTED: 'REJECTED', DRAFT: 'CANCELED',
+      }[permit.status];
+      const approval = relatedApprovals.find((item) => item.status === expectedStatus)
+        ?? relatedApprovals[0] ?? null;
+      if (!cancelled) setApprovalResult({ key: approvalKey, approval, error: '' });
+    }).catch((requestError) => {
+      if (!cancelled) setApprovalResult({
+        key: approvalKey, approval: null,
+        error: requestError.message || '승인 요청 정보를 불러오지 못했습니다.',
+      });
+    });
+    return () => { cancelled = true; };
+  }, [siteId, permit, approvalRefresh, approvalKey]);
+  const cancelApproval = () => {
+    if (requestedApproval?.status !== 'PENDING' || !permit) return;
+    if (!window.confirm('이 허가서의 승인 요청을 회수하시겠습니까?')) return;
+    void run(async () => {
+      await jobWrite(() => api(`/api/v1/approvals/${requestedApproval.approvalId}/cancel`, {
+        method: 'POST', body: { comment: '요청자 회수' },
+      }));
+      setApprovalRefresh((value) => value + 1);
+      try {
+        const saved = await getPermit(permit.permitId, siteId);
+        if (mounted.current) {
+          apply(saved);
+          setMessage('승인 요청을 회수했습니다. 허가서 상태를 다시 확인했습니다.');
+        }
+      } catch (requestError) {
+        if (mounted.current) setError(`승인 요청은 회수했지만 허가서 상태를 다시 불러오지 못했습니다: ${requestError.message || '조회 오류'}`);
+      }
+    });
+  };
   const measurementDirty = Object.values(values).some((value) => String(value).trim());
   const currentEvaluation = evaluation ?? permit?.lastEvaluation;
   const visibleChecks = !dirty && !measurementDirty && !conflict ? evaluation?.checks : undefined;
@@ -178,8 +265,25 @@ function PermitWorkspace({ siteId, disabled, initialWorkId }) {
       </ol>
       <p className="job-demo-notice" role="status">작업 ID와 허가서 ID는 별도 번호입니다. 작업 등록만으로 허가서가 생성되지는 않습니다. 작업 ID만 있다면 아래 ‘작업허가서 작성’에서 작업을 확인하고 허가서를 저장하세요. ‘기존 허가서 조회’에는 허가서 저장 후 발급된 ID를 입력합니다.</p>
       {error && <p className="dashboard-error" role="alert">{error}</p>}
+      {initialPermitLoading && <p role="status">저장된 허가서를 불러오는 중입니다...</p>}
       {conflict && <p className="job-demo-notice" role="status">최신 버전 확인이 필요합니다. 허가서 ID로 다시 조회한 뒤 수정·판정·승인 요청하세요.</p>}
       {message && <p className="job-review-notice" role="status">{message}</p>}
+      {permit && <section className="panel job-example" aria-label="허가서 결재 상태">
+        <h2>승인 요청 상태</h2>
+        {approvalLoading ? <p role="status">승인 요청 정보를 불러오는 중입니다...</p> : approvalError ? <>
+          <p className="dashboard-error" role="alert">{approvalError}</p>
+          <button type="button" className="job-history-refresh" disabled={locked}
+            onClick={() => setApprovalRefresh((value) => value + 1)}>승인 요청 다시 조회</button>
+        </> : requestedApproval ? <>
+          <p>{permitStatusLabels[permit.status] ?? permit.status} · 결재 {approvalStatusLabels[requestedApproval.status] ?? requestedApproval.status}</p>
+          <div className="job-action-row">
+            <Link className="job-link-button" to={`/approvals/${requestedApproval.approvalId}`}>승인함에서 보기</Link>
+            {requestedApproval.status === 'PENDING' && <button type="button" disabled={locked || conflict}
+              onClick={cancelApproval}>승인 요청 회수</button>}
+          </div>
+          {permit.status === 'REJECTED' && <p className="job-help">반려 사유는 결재 상세에서 확인하세요.</p>}
+        </> : <p className="job-help">이 허가서에 연결된 내 승인 요청이 없습니다.</p>}
+      </section>}
       {creationUncertain && <section className="job-demo-notice" role="alert">
         <p>허가서 생성 여부가 불확실하여 재등록을 중지했습니다. 허가서 ID로 조회하거나 관리자에게 저장 여부를 확인하세요. 기존 허가서가 있으면 새로 만들지 말고 조회하세요.</p>
         <button type="button" disabled={busy || disabled} onClick={() => {
@@ -201,7 +305,7 @@ function PermitWorkspace({ siteId, disabled, initialWorkId }) {
         </fieldset>
       </form>
       <form className="panel job-form" onSubmit={save}>
-        <div className="job-section-heading"><div><span className="job-eyebrow">PERMIT DETAILS</span><h2>{permit ? permit.permitNo : '작업허가서 작성'}</h2><p className="job-help">작업과 유효기간을 확인하고 유형별 안전 확인사항을 입력하세요.</p></div><span className="job-status-badge">{permit ? permit.status : '새 허가서'}</span></div>
+        <div className="job-section-heading"><div><span className="job-eyebrow">PERMIT DETAILS</span><h2>{permit ? permit.permitNo : '작업허가서 작성'}</h2><p className="job-help">작업과 유효기간을 확인하고 유형별 안전 확인사항을 입력하세요.</p></div><span className="job-status-badge">{permit ? permitStatusLabels[permit.status] ?? permit.status : '새 허가서'}</span></div>
         <fieldset disabled={locked || !editable || conflict || creationUncertain}>
           <legend>허가서 내용</legend>
           <div className="job-fields">
@@ -325,8 +429,8 @@ export default function JobPermits() {
     <JobPageLayout title="작업허가" user={context.account?.user} contentClassName="job-management">
       <JobPageHeading title="작업허가" description="작업 전 안전 정보를 확인하고 허가서 작성부터 승인 요청까지 진행합니다." />
       <JobSiteSelector context={context} />
-      {context.currentSite && <PermitWorkspace key={context.currentSite.siteId} siteId={context.currentSite.siteId}
-        disabled={context.selecting} initialWorkId={params.get('workId')} />}
+      {context.currentSite && <PermitWorkspace key={`${context.currentSite.siteId}:${params.get('workId') ?? ''}:${params.get('permitId') ?? ''}`} siteId={context.currentSite.siteId}
+        disabled={context.selecting} initialWorkId={params.get('workId')} initialPermitId={params.get('permitId')} />}
     </JobPageLayout>
   );
 }
