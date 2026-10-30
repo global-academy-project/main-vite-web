@@ -60,6 +60,7 @@ function FieldRuleChecks({ checks, target }) {
 function PermitWorkspace({ siteId, disabled, initialWorkId }) {
   const [workId, setWorkId] = useState(initialWorkId ?? '');
   const [permitId, setPermitId] = useState('');
+  const [verifiedWork, setVerifiedWork] = useState(null);
   const [type, setType] = useState('HOT');
   const [form, setForm] = useState(emptyForm);
   const [permit, setPermit] = useState(null);
@@ -119,7 +120,15 @@ function PermitWorkspace({ siteId, disabled, initialWorkId }) {
   const load = (id) => {
     if (!confirmReplacement()) return;
     return run(async () => {
-      const saved = await getPermit(id, siteId);
+      let saved;
+      try {
+        saved = await getPermit(id, siteId);
+      } catch (requestError) {
+        if (requestError.code === 'PERMIT_NOT_FOUND') {
+          throw new Error(`${requestError.message} 입력한 번호는 허가서 ID입니다. 작업 ID를 받은 경우 아래 작성 영역에서 작업 저장 여부를 확인한 후 새 허가서를 저장하세요. 작업과 허가서는 별도 번호입니다.`, { cause: requestError });
+        }
+        throw requestError;
+      }
       if (mounted.current) { apply(saved); setMessage('서버의 허가서를 조회했습니다.'); }
     });
   };
@@ -141,7 +150,7 @@ function PermitWorkspace({ siteId, disabled, initialWorkId }) {
       if (mounted.current) {
         apply(saved);
         setValues(values);
-        setMessage('허가서 내용을 서버에 저장했습니다. 측정값 저장 후 판정하세요.');
+        setMessage(`작업 #${saved.workId}의 허가서 #${saved.permitId}를 서버에 저장했습니다. 이후 허가서 조회에는 ${saved.permitId}번을 사용하세요. 측정값 저장 후 판정하세요.`);
       }
     });
   };
@@ -167,6 +176,7 @@ function PermitWorkspace({ siteId, disabled, initialWorkId }) {
         <li aria-current={permit?.lastEvaluation && permit.status !== 'PENDING' ? 'step' : undefined}><span>3</span>규칙 판정</li>
         <li aria-current={permit?.status === 'PENDING' ? 'step' : undefined}><span>4</span>승인 요청</li>
       </ol>
+      <p className="job-demo-notice" role="status">작업 ID와 허가서 ID는 별도 번호입니다. 작업 등록만으로 허가서가 생성되지는 않습니다. 작업 ID만 있다면 아래 ‘작업허가서 작성’에서 작업을 확인하고 허가서를 저장하세요. ‘기존 허가서 조회’에는 허가서 저장 후 발급된 ID를 입력합니다.</p>
       {error && <p className="dashboard-error" role="alert">{error}</p>}
       {conflict && <p className="job-demo-notice" role="status">최신 버전 확인이 필요합니다. 허가서 ID로 다시 조회한 뒤 수정·판정·승인 요청하세요.</p>}
       {message && <p className="job-review-notice" role="status">{message}</p>}
@@ -179,13 +189,13 @@ function PermitWorkspace({ siteId, disabled, initialWorkId }) {
         }}>반영 여부 확인 후 등록 잠금 해제</button>
       </section>}
       <form className="panel job-form job-lookup job-lookup-wide" onSubmit={(event) => { event.preventDefault(); void load(permitId); }}>
-        <div><span className="job-eyebrow">FIND PERMIT</span><h2>기존 허가서 조회</h2><p className="job-help">이어서 작성할 허가서의 ID를 입력해 주세요.</p></div>
+        <div><span className="job-eyebrow">FIND PERMIT</span><h2>기존 허가서 조회</h2><p className="job-help">이미 저장한 허가서 ID로 조회합니다. 작업 현황에서 발급된 작업 ID를 입력하는 곳이 아닙니다.</p></div>
         <fieldset disabled={locked}>
           <label>허가서 ID<input required inputMode="numeric" placeholder="허가서 ID 입력" value={permitId} onChange={(event) => setPermitId(event.target.value)} /></label>
           <button type="submit">허가서 조회 (입력 내용 교체)</button>
           {permit && <button type="button" className="job-secondary-button" onClick={() => {
             if (!confirmReplacement()) return;
-            setPermit(null); setPermitId(''); setForm(emptyForm); setValues({}); setDirty(false);
+            setPermit(null); setPermitId(''); setVerifiedWork(null); setForm(emptyForm); setValues({}); setDirty(false);
             setConflict(false); setCreationUncertain(false); setEvaluation(null); setError(''); setMessage('');
           }}>새 허가서 작성</button>}
         </fieldset>
@@ -195,7 +205,19 @@ function PermitWorkspace({ siteId, disabled, initialWorkId }) {
         <fieldset disabled={locked || !editable || conflict || creationUncertain}>
           <legend>허가서 내용</legend>
           <div className="job-fields">
-            <label>작업 ID<input required inputMode="numeric" disabled={!!permit} value={workId} onChange={(event) => { setWorkId(event.target.value); setDirty(true); }} /></label>
+            <div>
+              <label>작업 ID<input required inputMode="numeric" disabled={!!permit} value={workId} onChange={(event) => {
+                setWorkId(event.target.value); setVerifiedWork(null); setDirty(true);
+              }} /></label>
+              {!permit && <button type="button" className="job-secondary-button" onClick={() => run(async () => {
+                const work = requireWork(await getWork(workId), siteId);
+                if (mounted.current) {
+                  setVerifiedWork(work);
+                  setMessage(`작업 #${work.workId}의 서버 저장을 확인했습니다. 허가서는 아직 생성하지 않았습니다. 유효기간과 안전 확인사항을 입력하고 허가서를 저장하세요.`);
+                }
+              })}>작업 저장 여부 확인</button>}
+              {!permit && verifiedWork && <p className="job-help" role="status">서버 확인 완료: 작업 #{verifiedWork.workId} · {verifiedWork.title}</p>}
+            </div>
             <label>허가 유형<select disabled={!!permit} value={type} onChange={(event) => {
               if (!confirmReplacement()) return;
               setType(event.target.value); update('form', {}); setValues({});
