@@ -1,5 +1,77 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { getWorkTbm } from '../../api/jobs';
 import JobDraftForm from './job-work-form';
+
+function TbmLookup({ context, initialWorkId }) {
+  const [workId, setWorkId] = useState(initialWorkId ?? '');
+  const [request, setRequest] = useState(initialWorkId ?? '');
+  const [lookupVersion, setLookupVersion] = useState(0);
+  const [result, setResult] = useState(null);
+  const siteId = context.currentSite?.siteId;
+  const requestKey = `${siteId}:${request}:${lookupVersion}`;
+  const loaded = result?.key === requestKey;
+  const tbm = loaded ? result.tbm : null;
+  const loading = Boolean(request && siteId && !loaded);
+  const error = loaded ? result.error : '';
+
+  useEffect(() => {
+    if (!request || !siteId) return undefined;
+    let cancelled = false;
+    getWorkTbm(request).then((saved) => {
+      if (saved.siteId !== siteId) {
+        throw new Error('선택한 현장의 TBM이 아닙니다.');
+      }
+      if (!cancelled) setResult({ key: requestKey, tbm: saved, error: '' });
+    }).catch((requestError) => {
+      if (!cancelled) setResult({
+        key: requestKey, tbm: null, error: requestError.message || 'TBM을 불러오지 못했습니다.',
+      });
+    });
+    return () => { cancelled = true; };
+  }, [request, lookupVersion, siteId, requestKey]);
+
+  const lookup = () => {
+    setRequest(workId.trim());
+    setLookupVersion((value) => value + 1);
+  };
+  return (
+    <section className="panel job-example" aria-label="저장된 TBM 조회">
+      <h2>작업별 TBM 조회</h2>
+      <p className="job-help">작업 목록의 TBM 버튼을 누르거나 작업 ID를 입력해 연결된 최신 TBM을 조회합니다.</p>
+      <div className="job-lookup-wide">
+        <fieldset>
+          <label>작업 ID<input inputMode="numeric" value={workId}
+            onChange={(event) => setWorkId(event.target.value)} /></label>
+          <button type="button" disabled={!context.currentSite || !workId.trim()}
+            onClick={lookup}>TBM 조회</button>
+        </fieldset>
+      </div>
+      {loading && <p role="status">TBM을 불러오는 중입니다...</p>}
+      {error && <p className="dashboard-error" role="alert">{error}</p>}
+      {tbm && <>
+        <div className="job-section-heading">
+          <strong>TBM #{tbm.tbmId} · {tbm.tbmDate}</strong>
+          <span className="job-status-badge">{tbm.status}</span>
+        </div>
+        <p>실시 일시: {tbm.heldAt || '미기록'} · 진행자: {tbm.leaderName || '미기록'} · 참석 인원: {tbm.attendeeCount ?? '미기록'}</p>
+        <h3>교육 요점</h3>
+        {tbm.points.length
+          ? <ul>{tbm.points.map((point, index) => <li key={`${index}-${point}`}>{point}</li>)}</ul>
+          : <p className="job-help">등록된 교육 요점이 없습니다.</p>}
+        <p><strong>건강 확인:</strong> {tbm.healthCheck ?? '미기록'}</p>
+        <h3>연결 작업</h3>
+        <ul>{tbm.works.map((work) => <li key={work.workId}>#{work.workId} · {work.title}</li>)}</ul>
+        <h3>참석자</h3>
+        {tbm.attendees?.length
+          ? <ul>{tbm.attendees.map((attendee) => <li key={attendee.workerId}>
+            {attendee.name} · 건강 확인 {attendee.healthOk == null ? '미기록' : attendee.healthOk ? '완료' : '확인 필요'}
+          </li>)}</ul>
+          : <p className="job-help">등록된 참석자 정보가 없습니다.</p>}
+      </>}
+    </section>
+  );
+}
 
 function TbmFields() {
   const [attendees, setAttendees] = useState('');
@@ -25,5 +97,12 @@ function TbmFields() {
 }
 
 export default function JobTbm() {
-  return <JobDraftForm title="TBM" description="작업 전 안전회의의 교육 내용과 참석자를 기록합니다."><TbmFields /></JobDraftForm>;
+  const [params] = useSearchParams();
+  return <JobDraftForm title="TBM" description="작업 전 안전회의의 교육 내용과 참석자를 기록합니다.">
+    {(context) => <>
+      <TbmLookup key={`${context.currentSite?.siteId ?? ''}:${params.get('workId') ?? ''}`}
+        context={context} initialWorkId={params.get('workId')} />
+      <TbmFields />
+    </>}
+  </JobDraftForm>;
 }
