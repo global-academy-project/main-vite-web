@@ -197,6 +197,9 @@
 .job-action-row, .job-page-content .job-form-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
 .job-page-content .job-form-actions { justify-content: flex-end; margin-top: 24px; padding-top: 18px; border-color: var(--job-border); }
 .job-page-content .job-form-actions > span { margin-right: auto; color: var(--job-muted); font-size: 11px; }
+.job-work-links { display: flex; flex-wrap: wrap; gap: 8px; }
+.job-work-links a { color: var(--job-accent); font-size: 12px; font-weight: 650; white-space: nowrap; }
+.job-page-content td small { display: block; color: var(--job-muted); font-size: 11px; }
 
 .job-work-grid { display: grid; grid-template-columns: minmax(0, 1.75fr) minmax(280px, 1fr); align-items: start; gap: 24px; margin-top: 22px; }
 .job-work-grid .job-form { margin-top: 0; }
