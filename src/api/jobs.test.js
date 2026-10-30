@@ -1,8 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  checkPermit, createPermit, createWork, getPermit, getWork, jobId, jobWrite, measurementItems,
-  requireRuleEvaluation, requireWork, saveMeasurements, submitPermit, updatePermit, validatePeriod,
+  checkPermit, createPermit, createWork, getPermit, getSiteWorks, getWork, getWorkRiskAssessment,
+  getWorkTbm, jobId, jobWrite, measurementItems, requireRuleEvaluation, requireWork,
+  saveMeasurements, submitPermit, updatePermit, validatePeriod,
 } from './jobs.js';
 import { ApiError } from './client.js';
 
@@ -46,6 +47,60 @@ test('work response is checked against the selected site', () => {
   assert.equal(requireWork(work, 1), work);
   assert.throws(() => requireWork(work, 2), /현장/);
   assert.throws(() => requireWork({ siteId: 1 }, 1), /형식/);
+});
+
+test('work list and linked risk assessment/TBM use the documented read endpoints', async (t) => {
+  const requests = [];
+  let responseBody;
+  t.mock.method(globalThis, 'fetch', async (path, options) => {
+    requests.push({ path, ...options });
+    return new Response(JSON.stringify({ success: true, data: responseBody }), {
+      status: 200, headers: { 'Content-Type': 'application/json' },
+    });
+  });
+  const storage = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
+  Object.defineProperty(globalThis, 'localStorage', {
+    configurable: true, value: { getItem: () => 'test-only-token' },
+  });
+  t.after(() => {
+    if (storage) Object.defineProperty(globalThis, 'localStorage', storage);
+    else delete globalThis.localStorage;
+  });
+
+  responseBody = [{
+    workId: 7, siteId: 1, title: '작업', workDate: '2026-11-02', status: 'DRAFT',
+    permits: [{ permitId: 11, permitType: 'HOT', status: 'DRAFT' }],
+    riskAssessment: { riskAssessmentId: 40, status: 'DRAFT' },
+    tbm: { tbmId: 12, status: 'DRAFT' },
+  }];
+  assert.deepEqual(await getSiteWorks(1, { from: '2026-11-02', to: '2026-11-06' }), responseBody);
+  assert.equal(requests.at(-1).path, '/api/v1/sites/1/works?from=2026-11-02&to=2026-11-06');
+  assert.equal(requests.at(-1).method, 'GET');
+
+  responseBody = {
+    riskAssessmentId: 40, siteId: 1, workId: 7, status: 'DRAFT',
+    items: [], canSubmit: false, lockVersion: 0,
+  };
+  assert.deepEqual(await getWorkRiskAssessment(7), responseBody);
+  assert.equal(requests.at(-1).path, '/api/v1/works/7/risk-assessment');
+
+  responseBody = {
+    tbmId: 12, siteId: 1, tbmDate: '2026-11-02', status: 'DRAFT',
+    points: [], works: [{ workId: 7, title: '작업' }],
+  };
+  assert.deepEqual(await getWorkTbm(7), responseBody);
+  assert.equal(requests.at(-1).path, '/api/v1/works/7/tbm');
+
+  const beforeInvalidRequests = requests.length;
+  await assert.rejects(getSiteWorks(1, { from: '2026-11-01', to: '2026-12-02' }), /31일까지/);
+  await assert.rejects(getSiteWorks(1, { from: '2026-11-07', to: '2026-11-06' }), /종료일/);
+  await assert.rejects(getSiteWorks(1, { from: '2026-02-30' }), /YYYY-MM-DD/);
+  assert.equal(requests.length, beforeInvalidRequests);
+
+  responseBody = [{ ...work, siteId: 2, permits: [], riskAssessment: null, tbm: null }];
+  await assert.rejects(getSiteWorks(1), /현장/);
+  responseBody = { ...responseBody[0], siteId: 1 };
+  await assert.rejects(getWorkRiskAssessment(7), /형식/);
 });
 
 test('job writes classify uncertain outcomes without retrying or masking definite rejections', async () => {

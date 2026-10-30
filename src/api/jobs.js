@@ -33,6 +33,50 @@ export function requireWork(work, siteId) {
   return work;
 }
 
+function requireWorkSummary(work, siteId) {
+  requireWork(work, siteId);
+  if (typeof work.workDate !== 'string' || typeof work.status !== 'string'
+    || !Array.isArray(work.permits)
+    || work.permits.some((permit) => !permit || !Number.isSafeInteger(permit.permitId)
+      || typeof permit.permitType !== 'string' || typeof permit.status !== 'string')
+    || (work.riskAssessment != null && (!Number.isSafeInteger(work.riskAssessment.riskAssessmentId)
+      || typeof work.riskAssessment.status !== 'string'))
+    || (work.tbm != null && (!Number.isSafeInteger(work.tbm.tbmId)
+      || typeof work.tbm.status !== 'string'))) {
+    throw new Error('작업 목록 응답 형식이 올바르지 않습니다.');
+  }
+  return work;
+}
+
+function requireDateOnly(value) {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)
+    || !Number.isFinite(Date.parse(`${value}T00:00:00Z`))
+    || new Date(`${value}T00:00:00Z`).toISOString().slice(0, 10) !== value) {
+    throw new Error('조회 날짜는 YYYY-MM-DD 형식이어야 합니다.');
+  }
+}
+
+function requireRiskAssessment(assessment, expectedWorkId) {
+  if (!assessment || !Number.isSafeInteger(assessment.riskAssessmentId)
+    || !Number.isSafeInteger(assessment.siteId) || !Number.isSafeInteger(assessment.workId)
+    || assessment.workId !== expectedWorkId || !Array.isArray(assessment.items)
+    || typeof assessment.status !== 'string' || typeof assessment.canSubmit !== 'boolean'
+    || !Number.isInteger(assessment.lockVersion)) {
+    throw new Error('위험성평가 응답 형식이 올바르지 않습니다.');
+  }
+  return assessment;
+}
+
+function requireTbm(tbm, expectedWorkId) {
+  if (!tbm || !Number.isSafeInteger(tbm.tbmId) || !Number.isSafeInteger(tbm.siteId)
+    || typeof tbm.tbmDate !== 'string' || typeof tbm.status !== 'string'
+    || !Array.isArray(tbm.points) || !Array.isArray(tbm.works)
+    || !tbm.works.some((work) => work?.workId === expectedWorkId)) {
+    throw new Error('TBM 응답 형식이 올바르지 않습니다.');
+  }
+  return tbm;
+}
+
 function requirePermit(permit, siteId) {
   if (!permit || !Number.isSafeInteger(permit.permitId) || permit.permitId < 1
     || !Number.isSafeInteger(permit.workId) || !Number.isInteger(permit.lockVersion)
@@ -85,6 +129,36 @@ export function measurementItems(type, values) {
 export const createWork = async (body) =>
   jobWrite(async () => requireWork(await api('/api/v1/works', { method: 'POST', body }), body.siteId));
 export const getWork = (id) => api(`/api/v1/works/${jobId(id)}`);
+export async function getSiteWorks(siteId, { from, to } = {}) {
+  const id = jobId(siteId);
+  const params = new URLSearchParams();
+  if (from) {
+    requireDateOnly(from);
+    params.set('from', from);
+  }
+  if (to) {
+    requireDateOnly(to);
+    params.set('to', to);
+  }
+  if (from && to && Date.parse(`${to}T00:00:00Z`) < Date.parse(`${from}T00:00:00Z`)) {
+    throw new Error('종료일은 시작일보다 앞설 수 없습니다.');
+  }
+  if (from && to && Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`) > 30 * 24 * 60 * 60 * 1000) {
+    throw new Error('작업 목록은 한 번에 31일까지 조회할 수 있습니다.');
+  }
+  const query = params.toString();
+  const works = await api(`/api/v1/sites/${id}/works${query ? `?${query}` : ''}`);
+  if (!Array.isArray(works)) throw new Error('작업 목록 응답 형식이 올바르지 않습니다.');
+  return works.map((work) => requireWorkSummary(work, id));
+}
+export async function getWorkRiskAssessment(workId) {
+  const id = jobId(workId);
+  return requireRiskAssessment(await api(`/api/v1/works/${id}/risk-assessment`), id);
+}
+export async function getWorkTbm(workId) {
+  const id = jobId(workId);
+  return requireTbm(await api(`/api/v1/works/${id}/tbm`), id);
+}
 export const getPermit = async (id, siteId) =>
   requirePermit(await api(`/api/v1/permits/${jobId(id)}`), siteId);
 export const createPermit = async (body, siteId) =>
