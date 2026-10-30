@@ -74,6 +74,7 @@ function TbmLookup({ context, initialWorkId }) {
 }
 
 function TbmFields() {
+  // TODO: BACKEND CONTRACT REQUIRED: TBM DRAFT -> ATTENDEE signatures -> DONE -> APPROVED
   const [attendees, setAttendees] = useState('');
   const [photoName, setPhotoName] = useState('');
   const attendeeCount = attendees.split('\n').filter((name) => name.trim()).length;

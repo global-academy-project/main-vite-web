@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { logout } from '../api/auth';
 import { sendAgentChat } from '../api/agent-chat';
-import { clearToken, getCurrentUser } from '../api/client';
+import { clearToken } from '../api/client';
+import { getCachedCurrentUser } from '../api/workers';
 import DashboardHeader from '../components/dashboard-header';
 import Sidebar from '../components/sidebar';
 import { useTheme } from '../contexts/theme-context';
@@ -29,7 +30,7 @@ function Dashboard() {
 
   useEffect(() => {
     let cancelled = false;
-    getCurrentUser()
+    getCachedCurrentUser()
       .then((currentUser) => {
         if (!cancelled) setUser(currentUser);
       })

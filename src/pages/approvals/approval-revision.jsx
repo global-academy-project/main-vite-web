@@ -6,7 +6,7 @@ function RevisionContent() {
   const { approvalId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
-  const mode = location.state?.mode === 'REVISION_REQUESTED' ? '보완' : '반려';
+  const mode = '반려';
   const approval = location.state?.approval;
 
   return (
@@ -17,12 +17,12 @@ function RevisionContent() {
       {approval?.comment && <div className="approval-result-comment"><span>{mode} 사유</span><p>{approval.comment}</p></div>}
       <div className="revision-checklist">
         <strong>처리 전 확인</strong>
-        <label><input type="checkbox" /> {mode === '반려' ? '새 revision으로 작성합니다.' : '보완 요청 항목을 수정합니다.'}</label>
+        <label><input type="checkbox" /> 새 revision으로 작성합니다.</label>
         <label><input type="checkbox" /> 수정 후 재제출합니다.</label>
       </div>
       <div className="approval-result-actions">
         <button type="button" disabled onClick={() => navigate(`/records/${approval?.targetType}/${approval?.targetId}`)}>문서 수정 화면 열기</button>
-        <button type="button" className="secondary-button" onClick={() => navigate(`/approvals/${approvalId}/result`, { state: { approval, decisionType: mode === '반려' ? 'REJECTED' : 'REVISION_REQUESTED' } })}>처리 결과로 돌아가기</button>
+        <button type="button" className="secondary-button" onClick={() => navigate(`/approvals/${approvalId}/result`, { state: { approval, decisionType: 'REJECTED' } })}>처리 결과로 돌아가기</button>
       </div>
     </section>
   );
