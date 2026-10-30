@@ -20,11 +20,6 @@ const resultCopy = {
     description: '문서가 반려되었습니다. 반려 사유를 확인한 뒤 다시 작성해 주세요.',
     tone: 'rejected',
   },
-  REVISION_REQUESTED: {
-    title: '보완 요청 완료',
-    description: '보완이 필요한 항목이 작성자에게 전달되었습니다.',
-    tone: 'revision',
-  },
 };
 
 function ApprovalResultContent() {
@@ -49,14 +44,15 @@ function ApprovalResultContent() {
   if (!approval) return <p role="status">처리 결과를 불러오는 중입니다...</p>;
 
   const decisionType = location.state?.decisionType;
-  const status = decisionType || approval.decisionType || approval.status;
+  const summary = approval.summary || approval;
+  const status = decisionType || approval.decisionType || summary.status;
   const copy = resultCopy[status] || resultCopy.PENDING;
   const currentStep = approval.steps?.find((step) => step.status === 'PENDING');
 
   return (
     <section className={`panel approval-result approval-result-${copy.tone}`}>
       <div className="approval-result-icon" aria-hidden="true">{copy.tone === 'approved' || copy.tone === 'waiting' ? '✓' : '!'}</div>
-      <p className="approval-result-eyebrow">{approval.targetType} #{approval.targetId}</p>
+      <p className="approval-result-eyebrow">{summary.targetType} #{summary.targetId}</p>
       <h1>{copy.title}</h1>
       <p className="approval-result-description">{copy.description}</p>
       {approval.title && <p className="approval-result-document">{approval.title}</p>}
@@ -67,20 +63,20 @@ function ApprovalResultContent() {
           <small>{currentStep.requiredRole}의 처리를 기다리고 있습니다.</small>
         </div>
       )}
-      {approval.comment && (
+      {summary.comment && (
         <div className="approval-result-comment">
-          <span>{status === 'REVISION_REQUESTED' ? '보완 요청 사유' : '처리 의견'}</span>
-          <p>{approval.comment}</p>
+          <span>{status === 'REJECTED' ? '반려 사유' : '처리 의견'}</span>
+          <p>{summary.comment}</p>
         </div>
       )}
       <div className="approval-result-actions">
-        {(status === 'REJECTED' || status === 'REVISION_REQUESTED') && (
+        {status === 'REJECTED' && (
           <button type="button" onClick={() => navigate(`/approvals/${approvalId}/revision`, { state: { approval, mode: status } })}>
-            {status === 'REJECTED' ? '새 revision 작성' : '보완 항목 수정'}
+            새 revision 작성
           </button>
         )}
         <Link className="secondary-button" to="/approvals">승인함으로 이동</Link>
-        <Link className="secondary-button" to={`/records/${approval.targetType}/${approval.targetId}`}>기록 상세 보기</Link>
+        <Link className="secondary-button" to={`/records/${summary.targetType}/${summary.targetId}`}>기록 상세 보기</Link>
       </div>
     </section>
   );

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { approveApproval, getApproval, rejectApproval, requestApprovalRevision } from '../../api/approvals';
+import { approveApproval, getApproval, rejectApproval } from '../../api/approvals';
 import SafetyPageLayout from '../../components/safety-page-layout';
 import ApprovalActions from './components/approval-actions';
 import ApprovalSummary from './components/approval-summary';
@@ -17,16 +17,15 @@ function Detail() {
   const load = () => getApproval(approvalId).then(setData).catch((e) => setError(e.message));
   useEffect(load, [approvalId]);
 
-  const decide = async (action, comment = '') => {
-    if (action !== 'approve' && !comment.trim()) { setError('반려 또는 보완 사유를 입력해 주세요.'); return; }
+  const decide = async (action, comment = '', missingItems = []) => {
+    if (action === 'reject' && !comment.trim()) { setError('반려 사유를 입력해 주세요.'); return; }
     setBusy(true); setError('');
     try {
       if (action === 'approve') await approveApproval(approvalId, comment);
-      if (action === 'reject') await rejectApproval(approvalId, comment);
-      if (action === 'revision') await requestApprovalRevision(approvalId, comment);
+      if (action === 'reject') await rejectApproval(approvalId, comment, missingItems);
       const result = await getApproval(approvalId);
       navigate(`/approvals/${approvalId}/result`, {
-        state: { approval: result, decisionType: action === 'revision' ? 'REVISION_REQUESTED' : result.status },
+        state: { approval: result, decisionType: result.summary?.status },
       });
     } catch (e) { setError(e.message); } finally { setBusy(false); }
   };
@@ -34,15 +33,14 @@ function Detail() {
   if (!data) return error ? <p className="dashboard-error">{error}</p> : <p>승인 정보를 불러오는 중입니다...</p>;
   return (
     <>
-      <div className="page-heading"><h1>승인 상세</h1><p>{data.targetType} #{data.targetId}</p></div>
+      <div className="page-heading"><h1>승인 상세</h1><p>{data.summary?.targetType} #{data.summary?.targetId}</p></div>
       {error && <p className="dashboard-error" role="alert">{error}</p>}
       <ApprovalSummary approval={data} />
       <ApprovalTimeline steps={data.steps} />
       {data.canDecide && <ApprovalActions
         busy={busy}
         onApprove={(comment) => decide('approve', comment)}
-        onRequestRevision={(comment) => decide('revision', comment)}
-        onReject={(comment) => decide('reject', comment)}
+        onReject={(comment, missingItems) => decide('reject', comment, missingItems)}
       />}
     </>
   );
