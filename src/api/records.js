@@ -1,27 +1,30 @@
 import { api } from './client';
 
-function queryString(filters) {
-  const params = new URLSearchParams();
-  Object.entries(filters).forEach(([key, value]) => {
-    if (value !== '' && value !== null && value !== undefined) params.set(key, value);
-  });
-  return params.toString();
-}
-
-export function searchRecords(siteId, filters) {
-  return api(`/api/v1/sites/${siteId}/records?${queryString(filters)}`);
-}
-
 export function getRecordDetail(recordType, recordId) {
   return api(`/api/v1/records/${recordType}/${recordId}`);
 }
 
-export function askRecordQuestion(siteId, request) {
-  return api(`/api/v1/sites/${siteId}/record-queries`, { method: 'POST', body: request });
+// API: POST /api/v1/agent/record-query
+// CALLED_BY: 기록 질문 탭(백엔드 배포 전에는 호출하지 않음)
+// TODO: BACKEND CONTRACT REQUIRED: 현재 main-ai-model에서 라우트를 확인할 수 없음.
+export function startRecordQuery({ siteId, message, conversationId }) {
+  if (!siteId || !message?.trim()) throw new Error('현장과 질문을 입력하세요.');
+  return api('/api/v1/agent/record-query', {
+    method: 'POST',
+    body: {
+      siteId,
+      message: message.trim(),
+      ...(conversationId ? { conversationId } : {}),
+    },
+  });
 }
 
-export function createAuditReportDraft(siteId, request) {
-  return api(`/api/v1/sites/${siteId}/audit-reports/draft`, { method: 'POST', body: request });
+// API: GET /api/v1/agent/runs/{runId}
+// CALLED_BY: 기록 질문 polling
+// TODO: BACKEND CONTRACT REQUIRED: 현재 main-ai-model에서 라우트를 확인할 수 없음.
+export function getRecordQueryRun(runId) {
+  if (!runId) throw new Error('실행 ID가 없습니다.');
+  return api(`/api/v1/agent/runs/${runId}`);
 }
 
 export function getDailySafetyLogs(siteId) {

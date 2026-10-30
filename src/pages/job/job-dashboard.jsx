@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useWorkSite, workTypes } from '../../api/workers';
 import { createWork, getWork, requireWork, validatePeriod } from '../../api/jobs';
+import { getSafetyDashboard } from '../../api/dashboard';
 import JobPageLayout, { JobPageHeading } from '../../components/job-page-layout';
 import { JobSiteSelector } from './job-work-form';
 import JobWorkAgent from './job-work-agent';
@@ -121,6 +122,38 @@ function WorkWorkspace({ site, disabled }) {
 
 export default function JobDashboard() {
   const context = useWorkSite();
+  const [assistantTab, setAssistantTab] = useState('work');
+  const [dashboard, setDashboard] = useState(null);
+  const [dashboardError, setDashboardError] = useState('');
+  const [dashboardLoading, setDashboardLoading] = useState(false);
+  const workDate = new Date().toISOString().slice(0, 10);
+
+  useEffect(() => {
+    const siteId = context.currentSite?.siteId;
+    if (!siteId) {
+      return undefined;
+    }
+    let cancelled = false;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setDashboardLoading(true);
+    setDashboardError('');
+    // API: GET /api/v1/sites/{siteId}/dashboard?date=YYYY-MM-DD
+    // FLOW: 현장 선택 → work_date 기준 미완료 항목 조회
+    getSafetyDashboard(siteId, workDate).then((data) => {
+      if (!cancelled) setDashboard(data);
+    }).catch((requestError) => {
+      if (!cancelled) {
+        setDashboard(null);
+        setDashboardError(requestError.status === 404
+          ? '대시보드 미완료 집계 API가 아직 연결되지 않았습니다.'
+          : requestError.message || '대시보드 집계를 불러오지 못했습니다.');
+      }
+    }).finally(() => {
+      if (!cancelled) setDashboardLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, [context.currentSite?.siteId, workDate]);
+
   return (
     <JobPageLayout title="작업 현황" user={context.account?.user} contentClassName="job-management job-overview">
       <JobPageHeading title="안전 작업 현황" description={`${new Date().toLocaleDateString('ko-KR')} · ${context.currentSite?.name ?? '현장 미선택'}`} />
@@ -138,8 +171,38 @@ export default function JobDashboard() {
         <div className="panel"><h2>아차사고·작업 경고</h2><p className="job-help">near_misses · record_tags · work_warnings 조회 API가 필요합니다. 등록된 실제 사고가 있는지는 아직 확인할 수 없습니다.</p></div>
         <div className="panel"><h2>허가·필수 조치</h2><p className="job-help">현장별 허가·필수 조치 요약 API는 없습니다. 개별 작업 조회 후 허가서 작성 화면에서 허가서 조회·판정·승인 요청을 진행할 수 있습니다.</p></div>
       </section>
+      <section className="panel" aria-labelledby="incomplete-items-title">
+        <div className="job-section-heading">
+          <div><span className="job-eyebrow">INCOMPLETE ITEMS</span><h2 id="incomplete-items-title">미완료 항목</h2><p className="job-help">기준일: {workDate} · work_date 기준 서버 집계</p></div>
+        </div>
+        {dashboardLoading && <p role="status">미완료 항목을 불러오는 중입니다...</p>}
+        {dashboardError && <p className="dashboard-error" role="alert">{dashboardError}</p>}
+        {!dashboardLoading && !dashboardError && !dashboard && <p className="job-help">대시보드 API 응답이 없어 집계값을 표시하지 않습니다.</p>}
+        {Array.isArray(dashboard?.items) && (
+          <div className="stat-grid" aria-label="미완료 항목 집계">
+            {dashboard.items.map((item) => <div className={`stat-card${item.overdue ? ' is-overdue' : ''}`} key={item.type}>
+              <span>{item.label || item.type}</span><strong>{item.count}</strong>{item.overdue && <small> 지연</small>}
+            </div>)}
+          </div>
+        )}
+      </section>
       {context.currentSite && <section className="job-overview-workspace" aria-labelledby="job-workspace-title">
-        <JobWorkAgent key={`agent-${context.currentSite.siteId}`} siteId={context.currentSite.siteId} disabled={context.selecting} />
+        <section className="panel" aria-label="AI 작업 및 기록 질문">
+          <nav className="approval-tabs" aria-label="AI 도우미 탭">
+            <button type="button" className={assistantTab === 'work' ? 'is-active' : ''} onClick={() => setAssistantTab('work')}>작업 등록</button>
+            <button type="button" className={assistantTab === 'records' ? 'is-active' : ''} onClick={() => setAssistantTab('records')}>기록 질문</button>
+          </nav>
+          {assistantTab === 'work' ? <JobWorkAgent key={`agent-${context.currentSite.siteId}`} siteId={context.currentSite.siteId} disabled={context.selecting} /> : (
+            <section className="job-form" aria-labelledby="record-query-title">
+              <span className="job-eyebrow">RECORD QUERY</span>
+              <h2 id="record-query-title">기록 질문</h2>
+              <p className="job-help">작업 등록 대화와 분리된 기록 조회 영역입니다. 답변·근거 링크·조회 조건·진행 과정은 기록 질의 에이전트 API 연결 후 표시됩니다.</p>
+              {/* API: POST /api/v1/agent/record-query → GET /api/v1/agent/runs/{runId} */}
+              {/* TODO: API NOT CONNECTED: main-ai-model에 RECORD_QUERY 라우트가 없음 */}
+              <p className="dashboard-error" role="status">기록 질문 에이전트 API가 아직 연결되지 않았습니다.</p>
+            </section>
+          )}
+        </section>
         <div className="job-section-heading">
           <div><span className="job-eyebrow">WORK MANAGEMENT</span><h2 id="job-workspace-title">작업 등록·조회</h2><p className="job-help">위 현황과 별개로, 선택 현장의 개별 작업은 실제 서버에 저장하고 조회할 수 있습니다.</p></div>
         </div>

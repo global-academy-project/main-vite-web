@@ -2,6 +2,7 @@ import { useState } from 'react';
 import JobDraftForm from './job-work-form';
 
 function TbmFields() {
+  // TODO: BACKEND CONTRACT REQUIRED: TBM DRAFT -> ATTENDEE signatures -> DONE -> APPROVED
   const [attendees, setAttendees] = useState('');
   const [photoName, setPhotoName] = useState('');
   const attendeeCount = attendees.split('\n').filter((name) => name.trim()).length;

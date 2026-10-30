@@ -24,7 +24,7 @@ export default function SafetyPageLayout({ title, children }) {
 
   return (
     <div className="dashboard-shell">
-      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} site={site.currentSite} />
       <div className="dashboard-main">
         <DashboardHeader
           userInitial={Array.from(userName)[0] || '사'}

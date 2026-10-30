@@ -84,7 +84,10 @@ export async function api(
       body: body ? (isForm ? body : JSON.stringify(body)) : undefined,
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });
-  } catch {
+  } catch (requestError) {
+    if (requestError?.name === "TimeoutError" || requestError?.name === "AbortError") {
+      throw new ApiError("TIMEOUT", "요청 시간이 초과되었습니다. 잠시 후 다시 시도하세요.", null, 408);
+    }
     throw new ApiError("NETWORK_ERROR", "서버에 연결할 수 없습니다.", null, 0);
   }
 

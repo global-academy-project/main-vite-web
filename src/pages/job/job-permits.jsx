@@ -14,6 +14,8 @@ const hotChecks = {
   flammable_vapor_removed: '인화성 증기 제거',
 };
 const emptyForm = { validFrom: '', validTo: '', watcherName: '', supervisorName: '', form: {} };
+// TODO: BACKEND CONTRACT REQUIRED: POST /api/v1/permits/{permitId}/signatures
+// EVENT: SUPERVISOR 서명은 approval.steps에 추가하지 않고 별도 이벤트로 저장한다.
 const ruleCheckLabels = { PASS: '통과', FAIL: '기준 미충족', MISSING: '입력 누락' };
 
 function RuleChecks({ evaluation }) {
