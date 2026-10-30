@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { getWorkRiskAssessment } from '../../api/jobs';
+import { api } from '../../api/client';
+import { getWorkRiskAssessment, jobWrite } from '../../api/jobs';
 import JobDraftForm from './job-work-form';
 
 function RiskAssessmentLookup({ context, initialWorkId }) {
@@ -8,6 +9,10 @@ function RiskAssessmentLookup({ context, initialWorkId }) {
   const [request, setRequest] = useState(initialWorkId ?? '');
   const [lookupVersion, setLookupVersion] = useState(0);
   const [result, setResult] = useState(null);
+  const [submitBusy, setSubmitBusy] = useState(false);
+  const [submitUncertain, setSubmitUncertain] = useState(false);
+  const [submitError, setSubmitError] = useState('');
+  const [submitMessage, setSubmitMessage] = useState('');
   const siteId = context.currentSite?.siteId;
   const requestKey = `${siteId}:${request}:${lookupVersion}`;
   const loaded = result?.key === requestKey;
@@ -35,6 +40,57 @@ function RiskAssessmentLookup({ context, initialWorkId }) {
   const lookup = () => {
     setRequest(workId.trim());
     setLookupVersion((value) => value + 1);
+    setSubmitUncertain(false);
+    setSubmitError('');
+    setSubmitMessage('');
+  };
+
+  const refreshAssessment = async () => {
+    const refreshed = await getWorkRiskAssessment(request);
+    if (refreshed.siteId !== siteId) throw new Error('선택한 현장의 위험성평가가 아닙니다.');
+    setResult({ key: requestKey, assessment: refreshed, error: '' });
+    return refreshed;
+  };
+
+  const submit = async () => {
+    if (!assessment || submitBusy || submitUncertain) return;
+    setSubmitBusy(true);
+    setSubmitError('');
+    setSubmitMessage('');
+    try {
+      await jobWrite(() => api(`/api/v1/risk-assessments/${assessment.riskAssessmentId}/submit`, {
+        method: 'POST',
+      }));
+    } catch (requestError) {
+      if (requestError.code === 'WRITE_OUTCOME_UNKNOWN') setSubmitUncertain(true);
+      setSubmitError(requestError.message || '위험성평가 승인 요청에 실패했습니다.');
+      setSubmitBusy(false);
+      return;
+    }
+
+    setSubmitMessage('위험성평가 승인 요청을 접수했습니다. 최신 상태를 확인하는 중입니다.');
+    try {
+      const refreshed = await refreshAssessment();
+      setSubmitMessage(`승인 요청 완료 · 현재 상태: ${refreshed.status}`);
+    } catch (requestError) {
+      setSubmitError(`승인 요청은 완료됐지만 최신 상태를 다시 불러오지 못했습니다: ${requestError.message || '조회 오류'}`);
+    } finally {
+      setSubmitBusy(false);
+    }
+  };
+
+  const recheckSubmission = async () => {
+    setSubmitBusy(true);
+    setSubmitError('');
+    try {
+      const refreshed = await refreshAssessment();
+      setSubmitUncertain(false);
+      setSubmitMessage(`최신 위험성평가 상태를 확인했습니다: ${refreshed.status}`);
+    } catch (requestError) {
+      setSubmitError(requestError.message || '최신 위험성평가를 불러오지 못했습니다.');
+    } finally {
+      setSubmitBusy(false);
+    }
   };
   return (
     <section className="panel job-example" aria-label="저장된 위험성평가 조회">
@@ -50,6 +106,10 @@ function RiskAssessmentLookup({ context, initialWorkId }) {
       </div>
       {loading && <p role="status">위험성평가를 불러오는 중입니다...</p>}
       {error && <p className="dashboard-error" role="alert">{error}</p>}
+      {submitError && <p className="dashboard-error" role="alert">{submitError}</p>}
+      {submitMessage && <p className="job-review-notice" role="status">{submitMessage}</p>}
+      {submitUncertain && <button type="button" className="job-history-refresh" disabled={submitBusy}
+        onClick={recheckSubmission}>요청 결과 확인</button>}
       {assessment && <>
         <div className="job-section-heading">
           <strong>평가 #{assessment.riskAssessmentId} · 작업 #{assessment.workId}</strong>
@@ -57,6 +117,11 @@ function RiskAssessmentLookup({ context, initialWorkId }) {
         </div>
         <p>{assessment.assessDate} · {assessment.assessmentType} · revision {assessment.revision}</p>
         <p className="job-help">승인 요청 가능: {assessment.canSubmit ? '가능' : '불가'}</p>
+        {assessment.status === 'DRAFT' && <button type="button" disabled={submitBusy || submitUncertain
+          || !assessment.canSubmit || assessment.items.length === 0} onClick={submit}>
+          {submitBusy ? '승인 요청 중...' : '위험성평가 승인 요청'}
+        </button>}
+        {assessment.status === 'PENDING' && <p className="job-help">승인 대기 중입니다. 이 화면에서는 평가 내용을 수정할 수 없습니다.</p>}
         {assessment.items.length ? <div className="job-risk-list">
           {assessment.items.map((item) => (
             <article className="panel" key={item.seq}>
