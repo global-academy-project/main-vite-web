@@ -59,6 +59,12 @@
 .ai-question-form-footer button { padding: 9px 14px; border-radius: 9px; background: #246be2; color: #fff; font-size: 13px; }
 .ai-question-form-footer button:disabled { background: #aebbd0; }
 .ai-question-notice { margin: 14px 0 0; color: #a87300; font-size: 13px; }
+.ai-conversation { display: grid; max-height: 420px; gap: 12px; margin: 0 0 18px; padding: 16px; overflow-y: auto; border: 1px solid #dfe5ee; border-radius: 16px; background: #f8faff; text-align: left; }
+.ai-message { max-width: 82%; padding: 11px 14px; border-radius: 14px; white-space: pre-wrap; }
+.ai-message strong { display: block; margin-bottom: 4px; font-size: 11px; }
+.ai-message p { margin: 0; font-size: 13px; line-height: 1.65; }
+.ai-message-user { justify-self: end; background: #246be2; color: #fff; }
+.ai-message-assistant { justify-self: start; background: #fff; color: #344158; box-shadow: 0 2px 8px rgba(32, 54, 91, .08); }
 .ai-suggestions { margin-top: 28px; }
 .ai-suggestions h2 { margin: 0 0 12px; color: #687995; font-size: 12px; font-weight: 600; }
 .ai-suggestions > div { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
@@ -129,6 +135,8 @@
 .dark-mode .ai-suggestions button { border-color: #475569; background: #1f2937; color: #d1d5db; }
 .dark-mode .ai-suggestions button:hover { background: #243b63; color: #93c5fd; }
 .dark-mode .ai-question-notice { color: #f6d58e; }
+.dark-mode .ai-conversation { border-color: #374151; background: #111827; }
+.dark-mode .ai-message-assistant { background: #273548; color: #e5e7eb; }
 .dark-mode .tag-chip { border-color: #475569; background: #273548; color: #d1d5db; }
 .dark-mode .warning-box { border-color: #70572e; background: #352e21; }
 .dark-mode .warning-box > strong { color: #f6d58e; }
