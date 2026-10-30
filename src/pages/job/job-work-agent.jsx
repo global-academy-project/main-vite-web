@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { getAgentMessages, getAgentRun, startWorkRegister } from '../../api/agents';
 import { getPermit, jobId } from '../../api/jobs';
 
@@ -6,7 +7,18 @@ const statuses = {
   PROCESSING: '처리 중', WAITING_INPUT: '추가 정보 필요', DONE: '초안 처리 완료', FAILED: '실행 실패',
 };
 
-function AgentResult({ result }) {
+function AgentResult({ run, siteId }) {
+  const { result } = run;
+  const saved = result.saved;
+  const workId = Number.isSafeInteger(run.workId) && run.workId > 0
+    ? run.workId
+    : Number.isSafeInteger(saved?.workId) && saved.workId > 0 ? saved.workId : null;
+  const permits = Array.isArray(saved?.permits)
+    ? saved.permits.filter((permit) => Number.isSafeInteger(permit?.permitId) && permit.permitId > 0)
+    : [];
+  const savedNotes = Array.isArray(saved?.notes) ? saved.notes.filter((note) => typeof note === 'string') : [];
+  const canOpenSavedRecords = run.siteId === siteId;
+
   return (
     <div className="job-example">
       {result.ask?.message && <p className="job-review-notice">{result.ask.message}</p>}
@@ -33,8 +45,26 @@ function AgentResult({ result }) {
         <ul>{result.verification.map((item, index) => <li key={index}>{item.code} · {item.message}</li>)}</ul>
       </section>}
       {result.guidance?.map((item, index) => <p key={index}><strong>{item.title}</strong> · {item.why}</p>)}
-      {result.drafts ? <details><summary>생성된 서류 초안 (미저장)</summary>
-        <p className="job-help">위험성평가·허가·점검표·TBM 초안입니다. 업무 테이블에 자동 등록되지 않습니다.</p>
+      {(saved || workId) && <section aria-label="서버 저장 결과">
+        <h3>서버 저장 결과</h3>
+        {workId && <p>작업 ID: {workId}</p>}
+        {saved?.riskAssessmentId && <p>위험성평가 ID: {saved.riskAssessmentId}</p>}
+        {saved?.tbmId && <p>TBM ID: {saved.tbmId}</p>}
+        {saved?.workDateAssumed && <p className="job-demo-notice" role="status">작업 날짜가 지정되지 않아 오늘 날짜로 저장됐습니다. 작업일을 확인해 주세요.</p>}
+        {savedNotes.length > 0 && <ul>{savedNotes.map((note, index) => <li key={index}>{note}</li>)}</ul>}
+        {canOpenSavedRecords && <div className="job-action-row">
+          {workId && <>
+            <Link className="job-link-button" to={`/job/permits?workId=${workId}`}>작업 열기 · 허가서 화면</Link>
+            <Link className="job-link-button" to={`/job/risk-assessment?workId=${workId}`}>위험성평가 보기</Link>
+            <Link className="job-link-button" to={`/job/tbm?workId=${workId}`}>TBM 보기</Link>
+          </>}
+          {permits.map((permit) => <Link className="job-link-button" key={permit.permitId}
+            to={`/job/permits?permitId=${permit.permitId}`}>허가서 #{permit.permitId} 열기</Link>)}
+        </div>}
+        {!canOpenSavedRecords && <p className="job-help">실행 현장 정보가 현재 현장과 일치하지 않거나 누락되어, 저장 문서 링크를 표시하지 않았습니다.</p>}
+      </section>}
+      {result.drafts ? <details><summary>생성된 서류 초안 내용</summary>
+        <p className="job-help">저장된 문서 ID와 저장 안내는 위 서버 저장 결과를 확인하세요.</p>
         <pre className="table-scroll">{JSON.stringify(result.drafts, null, 2)}</pre>
       </details> : <p className="job-help">제공된 서류 초안이 없습니다. mock 모드에서도 초안이 비어 있을 수 있습니다.</p>}
       {result.citations?.length > 0 && <details><summary>AI 응답 근거</summary>
@@ -74,6 +104,7 @@ export default function JobWorkAgent({ siteId, disabled }) {
       try {
         const saved = await getAgentRun(execution.runId, { conversationId: execution.conversationId });
         if (cancelled) return;
+        if (saved.siteId !== siteId) throw new Error('실행 현장이 현재 선택한 현장과 다르거나 응답에 현장 ID가 없습니다.');
         setRun(saved);
         if (saved.status === 'PROCESSING') {
           attempts += 1;
@@ -95,7 +126,7 @@ export default function JobWorkAgent({ siteId, disabled }) {
     };
     void poll();
     return () => { cancelled = true; clearTimeout(timer); };
-  }, [execution, polling, disabled]);
+  }, [execution, polling, disabled, siteId]);
 
   const send = async (event) => {
     event.preventDefault();
@@ -141,7 +172,7 @@ export default function JobWorkAgent({ siteId, disabled }) {
         <h2 id="job-agent-title">AI 작업 등록 대화</h2></div>
         <span className="job-status-badge">{polling ? '상태 조회 중' : run ? statuses[run.status] : '새 대화'}</span>
       </div>
-      <p className="job-help">Spring 서버를 통해 AI 처리를 요청합니다. 모델 제공자와 네트워크 모드는 서버 설정을 따릅니다. 개인정보·기밀은 입력하지 마세요. 대화·실행 기록은 저장되지만 작업·서류 초안은 자동 등록되지 않습니다.</p>
+      <p className="job-help">Spring 서버를 통해 AI 처리를 요청합니다. 모델 제공자와 네트워크 모드는 서버 설정을 따릅니다. 개인정보·기밀은 입력하지 마세요. DONE 실행은 서버가 작업·서류 초안을 저장하며, 저장된 ID와 안내를 아래에 표시합니다.</p>
       {error && <p className="dashboard-error" role="alert">{error}</p>}
       {sendUncertain && <p className="job-demo-notice" role="alert">실행 생성 여부가 불확실하여 메시지 재전송을 중지했습니다. 실행 ID를 알면 조회하세요. 모르면 관리자에게 확인한 뒤 새 대화를 시작하세요. 서버 실행은 취소되지 않았습니다.</p>}
       {sendUncertain && run && run.status !== 'PROCESSING' && <button type="button" disabled={locked} onClick={() => {
@@ -185,7 +216,7 @@ export default function JobWorkAgent({ siteId, disabled }) {
         {messages.map((item) => <article key={item.messageId}><strong>{item.role === 'USER' ? '사용자' : 'AI'}</strong>
           <p>{item.content}</p></article>)}
       </section>}
-      {run?.result && <AgentResult result={run.result} />}
+      {run?.result && <AgentResult run={run} siteId={siteId} />}
       {run?.steps.length > 0 && <details><summary>실행 단계</summary><ol>
         {run.steps.map((item) => <li key={item.seq}>{item.type} {item.toolName} · {item.status}{item.latencyMs != null && <> · {item.latencyMs}ms</>}</li>)}
       </ol></details>}
