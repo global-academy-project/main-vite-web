@@ -84,6 +84,8 @@
 .dashboard-error { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 20px; padding: 13px 16px; border: 1px solid #f1b8bb; border-radius: 10px; background: #fff0f0; color: #a33138; font-size: 13px; }
 .dashboard-error button { min-height: 32px; padding: 6px 10px; border: 1px solid #e8a3a7; border-radius: 7px; background: #fff; color: inherit; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; }
 .dashboard-error button:hover { background: #fff8f8; transform: none; }
+.submenu-disabled { display:flex; width:100%; align-items:center; justify-content:space-between; padding:8px 12px; border:0; background:transparent; color:#9aa4b5; text-align:left; font:inherit; cursor:not-allowed; }
+.submenu-disabled small { font-size:10px; color:#b5bdc9; }
 
 .dark-mode .dashboard-shell { background: #111827; color: #e5e7eb; }
 .dark-mode .dashboard-sidebar, .dark-mode .dashboard-header { border-color: #374151; background: #1f2937; }

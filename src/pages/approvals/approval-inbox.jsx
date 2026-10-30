@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { getPendingApprovals } from '../../api/approvals';
+import { getPendingApprovals, getRequestedApprovals } from '../../api/approvals';
 import SafetyPageLayout from '../../components/safety-page-layout';
 import ApprovalFilters from './components/approval-filters';
 import ApprovalStatusBadge from './components/approval-status-badge';
 import '../../style/records.css';
 
 function Inbox({ site }) {
+  const [tab, setTab] = useState('pending');
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
   const [filters, setFilters] = useState({ targetType: '', status: '', from: '', to: '', keyword: '' });
@@ -21,19 +22,22 @@ function Inbox({ site }) {
       && (!filters.status || row.status === filters.status)
       && (!filters.from || date >= filters.from)
       && (!filters.to || date <= filters.to)
-      && (!keyword || `${row.title || ''} ${row.requesterName || ''}`.toLowerCase().includes(keyword));
+      && (!keyword || `${row.title || ''} ${row.requestedByName || ''}`.toLowerCase().includes(keyword));
   });
 
   useEffect(() => {
-    if (!siteId) return;
+    if (!siteId || !['pending', 'requested'].includes(tab)) return undefined;
     let cancelled = false;
-    getPendingApprovals(siteId).then((data) => {
+    // API: pending 또는 mine=requested
+    // FLOW: 승인함 탭 변경 → 선택 현장의 해당 목록 재조회
+    const load = tab === 'pending' ? getPendingApprovals(siteId) : getRequestedApprovals(siteId);
+    load.then((data) => {
       if (!cancelled) { setResult({ siteId, rows: Array.isArray(data) ? data : [] }); setError(''); }
     }).catch((requestError) => {
       if (!cancelled) { setResult({ siteId, rows: [] }); setError(requestError.message); }
     });
     return () => { cancelled = true; };
-  }, [siteId, refreshKey]);
+  }, [siteId, tab, refreshKey]);
 
   return (
     <>
@@ -44,12 +48,32 @@ function Inbox({ site }) {
         </select>
       </div>
       {error && <p className="dashboard-error" role="alert">{error}</p>}
+      <nav className="approval-tabs" aria-label="승인함 탭">
+        {[
+          ['pending', '내 승인 대기'],
+          ['requested', '내가 요청한 문서'],
+          ['all', '전체'],
+          ['completed', '완료'],
+        ].map(([value, label]) => (
+          <button
+            type="button"
+            key={value}
+            className={tab === value ? 'is-active' : ''}
+            onClick={() => { setTab(value); setError(''); setResult(null); }}
+          >{label}</button>
+        ))}
+      </nav>
+      {['all', 'completed'].includes(tab) && (
+        <p className="dashboard-error" role="status">
+          이 탭의 서버 API 계약이 아직 연결되지 않았습니다. 가짜 목록은 표시하지 않습니다.
+        </p>
+      )}
       <ApprovalFilters filters={filters} onChange={setFilters} onRefresh={() => setRefreshKey((value) => value + 1)} loading={loading} />
       <section className="panel">
-        <div className="records-panel-heading"><h2>내 승인 대기 <small>{filteredRows.length}건</small></h2></div>
+        <div className="records-panel-heading"><h2>{tab === 'pending' ? '내 승인 대기' : '내가 요청한 문서'} <small>{filteredRows.length}건</small></h2></div>
         {loading ? <p role="status">승인 목록을 불러오는 중입니다...</p> : filteredRows.length ? (
           <div className="table-scroll"><table><thead><tr><th>문서</th><th>제목</th><th>작성자</th><th>현재 단계</th><th>상태</th><th>요청일</th><th>마감</th><th>검토</th></tr></thead>
-            <tbody>{filteredRows.map((row) => <tr key={row.approvalId}><td>{row.targetType}</td><td>{row.title || `#${row.targetId}`}</td><td>{row.requesterName || '-'}</td><td>{row.stepLabel || '-'}</td><td><ApprovalStatusBadge status={row.status} /></td><td>{row.requestedAt?.replace('T', ' ') || '-'}</td><td>{row.overdue ? <span className="approval-overdue">지연</span> : row.dueAt?.replace('T', ' ') || '-'}</td><td><Link className="records-link" to={`/approvals/${row.approvalId}`}>검토</Link></td></tr>)}</tbody>
+            <tbody>{filteredRows.map((row) => <tr key={row.approvalId}><td>{row.targetType}</td><td>{row.title || `#${row.targetId}`}</td><td>{row.requestedByName || '-'}</td><td>{row.currentStepLabel || '-'}</td><td><ApprovalStatusBadge status={row.status} /></td><td>{row.requestedAt?.replace('T', ' ') || '-'}</td><td>{row.overdue ? <span className="approval-overdue">지연</span> : row.dueAt?.replace('T', ' ') || '-'}</td><td><Link className="records-link" to={`/approvals/${row.approvalId}`}>검토</Link></td></tr>)}</tbody>
           </table></div>
         ) : <div className="approval-empty"><strong>{error ? '승인 목록을 불러오지 못했습니다.' : '현재 승인 대기 중인 문서가 없습니다.'}</strong><p>{error || '필터 조건을 변경하거나 잠시 후 다시 확인해 주세요.'}</p>{error && <button type="button" onClick={() => setRefreshKey((value) => value + 1)}>다시 시도</button>}</div>}
       </section>

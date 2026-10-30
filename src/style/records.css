@@ -52,10 +52,10 @@
 .approval-overdue { color:#c43d4b; font-weight:700; }
 .approval-status-pending { background:#fff5d9; color:#a87300; }
 .approval-status-approved { background:#e6f7ef; color:#21966a; }
-.approval-status-rejected,.approval-status-revision_requested { background:#fff0f0; color:#c43d4b; }
+.approval-status-rejected { background:#fff0f0; color:#c43d4b; }
 .approval-result { max-width:760px; margin:36px auto; padding:42px 32px; text-align:center; }
 .approval-result-icon { display:grid; width:56px; height:56px; margin:0 auto 18px; place-items:center; border-radius:50%; background:#e6f7ef; color:#21966a; font-size:25px; font-weight:800; }
-.approval-result-rejected .approval-result-icon,.approval-result-revision .approval-result-icon { background:#fff0f0; color:#c43d4b; }
+.approval-result-rejected .approval-result-icon { background:#fff0f0; color:#c43d4b; }
 .approval-result-eyebrow { margin:0 0 8px; color:#687995; font-size:12px; }
 .approval-result h1 { margin:0; color:#24334e; font-size:27px; }
 .approval-result-description { margin:10px 0; color:#59657a; line-height:1.6; }
