@@ -17,6 +17,7 @@ export default defineConfig(({ command }) => {
     },
   }
 
+  // Default vite web react runtime configuration
   return {
     plugins: [react()],
     server: {
