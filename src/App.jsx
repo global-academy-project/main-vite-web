@@ -18,6 +18,7 @@ import ProtectedRoute from "./components/protected-route";
 // Job Component 모듈
 import JobSearch from "./pages/job/job-search";
 import JobDashboard from "./pages/job/job-dashboard";
+import JobWorkspace from "./pages/job/job-workspace";
 import DaileyChecklist from "./pages/job/job-dailey-checklist";
 import JobDocumentHistory from "./pages/job/job-document-history";
 import JobIncidents from "./pages/job/job-incidents";
@@ -90,6 +91,7 @@ function App() {
           }
         />
         <Route path="/job/dashboard" element={<ProtectedRoute><JobDashboard /></ProtectedRoute>} />
+        <Route path="/job/workspace" element={<ProtectedRoute><JobWorkspace /></ProtectedRoute>} />
         {/* ROUTE: /approvals | ROLE: APPROVER, SITE_ADMIN, ADMIN | API: approvals/pending */}
         <Route path="/approvals" element={<ProtectedRoute><ApprovalInbox /></ProtectedRoute>} />
         {/* ROUTE: /approvals/:approvalId | FLOW: 승인함 → 상세 → 승인/반려 */}
