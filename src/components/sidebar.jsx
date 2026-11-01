@@ -3,7 +3,7 @@ import { NavLink } from 'react-router-dom';
 
 const groups = [
   ['site', '현장관리', [['현장목록', '/job/list'], ['가입 승인·현장 권한', '/admin/users']]],
-  ['work', '작업관리', [['작업 현황', '/job/dashboard'], ['작업 위험성평가', '/job/risk-assessment'], ['작업허가', '/job/permits'], ['위험·근접 사고', '/job/incidents'], ['TBM', '/job/tbm'], ['교육자료 관리', '/job/training-materials']]],
+  ['work', '작업관리', [['작업 현황', '/job/dashboard'], ['작업 등록·조회', '/job/workspace'], ['작업 위험성평가', '/job/risk-assessment'], ['작업허가', '/job/permits'], ['위험·근접 사고', '/job/incidents'], ['TBM', '/job/tbm'], ['교육자료 관리', '/job/training-materials']]],
   ['record', '기록관리', [['점검 체크리스트', '/job/dailey-checklist'], ['작성문서 이력', '/job/document-history'], ['기록 조회', '/records/search']]],
   ['report', '보고서관리', [['부서 보고(PDF)', '#'], ['중대재해 통계', '#'], ['통계·분석', '#']]],
 ];
