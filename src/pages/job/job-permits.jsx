@@ -59,9 +59,9 @@ function FieldRuleChecks({ checks, target }) {
   )) : <p className="job-help">이 항목에 적용된 판정 규칙이 없습니다. 안전성이 검증된 것은 아닙니다.</p>;
 }
 
-function PermitWorkspace({ siteId, disabled, initialWorkId }) {
+function PermitWorkspace({ siteId, disabled, initialWorkId, initialPermitId }) {
   const [workId, setWorkId] = useState(initialWorkId ?? '');
-  const [permitId, setPermitId] = useState('');
+  const [permitId, setPermitId] = useState(initialPermitId ?? '');
   const [type, setType] = useState('HOT');
   const [form, setForm] = useState(emptyForm);
   const [permit, setPermit] = useState(null);
@@ -305,8 +305,8 @@ export default function JobPermits() {
     <JobPageLayout title="작업허가" user={context.account?.user} contentClassName="job-management">
       <JobPageHeading title="작업허가" description="작업 전 안전 정보를 확인하고 허가서 작성부터 승인 요청까지 진행합니다." />
       <JobSiteSelector context={context} />
-      {context.currentSite && <PermitWorkspace key={context.currentSite.siteId} siteId={context.currentSite.siteId}
-        disabled={context.selecting} initialWorkId={params.get('workId')} />}
+      {context.currentSite && <PermitWorkspace key={`${context.currentSite.siteId}:${params}`} siteId={context.currentSite.siteId}
+        disabled={context.selecting} initialWorkId={params.get('workId')} initialPermitId={params.get('permitId')} />}
     </JobPageLayout>
   );
 }
