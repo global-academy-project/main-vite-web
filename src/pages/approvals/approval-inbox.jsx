@@ -52,6 +52,8 @@ function Inbox({ site }) {
         {[
           ['pending', '내 승인 대기'],
           ['requested', '내가 요청한 문서'],
+          ['all', '전체'],
+          ['completed', '완료'],
         ].map(([value, label]) => (
           <button
             type="button"
