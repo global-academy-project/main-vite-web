@@ -25,7 +25,6 @@ import JobIncidents from "./pages/job/job-incidents";
 import JobPermits from "./pages/job/job-permits";
 import JobRiskAssessment from "./pages/job/job-risk-assessment";
 import JobTbm from "./pages/job/job-tbm";
-import JobTrainingMaterials from "./pages/job/job-training-materials";
 import AdminUsers from "./pages/admin/users";
 import Dashboard from "./pages/dashboard";
 import ApprovalInbox from "./pages/approvals/approval-inbox";
@@ -111,7 +110,6 @@ function App() {
         <Route path="/job/permits" element={<ProtectedRoute><JobPermits /></ProtectedRoute>} />
         <Route path="/job/risk-assessment" element={<ProtectedRoute><JobRiskAssessment /></ProtectedRoute>} />
         <Route path="/job/tbm" element={<ProtectedRoute><JobTbm /></ProtectedRoute>} />
-        <Route path="/job/training-materials" element={<ProtectedRoute><JobTrainingMaterials /></ProtectedRoute>} />
         <Route path="/admin/users" element={<ProtectedRoute><AdminUsers /></ProtectedRoute>} />
         <Route path="*" element={<Navigate to="/signin" replace />} />
       </Routes>
