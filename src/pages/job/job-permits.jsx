@@ -7,6 +7,7 @@ import {
 } from '../../api/jobs';
 import JobPageLayout, { JobPageHeading } from '../../components/job-page-layout';
 import { JobSiteSelector } from './job-work-form';
+import WorkIncidentWarnings from '../../components/work-incident-warnings';
 
 const hotChecks = {
   extinguisher_ready: '소화기 비치',
@@ -234,6 +235,8 @@ function PermitWorkspace({ siteId, disabled, initialWorkId, initialPermitId }) {
         <p className="job-help">화기는 측정값·화재감시자·안전 확인 3항목을 판정합니다. 현재 등록된 판정 규칙이 없는 유형은 고소입니다.</p>
       </form>
       {permit && <>
+        <WorkIncidentWarnings key={`work-warnings-${permit.workId}`} siteId={siteId}
+          initialWorkId={permit.workId} disabled={disabled || busy} />
         <section className="panel job-form">
           <div className="job-section-heading"><div><span className="job-eyebrow">PRE-WORK MEASUREMENTS</span><h2>작업 전 측정값</h2></div><span className="job-status-badge job-status-muted">저장된 측정 {permit.measurements.length}건</span></div>
           <fieldset disabled={locked || !editable || conflict || dirty}>
