@@ -5,7 +5,7 @@ import {
 } from '../../api/job-reference';
 import { localDate, siteWorkerBody } from '../../utils/job-forms';
 
-const emptyWorker = { name: '', phone: '', jobType: '', employmentType: 'DIRECT', teamId: '', assignedFrom: '' };
+const emptyWorker = { name: '', phone: '', clearPhone: false, jobType: '', employmentType: 'DIRECT', teamId: '', assignedFrom: '' };
 const emptyZone = { code: '', name: '', zoneType: '', confined: false, hazardNote: '', active: true };
 const emptyTeam = { name: '', teamType: 'INTERNAL', businessNo: '', active: true };
 
@@ -86,7 +86,6 @@ export default function JobReferenceData({ site, user, disabled }) {
       <form onSubmit={(event) => {
         event.preventDefault();
         if (workerLocked) return;
-        if (worker.workerId && !window.confirm('작업자 정보는 통째로 변경됩니다. 연락처는 조회되지 않으므로 다시 입력하세요. 빈 연락처·미지정 팀은 기존 값을 지울 수 있습니다. 계속할까요?')) return;
         void run('workers', async () => {
           await saveWorker(site.siteId, worker.workerId, siteWorkerBody(worker)); setWorker(emptyWorker);
         }, '작업자 정보를 저장했습니다. 목록에서 확인하세요.');
@@ -95,7 +94,10 @@ export default function JobReferenceData({ site, user, disabled }) {
           <legend>{worker.workerId ? `작업자 #${worker.workerId} 수정` : '작업자 신규 등록 + 현장 배치'}</legend>
           <div className="job-fields">
             <label>작업자 이름<input required maxLength={50} value={worker.name} onChange={(e) => setWorker({ ...worker, name: e.target.value })} /></label>
-            <label>연락처 (응답에 없음, 수정 시 재입력)<input type="tel" maxLength={20} value={worker.phone} onChange={(e) => setWorker({ ...worker, phone: e.target.value })} /></label>
+            <label>연락처{worker.workerId ? ' (미입력 시 기존 값 유지)' : ' (선택)'}<input type="tel" maxLength={20}
+              disabled={worker.clearPhone} value={worker.phone} onChange={(e) => setWorker({ ...worker, phone: e.target.value })} /></label>
+            {worker.workerId && <label><input type="checkbox" checked={worker.clearPhone}
+              onChange={(e) => setWorker({ ...worker, clearPhone: e.target.checked })} />기존 연락처 삭제</label>}
             <label>직종<input maxLength={50} value={worker.jobType ?? ''} onChange={(e) => setWorker({ ...worker, jobType: e.target.value })} /></label>
             <label>고용 형태<select value={worker.employmentType} onChange={(e) => setWorker({ ...worker, employmentType: e.target.value })}>
               <option value="DIRECT">직영</option><option value="CONTRACTOR">협력업체</option><option value="DAILY">일용</option>
@@ -109,6 +111,7 @@ export default function JobReferenceData({ site, user, disabled }) {
             </select></label>
             {!worker.workerId && <label>배치 시작일 (미입력 시 서버 기본값)<input type="date" value={worker.assignedFrom} onChange={(e) => setWorker({ ...worker, assignedFrom: e.target.value })} /></label>}
           </div>
+          {worker.workerId && <p className="job-help">연락처는 조회되지 않으며 미입력하면 유지됩니다. 삭제 선택 시에만 지웁니다. 미지정 팀은 기존 팀 연결을 제거합니다.</p>}
           <button type="submit">작업자 저장</button>
           <button type="button" onClick={() => setWorker(emptyWorker)}>새 작업자 / 편집 초기화</button>
         </fieldset>
