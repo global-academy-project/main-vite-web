@@ -4,6 +4,35 @@ export function localDate(now = new Date()) {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 }
 
+export function jobRecordPath(type, id) {
+  if (!Number.isSafeInteger(id) || id < 1) return null;
+  switch (type) {
+    case 'WORK': return `/job/workspace?workId=${id}`;
+    case 'PERMIT': return `/job/permits?permitId=${id}`;
+    case 'RISK': return `/job/risk-assessment?riskId=${id}`;
+    case 'TBM': return `/job/tbm?tbmId=${id}`;
+    case 'APPROVAL': return `/approvals/${id}`;
+    default: return null;
+  }
+}
+
+export function siteWorkerBody(worker) {
+  const name = worker.name.trim();
+  const phone = worker.phone?.trim() || null;
+  const jobType = worker.jobType?.trim() || null;
+  if (!name || name.length > 50 || (jobType?.length ?? 0) > 50) {
+    throw new Error('작업자 이름은 1~50자, 직종은 50자 이하로 입력하세요.');
+  }
+  if (phone && (phone.length > 20 || !/^0[0-9]{8,10}$/.test(phone.replaceAll('-', '')))) {
+    throw new Error('연락처는 0으로 시작하는 숫자 9~11자리로 입력하세요. 하이픈은 사용할 수 있습니다.');
+  }
+  return {
+    name, phone, jobType, employmentType: worker.employmentType,
+    teamId: worker.teamId ? jobId(worker.teamId) : null,
+    ...(worker.workerId ? { lockVersion: worker.lockVersion } : { assignedFrom: worker.assignedFrom || null }),
+  };
+}
+
 export function tbmHeldAt(record, now = new Date()) {
   return record.heldAt ?? `${record.tbmDate}T${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 }
