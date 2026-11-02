@@ -52,8 +52,6 @@ function Inbox({ site }) {
         {[
           ['pending', '내 승인 대기'],
           ['requested', '내가 요청한 문서'],
-          ['all', '전체'],
-          ['completed', '완료'],
         ].map(([value, label]) => (
           <button
             type="button"
@@ -63,11 +61,6 @@ function Inbox({ site }) {
           >{label}</button>
         ))}
       </nav>
-      {['all', 'completed'].includes(tab) && (
-        <p className="dashboard-error" role="status">
-          이 탭의 서버 API 계약이 아직 연결되지 않았습니다. 가짜 목록은 표시하지 않습니다.
-        </p>
-      )}
       <ApprovalFilters filters={filters} onChange={setFilters} onRefresh={() => setRefreshKey((value) => value + 1)} loading={loading} />
       <section className="panel">
         <div className="records-panel-heading"><h2>{tab === 'pending' ? '내 승인 대기' : '내가 요청한 문서'} <small>{filteredRows.length}건</small></h2></div>

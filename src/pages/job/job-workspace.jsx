@@ -5,6 +5,9 @@ import { createWork, getWork, requireWork, validatePeriod } from '../../api/jobs
 import JobPageLayout, { JobPageHeading } from '../../components/job-page-layout';
 import { JobSiteSelector } from './job-work-form';
 import JobWorkAgent from './job-work-agent';
+import { getRecordQueryRun, startRecordQuery } from '../../api/records';
+import { sendAgentChat } from '../../api/agent-chat';
+import { useSearchParams } from 'react-router-dom';
 
 function WorkWorkspace({ site, disabled }) {
   const [work, setWork] = useState(null);
@@ -122,7 +125,14 @@ function WorkWorkspace({ site, disabled }) {
 
 export default function JobWorkspace() {
   const context = useWorkSite();
-  const [assistantTab, setAssistantTab] = useState('work');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialTab = ['work', 'records', 'chat'].includes(searchParams.get('tab')) ? searchParams.get('tab') : 'work';
+  const [assistantTab, setAssistantTab] = useState(initialTab);
+
+  const changeAssistantTab = (tab) => {
+    setAssistantTab(tab);
+    setSearchParams(tab === 'records' ? { tab: 'records' } : {}, { replace: true });
+  };
 
   return (
     <JobPageLayout title="작업 등록·조회" user={context.account?.user} contentClassName="job-management">
@@ -131,19 +141,13 @@ export default function JobWorkspace() {
       {context.currentSite && <section className="job-overview-workspace" aria-labelledby="job-workspace-title">
         <section className="panel" aria-label="AI 작업 및 기록 질문">
           <nav className="approval-tabs" aria-label="AI 도우미 탭">
-            <button type="button" className={assistantTab === 'work' ? 'is-active' : ''} onClick={() => setAssistantTab('work')}>작업 등록</button>
-            <button type="button" className={assistantTab === 'records' ? 'is-active' : ''} onClick={() => setAssistantTab('records')}>기록 질문</button>
+            <button type="button" className={assistantTab === 'work' ? 'is-active' : ''} onClick={() => changeAssistantTab('work')}>작업 등록</button>
+            <button type="button" className={assistantTab === 'records' ? 'is-active' : ''} onClick={() => changeAssistantTab('records')}>기록 질문</button>
+            <button type="button" className={assistantTab === 'chat' ? 'is-active' : ''} onClick={() => changeAssistantTab('chat')}>AI 채팅</button>
           </nav>
-          {assistantTab === 'work' ? <JobWorkAgent key={`agent-${context.currentSite.siteId}`} siteId={context.currentSite.siteId} disabled={context.selecting} /> : (
-            <section className="job-form" aria-labelledby="record-query-title">
-              <span className="job-eyebrow">RECORD QUERY</span>
-              <h2 id="record-query-title">기록 질문</h2>
-              <p className="job-help">작업 등록 대화와 분리된 기록 조회 영역입니다. 답변·근거 링크·조회 조건·진행 과정은 기록 질의 에이전트 API 연결 후 표시됩니다.</p>
-              {/* API: POST /api/v1/agent/record-query → GET /api/v1/agent/runs/{runId} */}
-              {/* TODO: API NOT CONNECTED: main-ai-model에 RECORD_QUERY 라우트가 없음 */}
-              <p className="dashboard-error" role="status">기록 질문 에이전트 API가 아직 연결되지 않았습니다.</p>
-            </section>
-          )}
+          {assistantTab === 'work' ? <JobWorkAgent key={`agent-${context.currentSite.siteId}`} siteId={context.currentSite.siteId} disabled={context.selecting} /> : assistantTab === 'records' ? (
+            <RecordQueryPanel siteId={context.currentSite.siteId} />
+          ) : <ChatPanel />}
         </section>
         <div className="job-section-heading">
           <div><span className="job-eyebrow">WORK MANAGEMENT</span><h2 id="job-workspace-title">작업 등록·조회</h2><p className="job-help">위 현황과 별개로, 선택 현장의 개별 작업은 실제 서버에 저장하고 조회할 수 있습니다.</p></div>
@@ -152,4 +156,109 @@ export default function JobWorkspace() {
       </section>}
     </JobPageLayout>
   );
+}
+
+function ChatPanel() {
+  const [messages, setMessages] = useState([]);
+  const [question, setQuestion] = useState('');
+  const [context, setContext] = useState({ pendingText: null, inProgress: null, slots: null });
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState('');
+
+  const submit = async (event) => {
+    event.preventDefault();
+    const message = question.trim();
+    if (!message || sending) return;
+    setQuestion(''); setError(''); setSending(true);
+    setMessages((current) => [...current, { role: 'user', text: message }]);
+    try {
+      const response = await sendAgentChat({ message, ...context });
+      setMessages((current) => [...current, { role: 'assistant', text: chatReply(response) }]);
+      if (response.askKind === 'SCENARIO') setContext({ pendingText: response.pendingText, inProgress: null, slots: null });
+      else if (response.askKind === 'SLOT') setContext({ pendingText: null, inProgress: response.inProgress, slots: response.result?.slots ?? null });
+      else setContext({ pendingText: null, inProgress: null, slots: null });
+    } catch (requestError) { setError(requestError.message || 'AI 답변을 받지 못했습니다.'); }
+    finally { setSending(false); }
+  };
+
+  return <section className="chat-panel" aria-label="AI 채팅">
+    <div className="chat-messages" aria-live="polite">
+      {!messages.length && <p className="job-help">작업과 안전에 대해 질문해 보세요.</p>}
+      {messages.map((message, index) => <div className={`chat-message chat-message-${message.role}`} key={`${message.role}-${index}`}><span>{message.role === 'user' ? '나' : 'AI'}</span><p>{message.text}</p></div>)}
+      {sending && <div className="chat-message chat-message-assistant"><span>AI</span><p>답변을 작성하고 있습니다...</p></div>}
+    </div>
+    {error && <p className="dashboard-error" role="alert">{error}</p>}
+    <form className="chat-composer" onSubmit={submit}><label className="sr-only" htmlFor="workspace-ai-chat">AI 채팅 입력</label><textarea id="workspace-ai-chat" rows={3} maxLength={2000} value={question} disabled={sending} onChange={(event) => setQuestion(event.target.value)} placeholder="궁금한 내용을 입력하세요" /><button type="submit" disabled={!question.trim() || sending}>{sending ? '답변 중...' : '보내기'}</button></form>
+  </section>;
+}
+
+function chatReply(response) {
+  if (response?.askMessage) return response.askMessage;
+  if (response?.redirect) return `이 질문은 ${response.redirect} 화면에서 처리할 수 있습니다.`;
+  const guidance = response?.result?.guidance;
+  if (Array.isArray(guidance) && guidance.length) return guidance.map((item) => `${item.title}: ${item.why}`).join('\n');
+  if (response?.result?.runStatus === 'DONE') return '질문 분석이 완료되었습니다.';
+  return response?.label || '질문 처리가 완료되었습니다.';
+}
+
+function RecordQueryPanel({ siteId }) {
+  const [question, setQuestion] = useState('');
+  const [conversationId, setConversationId] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [runId, setRunId] = useState(null);
+  const [running, setRunning] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (!runId) return undefined;
+    let cancelled = false;
+    let timer;
+    const poll = async () => {
+      try {
+        const result = await getRecordQueryRun(runId);
+        if (cancelled) return;
+        const run = result?.result || result;
+        if (run?.runStatus === 'DONE' || run?.runStatus === 'WAITING_INPUT' || run?.status === 'FAILED') {
+          setMessages((current) => [...current, { role: 'assistant', run }]);
+          setRunning(false); setRunId(null);
+        } else timer = window.setTimeout(poll, 1200);
+      } catch (requestError) {
+        if (!cancelled) { setError(requestError.message || '기록 질문 결과를 불러오지 못했습니다.'); setRunning(false); setRunId(null); }
+      }
+    };
+    void poll();
+    return () => { cancelled = true; window.clearTimeout(timer); };
+  }, [runId]);
+
+  const submit = async (event) => {
+    event.preventDefault();
+    const message = question.trim();
+    if (!message || running) return;
+    setError(''); setQuestion(''); setRunning(true);
+    setMessages((current) => [...current, { role: 'user', text: message }]);
+    try {
+      const started = await startRecordQuery({ siteId, message, conversationId });
+      setConversationId(started.conversationId || conversationId);
+      setRunId(started.runId);
+    } catch (requestError) { setError(requestError.message || '기록 질문을 시작하지 못했습니다.'); setRunning(false); }
+  };
+
+  return <section className="job-form" aria-labelledby="record-query-title">
+    <span className="job-eyebrow">RECORD QUERY</span><h2 id="record-query-title">기록 질문</h2>
+    <p className="job-help">공식 기록만 조회하며, 답변과 근거 기록을 함께 보여줍니다.</p>
+    <div className="record-query-messages" aria-live="polite">{messages.map((item, index) => item.role === 'user'
+      ? <p key={index}><strong>나</strong> {item.text}</p>
+      : <RecordQueryResult key={index} run={item.run} />)}{running && <p role="status">기록을 조회하고 있습니다...</p>}</div>
+    <form onSubmit={submit}><label className="sr-only" htmlFor="record-query-input">기록 질문</label><input id="record-query-input" value={question} maxLength={2000} disabled={running} onChange={(event) => setQuestion(event.target.value)} placeholder="예: 지난달 승인된 화기작업허가를 보여줘" /><button type="submit" disabled={!question.trim() || running}>질문하기</button></form>
+    {error && <p className="dashboard-error" role="alert">{error}</p>}
+  </section>;
+}
+
+function RecordQueryResult({ run }) {
+  if (run?.ask?.message) return <div className="record-query-result"><strong>추가 정보가 필요합니다.</strong><p>{run.ask.message}</p></div>;
+  return <div className="record-query-result"><strong>AI 답변</strong><p>{run?.answer || '답변이 없습니다.'}</p>
+    {Array.isArray(run?.queries) && run.queries.length > 0 && <details><summary>조회 조건</summary><pre>{JSON.stringify(run.queries, null, 2)}</pre></details>}
+    {Array.isArray(run?.evidence) && run.evidence.length > 0 && <details><summary>근거 기록</summary><ul>{run.evidence.map((item) => <li key={`${item.type}-${item.id}`}>{item.type} #{item.id}</li>)}</ul></details>}
+    {Array.isArray(run?.steps) && run.steps.length > 0 && <details><summary>진행 과정</summary><ul>{run.steps.map((step) => <li key={step.seq || step.name}>{step.name || step.kind} · {step.status}</li>)}</ul></details>}
+  </div>;
 }

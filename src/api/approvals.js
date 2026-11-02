@@ -33,6 +33,12 @@ export function rejectApproval(approvalId, reason, missingItems = []) {
 
 // API: POST /api/v1/approvals/{approvalId}/cancel
 // TODO: BACKEND CONTRACT REQUIRED if the server route is not deployed.
-export function cancelApproval(approvalId) {
-  return api(`/api/v1/approvals/${approvalId}/cancel`, { method: 'POST' });
+export function cancelApproval(approvalId, comment = '') {
+  return api(`/api/v1/approvals/${approvalId}/cancel`, {
+    method: 'POST', body: comment ? { comment } : undefined,
+  });
+}
+
+export function getApprovalPreview(approvalId) {
+  return api(`/api/v1/approvals/${approvalId}/preview`);
 }
