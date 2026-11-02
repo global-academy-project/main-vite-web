@@ -18,7 +18,7 @@ export function jobRecordPath(type, id) {
 
 export function siteWorkerBody(worker) {
   const name = worker.name.trim();
-  const phone = worker.phone?.trim() || null;
+  const phone = worker.clearPhone ? '' : worker.phone?.trim() || null;
   const jobType = worker.jobType?.trim() || null;
   if (!name || name.length > 50 || (jobType?.length ?? 0) > 50) {
     throw new Error('작업자 이름은 1~50자, 직종은 50자 이하로 입력하세요.');
@@ -27,9 +27,18 @@ export function siteWorkerBody(worker) {
     throw new Error('연락처는 0으로 시작하는 숫자 9~11자리로 입력하세요. 하이픈은 사용할 수 있습니다.');
   }
   return {
-    name, phone, jobType, employmentType: worker.employmentType,
+    name, ...(worker.workerId && phone === null ? {} : { phone }), jobType, employmentType: worker.employmentType,
     teamId: worker.teamId ? jobId(worker.teamId) : null,
     ...(worker.workerId ? { lockVersion: worker.lockVersion } : { assignedFrom: worker.assignedFrom || null }),
+  };
+}
+
+export function tbmPermissions(record) {
+  const pending = record?.approvalStatus === 'PENDING';
+  return {
+    pending,
+    editable: record?.status === 'DRAFT' && !pending,
+    canRequest: record?.status === 'DONE' && !pending,
   };
 }
 
