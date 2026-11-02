@@ -33,19 +33,25 @@ export function TagEditor({ tags, codes, onChange, disabled = false }) {
     let next = tags.filter((tag) => !(tag.axis === axis && tag.value === value));
     if (checked) {
       if (axis === 'SEVERITY') next = next.filter((tag) => tag.axis !== axis);
+      else if (next.filter((tag) => tag.axis === axis).length >= 10) {
+        setError('축마다 태그를 10개까지만 선택할 수 있습니다.');
+        return false;
+      }
       next.push({ axis, value, source: 'USER', confidence: null });
     }
+    setError('');
     onChange(next);
+    return true;
   };
   const addCas = () => {
     const value = cas.trim();
-    if (!/^\d{2,7}-\d{2}-\d$/.test(value)) {
-      setError('CAS 번호 형식으로 입력하세요. 예: 108-88-3');
+    if (!/^\d{2,7}-\d{2}-\d$/.test(value) || !validCasChecksum(value)) {
+      setError('CAS 번호 형식과 체크섬을 확인하세요. 예: 108-88-3');
       return;
     }
-    if (!tags.some((tag) => tag.axis === 'SUBSTANCE' && tag.value === value)) toggle('SUBSTANCE', value, true);
+    if (!tags.some((tag) => tag.axis === 'SUBSTANCE' && tag.value === value)
+      && !toggle('SUBSTANCE', value, true)) return;
     setCas('');
-    setError('');
   };
   return (
     <fieldset className="incident-tag-editor" disabled={disabled}>
@@ -81,20 +87,31 @@ export function TagEditor({ tags, codes, onChange, disabled = false }) {
 
 export function RelatedEvidenceList({ result, codes, onOpen }) {
   if (!result) return null;
+  const results = Array.isArray(result) ? result : [];
   return (
     <section className="panel job-example" aria-label="관련 아차사고 검색 결과">
       <h2>관련 아차사고</h2>
-      <p className="job-help">현장 내 태그·본문 검색입니다. 공공데이터 RAG 검색은 포함하지 않습니다.
-        검색 범위: {result.scope} · 시도: {result.attempts.join(' → ')}</p>
-      {!result.results.length && <p>조건과 일치하는 보고가 없습니다. 태그를 해제하거나 검색어를 바꿔 주세요.</p>}
-      {result.results.map((item) => (
+      <p className="job-help">선택 현장 안에서 태그 조건과 제목·내용을 검색한 결과입니다. 최신 발생 순으로 표시합니다.</p>
+      {!results.length && <p>조건과 일치하는 보고가 없습니다. 태그를 해제하거나 검색어를 바꿔 주세요.</p>}
+      {results.map((item) => (
         <article className="incident-evidence" key={item.nearMissId}>
           <h3><button type="button" className="job-history-refresh" onClick={() => onOpen(item.nearMissId)}>{item.title}</button></h3>
-          <p>{item.excerpt}</p>
-          <small>출처: {item.sourceRef} · {item.occurredAt}</small>
+          <p>{item.description}</p>
+          {item.immediateAction && <p>당시 조치: {item.immediateAction}</p>}
+          <small>아차사고 #{item.nearMissId}{item.zoneName && ` · ${item.zoneName}`} · {item.occurredAt}</small>
           <TagChips tags={item.tags} codes={codes} />
         </article>
       ))}
     </section>
   );
+}
+
+function validCasChecksum(value) {
+  const digits = value.replaceAll('-', '');
+  const expected = Number(digits.at(-1));
+  let sum = 0;
+  for (let index = digits.length - 2, weight = 1; index >= 0; index -= 1, weight += 1) {
+    sum += Number(digits[index]) * weight;
+  }
+  return sum % 10 === expected;
 }
