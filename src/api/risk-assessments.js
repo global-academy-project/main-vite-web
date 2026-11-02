@@ -31,13 +31,22 @@ export async function createRiskAssessment(body, siteId) {
 }
 
 export async function updateRiskAssessment(id, body, siteId) {
+  const riskId = jobId(id);
   return jobWrite(async () => requireRiskAssessment(
-    await api(`/api/v1/risk-assessments/${jobId(id)}`, { method: 'PUT', body }), siteId,
+    await api(`/api/v1/risk-assessments/${riskId}`, { method: 'PUT', body }), siteId,
   ));
 }
 
 export async function submitRiskAssessment(id, siteId) {
+  const riskId = jobId(id);
   return jobWrite(async () => requireRiskAssessment(
-    await api(`/api/v1/risk-assessments/${jobId(id)}/submit`, { method: 'POST' }), siteId,
+    await api(`/api/v1/risk-assessments/${riskId}/submit`, { method: 'POST' }), siteId,
+  ));
+}
+
+export async function reviseRiskAssessment(id, siteId) {
+  const riskId = jobId(id);
+  return jobWrite(async () => requireRiskAssessment(
+    await api(`/api/v1/risk-assessments/${riskId}/revise`, { method: 'POST' }), siteId,
   ));
 }

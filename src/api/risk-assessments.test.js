@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   createRiskAssessment, getRiskAssessment, getWorkRiskAssessment, submitRiskAssessment,
-  updateRiskAssessment,
+  updateRiskAssessment, reviseRiskAssessment,
 } from './risk-assessments.js';
 
 const risk = {
@@ -50,9 +50,20 @@ test('risk assessment API uses documented routes and validates the selected site
   await updateRiskAssessment(40, { assessDate: '2026-11-03', lockVersion: 0, items: [] }, 1);
   assert.equal(requests.at(-1).path, '/api/v1/risk-assessments/40');
   assert.equal(requests.at(-1).method, 'PUT');
+  assert.equal(Object.hasOwn(requests.at(-1).body, 'formData'), false);
   await submitRiskAssessment(40, 1);
   assert.equal(requests.at(-1).path, '/api/v1/risk-assessments/40/submit');
   assert.equal(requests.at(-1).method, 'POST');
+  responseData = { ...risk, riskAssessmentId: 41, lockVersion: 0 };
+  assert.equal((await reviseRiskAssessment(40, 1)).riskAssessmentId, 41);
+  assert.equal(requests.at(-1).path, '/api/v1/risk-assessments/40/revise');
+  assert.equal(requests.at(-1).method, 'POST');
+
+  const before = requests.length;
+  for (const operation of [updateRiskAssessment, submitRiskAssessment, reviseRiskAssessment]) {
+    await assert.rejects(operation('../40', {}, 1), (error) => !error.code && /ID/.test(error.message));
+  }
+  assert.equal(requests.length, before);
 
   responseData = { ...risk, siteId: 2 };
   await assert.rejects(getRiskAssessment(40, 1), /현장/);
