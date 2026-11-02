@@ -44,10 +44,17 @@
 
 .incident-evidence p { white-space: pre-wrap; line-height: 1.7; }
 .incident-evidence a { color: #145fd7; text-decoration: underline; }
+.incident-warning-critical {
+  border: 1px solid #b42318;
+  border-left-width: 5px;
+  padding: 16px;
+  background: #fff1f0;
+}
 .incident-report-list [aria-pressed="true"] { border-color: #246be2; font-weight: 700; }
 .dark-mode .incident-cas-input input { background: #111827; color: #e5e7eb; border-color: #475569; }
 .dark-mode .incident-evidence { border-color: #475569; }
 .dark-mode .incident-evidence a { color: #93c5fd; }
+.dark-mode .incident-warning-critical { background: #3b1b1b; border-color: #f87171; }
 
 @media (max-width: 720px) {
   .incident-cas-input { display: flex; }

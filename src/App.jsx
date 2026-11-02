@@ -18,13 +18,13 @@ import ProtectedRoute from "./components/protected-route";
 // Job Component 모듈
 import JobSearch from "./pages/job/job-search";
 import JobDashboard from "./pages/job/job-dashboard";
-import DaileyChecklist from "./pages/job/job-dailey-checklist";
+import JobWorkspace from "./pages/job/job-workspace";
+import DailyChecklist from "./pages/job/job-daily-checklist";
 import JobDocumentHistory from "./pages/job/job-document-history";
 import JobIncidents from "./pages/job/job-incidents";
 import JobPermits from "./pages/job/job-permits";
 import JobRiskAssessment from "./pages/job/job-risk-assessment";
 import JobTbm from "./pages/job/job-tbm";
-import JobTrainingMaterials from "./pages/job/job-training-materials";
 import AdminUsers from "./pages/admin/users";
 import Dashboard from "./pages/dashboard";
 import ApprovalInbox from "./pages/approvals/approval-inbox";
@@ -90,6 +90,7 @@ function App() {
           }
         />
         <Route path="/job/dashboard" element={<ProtectedRoute><JobDashboard /></ProtectedRoute>} />
+        <Route path="/job/workspace" element={<ProtectedRoute><JobWorkspace /></ProtectedRoute>} />
         {/* ROUTE: /approvals | ROLE: APPROVER, SITE_ADMIN, ADMIN | API: approvals/pending */}
         <Route path="/approvals" element={<ProtectedRoute><ApprovalInbox /></ProtectedRoute>} />
         {/* ROUTE: /approvals/:approvalId | FLOW: 승인함 → 상세 → 승인/반려 */}
@@ -102,14 +103,13 @@ function App() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route
           path="/job/dailey-checklist"
-          element={<ProtectedRoute><DaileyChecklist /></ProtectedRoute>}
+          element={<ProtectedRoute><DailyChecklist /></ProtectedRoute>}
         />
         <Route path="/job/document-history" element={<ProtectedRoute><JobDocumentHistory /></ProtectedRoute>} />
         <Route path="/job/incidents" element={<ProtectedRoute><JobIncidents /></ProtectedRoute>} />
         <Route path="/job/permits" element={<ProtectedRoute><JobPermits /></ProtectedRoute>} />
         <Route path="/job/risk-assessment" element={<ProtectedRoute><JobRiskAssessment /></ProtectedRoute>} />
         <Route path="/job/tbm" element={<ProtectedRoute><JobTbm /></ProtectedRoute>} />
-        <Route path="/job/training-materials" element={<ProtectedRoute><JobTrainingMaterials /></ProtectedRoute>} />
         <Route path="/admin/users" element={<ProtectedRoute><AdminUsers /></ProtectedRoute>} />
         <Route path="*" element={<Navigate to="/signin" replace />} />
       </Routes>

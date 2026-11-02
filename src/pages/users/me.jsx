@@ -86,7 +86,8 @@ export default function Me() {
         "새 주소로 확인 메일을 보냈습니다. 10분 안에 링크를 눌러야 바뀝니다.",
       );
     } catch (error) {
-      setEmailMessage(authErrorMessage(error));
+      const details = getDetailMessages(error);
+      setEmailMessage(details.length ? details.join('\n') : authErrorMessage(error));
     }
   };
 

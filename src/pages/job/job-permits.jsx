@@ -7,6 +7,7 @@ import {
 } from '../../api/jobs';
 import JobPageLayout, { JobPageHeading } from '../../components/job-page-layout';
 import { JobSiteSelector } from './job-work-form';
+import WorkIncidentWarnings from '../../components/work-incident-warnings';
 
 const hotChecks = {
   extinguisher_ready: '소화기 비치',
@@ -59,9 +60,9 @@ function FieldRuleChecks({ checks, target }) {
   )) : <p className="job-help">이 항목에 적용된 판정 규칙이 없습니다. 안전성이 검증된 것은 아닙니다.</p>;
 }
 
-function PermitWorkspace({ siteId, disabled, initialWorkId }) {
+function PermitWorkspace({ siteId, disabled, initialWorkId, initialPermitId }) {
   const [workId, setWorkId] = useState(initialWorkId ?? '');
-  const [permitId, setPermitId] = useState('');
+  const [permitId, setPermitId] = useState(initialPermitId ?? '');
   const [type, setType] = useState('HOT');
   const [form, setForm] = useState(emptyForm);
   const [permit, setPermit] = useState(null);
@@ -234,6 +235,8 @@ function PermitWorkspace({ siteId, disabled, initialWorkId }) {
         <p className="job-help">화기는 측정값·화재감시자·안전 확인 3항목을 판정합니다. 현재 등록된 판정 규칙이 없는 유형은 고소입니다.</p>
       </form>
       {permit && <>
+        <WorkIncidentWarnings key={`work-warnings-${permit.workId}`} siteId={siteId}
+          initialWorkId={permit.workId} disabled={disabled || busy} />
         <section className="panel job-form">
           <div className="job-section-heading"><div><span className="job-eyebrow">PRE-WORK MEASUREMENTS</span><h2>작업 전 측정값</h2></div><span className="job-status-badge job-status-muted">저장된 측정 {permit.measurements.length}건</span></div>
           <fieldset disabled={locked || !editable || conflict || dirty}>
@@ -305,8 +308,8 @@ export default function JobPermits() {
     <JobPageLayout title="작업허가" user={context.account?.user} contentClassName="job-management">
       <JobPageHeading title="작업허가" description="작업 전 안전 정보를 확인하고 허가서 작성부터 승인 요청까지 진행합니다." />
       <JobSiteSelector context={context} />
-      {context.currentSite && <PermitWorkspace key={context.currentSite.siteId} siteId={context.currentSite.siteId}
-        disabled={context.selecting} initialWorkId={params.get('workId')} />}
+      {context.currentSite && <PermitWorkspace key={`${context.currentSite.siteId}:${params}`} siteId={context.currentSite.siteId}
+        disabled={context.selecting} initialWorkId={params.get('workId')} initialPermitId={params.get('permitId')} />}
     </JobPageLayout>
   );
 }
