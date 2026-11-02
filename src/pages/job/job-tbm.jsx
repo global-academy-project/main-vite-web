@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { completeTbm, createTbm, getSiteTbms, getSiteWorkers, saveTbmAttendees, updateTbm, reopenTbm, submitTbm } from '../../api/tbm';
+import { Link, useSearchParams } from 'react-router-dom';
+import { completeTbm, createTbm, getTbm, getSiteTbms, getSiteWorkers, saveTbmAttendees, updateTbm, reopenTbm, submitTbm } from '../../api/tbm';
+import { reloadJobConflict } from '../../api/jobs';
 import { useWorkSite } from '../../api/workers';
-import { completeTbmBody, localDate, tbmHeldAt, tbmContentBody } from '../../utils/job-forms';
+import { completeTbmBody, localDate, tbmHeldAt, tbmContentBody, tbmPermissions } from '../../utils/job-forms';
 import JobPageLayout, { JobPageHeading } from '../../components/job-page-layout';
 import { JobSiteSelector } from './job-work-form';
 import JobReferenceSelectors from '../../components/job-reference-selectors';
@@ -36,7 +37,7 @@ function TbmWorkspace({ site, disabled, initialTbmId, initialDate }) {
   const pending = useRef(false);
 
   const selectedTbm = records.find((record) => String(record.tbmId) === tbmId) ?? null;
-  const editable = selectedTbm?.status === 'DRAFT';
+  const { editable, pending: approvalPending, canRequest } = tbmPermissions(selectedTbm);
 
   const selectTbm = (record) => {
     setTbmId(record ? String(record.tbmId) : '');
@@ -86,9 +87,16 @@ function TbmWorkspace({ site, disabled, initialTbmId, initialDate }) {
     setRecords((current) => current.map((record) => record.tbmId === saved.tbmId ? saved : record));
   };
 
-  const showWriteError = (requestError, fallback) => {
+  const showWriteError = async (requestError, fallback) => {
     if (requestError.status === 409 || requestError.code === 'WRITE_OUTCOME_UNKNOWN') setNeedsReload(true);
     setError(requestError.message || fallback);
+    if (requestError.code === 'CONFLICT_MODIFIED' && selectedTbm) {
+      try {
+        const latest = await reloadJobConflict(requestError, () => getTbm(selectedTbm.tbmId, site.siteId));
+        updateRecord(latest); selectTbm(latest); setDate(latest.tbmDate); setNeedsReload(false);
+        setMessage('다른 변경과 충돌하여 최신 TBM으로 입력을 교체했습니다. 다시 내용 수정 버튼을 눌러 편집하세요. 자동 재저장하지 않았습니다.');
+      } catch (reloadError) { setError(reloadError.message); }
+    }
   };
 
   const registerTbm = async (event) => {
@@ -104,14 +112,14 @@ function TbmWorkspace({ site, disabled, initialTbmId, initialDate }) {
       setLeaderName(''); setWorkIds(''); setPoints(''); setHealthCheck(''); setTeamId(''); setZoneId('');
       setMessage('TBM 초안을 작성했습니다. 참석자를 저장한 뒤 실시 완료하세요.');
     } catch (requestError) {
-      showWriteError(requestError, 'TBM을 작성하지 못했습니다.');
+      await showWriteError(requestError, 'TBM을 작성하지 못했습니다.');
     } finally {
       pending.current = false; setBusy(false);
     }
   };
 
   const editContent = () => {
-    if (!selectedTbm) return;
+    if (!selectedTbm || !editable) return;
     setDate(selectedTbm.tbmDate);
     setLeaderName(selectedTbm.leaderName ?? '');
     setWorkIds(selectedTbm.works.map((work) => work.workId).join(', '));
@@ -124,9 +132,7 @@ function TbmWorkspace({ site, disabled, initialTbmId, initialDate }) {
 
   const saveContent = async (event) => {
     event.preventDefault();
-    if (!selectedTbm || pending.current || disabled || needsReload) return;
-    if ((!Object.hasOwn(selectedTbm, 'teamId') || !Object.hasOwn(selectedTbm, 'zoneId'))
-      && !window.confirm('서버 응답에 기존 팀·구역이 없습니다. 지금 선택한 팀·구역으로 저장합니다. 미지정이면 기존 연결이 제거됩니다. 계속할까요?')) return;
+    if (!selectedTbm || pending.current || disabled || needsReload || !editable) return;
     pending.current = true; setBusy(true); setError(''); setMessage('');
     try {
       const saved = await updateTbm(selectedTbm.tbmId,
@@ -134,19 +140,19 @@ function TbmWorkspace({ site, disabled, initialTbmId, initialDate }) {
         site.siteId);
       updateRecord(saved); selectTbm(saved); setMessage('TBM 내용·연결 작업·참석자를 저장했습니다.');
     } catch (requestError) {
-      showWriteError(requestError, 'TBM 내용을 저장하지 못했습니다.');
+      await showWriteError(requestError, 'TBM 내용을 저장하지 못했습니다.');
     } finally { pending.current = false; setBusy(false); }
   };
 
   const changeStatus = async (action, success) => {
-    if (!selectedTbm || pending.current || disabled || needsReload) return;
+    if (!selectedTbm || pending.current || disabled || needsReload || !canRequest) return;
     if (!attendeesSaved || (editing && contentDirty)) { setError('미저장 내용·참석자를 먼저 저장하세요.'); return; }
     pending.current = true; setBusy(true); setError(''); setMessage('');
     try {
       const saved = await action(selectedTbm.tbmId, site.siteId);
       updateRecord(saved); selectTbm(saved); setMessage(success);
     } catch (requestError) {
-      showWriteError(requestError, 'TBM 상태 변경에 실패했습니다.');
+      await showWriteError(requestError, 'TBM 상태 변경에 실패했습니다.');
     } finally { pending.current = false; setBusy(false); }
   };
 
@@ -166,7 +172,7 @@ function TbmWorkspace({ site, disabled, initialTbmId, initialDate }) {
       setAttendeesSaved(true);
       setMessage('TBM 참석자 목록을 저장했습니다.');
     } catch (requestError) {
-      showWriteError(requestError, 'TBM 참석자를 저장하지 못했습니다.');
+      await showWriteError(requestError, 'TBM 참석자를 저장하지 못했습니다.');
     } finally {
       pending.current = false;
       setBusy(false);
@@ -190,7 +196,7 @@ function TbmWorkspace({ site, disabled, initialTbmId, initialDate }) {
       selectTbm(saved);
       setMessage('TBM 실시를 완료했습니다. 승인 상태는 별도 절차입니다.');
     } catch (requestError) {
-      showWriteError(requestError, 'TBM 실시 완료 요청에 실패했습니다.');
+      await showWriteError(requestError, 'TBM 실시 완료 요청에 실패했습니다.');
     } finally {
       pending.current = false;
       setBusy(false);
@@ -232,7 +238,7 @@ function TbmWorkspace({ site, disabled, initialTbmId, initialDate }) {
               selectTbm(record ?? null);
             }}>
               <option value="" disabled>날짜를 조회해 TBM을 선택하세요</option>
-              {records.map((record) => <option key={record.tbmId} value={record.tbmId}>TBM #{record.tbmId} · {record.status} · {record.leaderName || '진행자 미입력'}</option>)}
+              {records.map((record) => <option key={record.tbmId} value={record.tbmId}>TBM #{record.tbmId} · {record.approvalStatus === 'PENDING' ? '확인 요청 중' : record.status} · {record.leaderName || '진행자 미입력'}</option>)}
             </select></label>
           </div>
           <div className="job-form-actions"><button type="submit">{loading ? '조회 중...' : '날짜별 조회'}</button></div>
@@ -257,7 +263,7 @@ function TbmWorkspace({ site, disabled, initialTbmId, initialDate }) {
             setEditing(false); setContentDirty(false); setLeaderName(''); setWorkIds('');
             setPoints(''); setHealthCheck(''); setTeamId(''); setZoneId('');
           }}>수정 취소 / 새 TBM 작성</button>}
-          {editing && <p className="job-help">수정은 내용·작업·참석자를 통째로 바꿉니다. 기존 팀·구역이 응답에 없으면 다시 선택해야 합니다.</p>}
+          {editing && <p className="job-help">수정은 내용·작업·참석자를 통째로 바꿉니다. 팀·구역은 조회한 값으로 채워집니다.</p>}
         </fieldset>
       </form>
 
@@ -265,9 +271,14 @@ function TbmWorkspace({ site, disabled, initialTbmId, initialDate }) {
         <section className="panel job-form" aria-label="TBM 참석자 및 실시 상태">
           <div className="job-section-heading">
             <div><span className="job-eyebrow">TBM #{selectedTbm.tbmId}</span><h2>참석자 및 실시 완료</h2></div>
-            <span className="job-status-badge">{selectedTbm.status}</span>
+            <span className="job-status-badge">{approvalPending ? '확인 요청 중' : selectedTbm.status}</span>
           </div>
           <p className="job-help">{selectedTbm.tbmDate} · 진행자 {selectedTbm.leaderName || '미입력'} · 연결 작업 {selectedTbm.works.map((work) => work.title).join(', ') || '없음'}</p>
+          <p>팀: {selectedTbm.teamName ?? (selectedTbm.teamId == null ? '미지정' : `#${selectedTbm.teamId}`)}
+            {' · '}구역: {selectedTbm.zoneName ?? (selectedTbm.zoneId == null ? '미지정' : `#${selectedTbm.zoneId}`)}</p>
+          {selectedTbm.approvalStatus && <p>결재 상태: {selectedTbm.approvalStatus}
+            {selectedTbm.approvalId && <> · <Link to={`/approvals/${selectedTbm.approvalId}`}>결재 #{selectedTbm.approvalId} 조회</Link></>}</p>}
+          {approvalPending && <p role="status">확인 요청 중입니다. 수정·참석자 저장·실시 완료·되돌리기를 할 수 없습니다.</p>}
           {selectedTbm.points?.length > 0 && <section><h3>교육 요점</h3><ul>{selectedTbm.points.map((point, index) => <li key={index}>{point}</li>)}</ul></section>}
           {selectedTbm.healthCheck && <p>건강 확인: {selectedTbm.healthCheck}</p>}
           <JobTbmRisks key={`${selectedTbm.tbmId}:${selectedTbm.lockVersion}`} tbm={selectedTbm} siteId={site.siteId} />
@@ -315,10 +326,10 @@ function TbmWorkspace({ site, disabled, initialTbmId, initialDate }) {
           </fieldset>}
           {!editable && <p className="job-help">완료 또는 승인된 TBM의 참석자와 실시 정보는 이 화면에서 수정할 수 없습니다.</p>}
           {selectedTbm.status === 'DONE' && <div className="job-form-actions">
-            <button type="button" disabled={disabled || busy || loading || needsReload} onClick={() => {
+            <button type="button" disabled={disabled || busy || loading || needsReload || !canRequest} onClick={() => {
               void changeStatus(submitTbm, 'TBM 확인 요청을 제출했습니다. 승인함에서 확인하며, 승인 완료를 뜻하지 않습니다.');
             }}>TBM 확인 요청</button>
-            <button type="button" disabled={disabled || busy || loading || needsReload} onClick={() => {
+            <button type="button" disabled={disabled || busy || loading || needsReload || !canRequest} onClick={() => {
               void changeStatus(reopenTbm, 'TBM을 작성 중으로 되돌렸습니다.');
             }}>실시 완료 되돌리기</button>
             <p className="job-help">확인 요청 중인 TBM은 서버가 재개·수정을 거부합니다. 반려되면 작성 중으로 돌아갑니다.</p>

@@ -1,11 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { completeTbm, createTbm, getSiteTbms, getSiteWorkers, saveTbmAttendees, updateTbm, reopenTbm, submitTbm } from './tbm.js';
+import { completeTbm, createTbm, getTbm, getSiteTbms, getSiteWorkers, saveTbmAttendees, updateTbm, reopenTbm, submitTbm } from './tbm.js';
 import { completeTbmBody } from '../utils/job-forms.js';
 
 const tbm = {
   tbmId: 12, siteId: 1, tbmDate: '2026-11-02', status: 'DRAFT', lockVersion: 0,
   attendees: [], works: [],
+  teamId: null, zoneId: null, approvalId: null, approvalStatus: null,
 };
 
 test('TBM and worker API requests use expected paths, bodies, and site validation', async (t) => {
@@ -57,8 +58,8 @@ test('TBM and worker API requests use expected paths, bodies, and site validatio
   assert.deepEqual(requests.at(-1), {
     path: '/api/v1/tbm/12/complete', method: 'POST', body: completeBody,
   });
-  responseData = [{ ...tbm, status: 'PENDING' }];
-  assert.equal((await getSiteTbms(1))[0].status, 'PENDING');
+  responseData = [{ ...tbm, status: 'DONE', approvalId: 99, approvalStatus: 'PENDING', teamId: 4, zoneId: 7 }];
+  assert.equal((await getSiteTbms(1))[0].approvalStatus, 'PENDING');
 
   const before = requests.length;
   await assert.rejects(saveTbmAttendees('../12', {}, 1), (error) => !error.code && /ID/.test(error.message));
@@ -66,10 +67,15 @@ test('TBM and worker API requests use expected paths, bodies, and site validatio
   await assert.rejects(createTbm(0, {}), /ID/);
   assert.equal(requests.length, before);
 
-  responseData = { ...tbm, lockVersion: 3 };
+  responseData = { ...tbm, lockVersion: 3, teamId: 4, zoneId: 7 };
   const editBody = { ...createBody, teamId: 4, zoneId: 7, lockVersion: 2, attendees: [{ workerId: 5, healthOk: true }] };
-  await updateTbm(12, editBody, 1);
+  const updated = await updateTbm(12, editBody, 1);
   assert.deepEqual(requests.at(-1), { path: '/api/v1/tbm/12', method: 'PUT', body: editBody });
+  assert.equal(updated.teamId, 4);
+  assert.equal(updated.zoneId, 7);
+  responseData = { ...updated, lockVersion: 4 };
+  await saveTbmAttendees(12, { lockVersion: updated.lockVersion, attendees: updated.attendees }, 1);
+  assert.equal(requests.at(-1).body.lockVersion, 3);
   await reopenTbm(12, 1);
   assert.deepEqual(requests.at(-1), { path: '/api/v1/tbm/12/reopen', method: 'POST', body: undefined });
   responseData = { ...tbm, status: 'DONE' };
@@ -83,4 +89,7 @@ test('TBM and worker API requests use expected paths, bodies, and site validatio
 
   responseData = [{ ...tbm, siteId: 2 }];
   await assert.rejects(getSiteTbms(1, '2026-11-02'), /현장/);
+  responseData = { ...tbm };
+  delete responseData.teamId;
+  await assert.rejects(getTbm(12, 1), /최신 서버/);
 });
