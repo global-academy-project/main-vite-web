@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  checkPermit, createPermit, createWork, getPermit, getWork, jobId, jobWrite, measurementItems,
+  checkPermit, createPermit, createWork, getPermit, getWork, getSiteWorks, jobId, jobWrite, measurementItems,
   requireRuleEvaluation, requireWork, saveMeasurements, submitPermit, updatePermit, validatePeriod,
 } from './jobs.js';
 import { ApiError } from './client.js';
@@ -51,6 +51,7 @@ test('work response is checked against the selected site', () => {
 test('job writes classify uncertain outcomes without retrying or masking definite rejections', async () => {
   for (const original of [
     new ApiError('NETWORK_ERROR', '연결 끊김', null, 0),
+    new ApiError('TIMEOUT', '응답 시간 초과', null, 408),
     new ApiError('INVALID_RESPONSE', '잘못된 응답', null, 200),
     new ApiError('INTERNAL_ERROR', '서버 오류', null, 500),
     new ApiError('INTERNAL_ERROR', '게이트웨이 오류', null, 502),
@@ -150,6 +151,14 @@ test('work and permit API HTTP contracts, state transitions and failures', async
   assert.equal(requests.at(-1).headers.Authorization, 'Bearer test-only-token');
   await getWork(7);
   assert.equal(requests.at(-1).path, '/api/v1/works/7');
+  respond([{ ...work, permits: [], riskAssessment: null, tbm: null }]);
+  assert.equal((await getSiteWorks(1, '2026-11-02', '2026-11-06')).length, 1);
+  assert.equal(requests.at(-1).path, '/api/v1/sites/1/works?from=2026-11-02&to=2026-11-06');
+  await assert.rejects(getSiteWorks(2), /현장/);
+  respond({ content: [work] });
+  await assert.rejects(getSiteWorks(1), /목록/);
+  respond([{ ...work, permits: null }]);
+  await assert.rejects(getSiteWorks(1), /허가서/);
 
   const content = {
     validFrom: '2026-10-29T10:00', validTo: '2026-10-29T11:00',

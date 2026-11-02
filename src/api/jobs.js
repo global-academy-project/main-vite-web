@@ -4,7 +4,7 @@ export async function jobWrite(request) {
   try {
     return await request();
   } catch (error) {
-    if (error.code === 'NETWORK_ERROR' || error.code === 'INVALID_RESPONSE'
+    if (error.code === 'NETWORK_ERROR' || error.code === 'TIMEOUT' || error.code === 'INVALID_RESPONSE'
       || error.status >= 500 || !error.code) {
       const uncertain = new ApiError('WRITE_OUTCOME_UNKNOWN',
         `${error.message || '쓰기 요청 응답 오류'} 저장 결과를 확인할 수 없습니다. 서버에는 반영되었을 수 있으므로 재전송 전에 반영 여부를 확인하세요.`,
@@ -85,6 +85,19 @@ export function measurementItems(type, values) {
 export const createWork = async (body) =>
   jobWrite(async () => requireWork(await api('/api/v1/works', { method: 'POST', body }), body.siteId));
 export const getWork = (id) => api(`/api/v1/works/${jobId(id)}`);
+export async function getSiteWorks(siteId, from, to = from) {
+  const site = jobId(siteId);
+  const params = new URLSearchParams();
+  if (from) params.set('from', from);
+  if (to) params.set('to', to);
+  const records = await api(`/api/v1/sites/${site}/works${params.size ? `?${params}` : ''}`);
+  if (!Array.isArray(records)) throw new Error('작업 목록 응답 형식이 올바르지 않습니다.');
+  return records.map((work) => {
+    requireWork(work, site);
+    if (!Array.isArray(work.permits)) throw new Error('작업 목록의 허가서 응답 형식이 올바르지 않습니다.');
+    return work;
+  });
+}
 export const getPermit = async (id, siteId) =>
   requirePermit(await api(`/api/v1/permits/${jobId(id)}`), siteId);
 export const createPermit = async (body, siteId) =>
