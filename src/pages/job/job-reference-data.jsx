@@ -1,10 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { getSiteWorkers } from '../../api/tbm';
-import { jobId } from '../../api/jobs';
 import {
   changeWorkerAssignment, getJobZones, getTeams, referencePermissions, saveTeam, saveWorker, saveZone,
 } from '../../api/job-reference';
-import { localDate } from '../../utils/job-forms';
+import { localDate, siteWorkerBody } from '../../utils/job-forms';
 
 const emptyWorker = { name: '', phone: '', jobType: '', employmentType: 'DIRECT', teamId: '', assignedFrom: '' };
 const emptyZone = { code: '', name: '', zoneType: '', confined: false, hazardNote: '', active: true };
@@ -63,7 +62,7 @@ export default function JobReferenceData({ site, user, disabled }) {
 
   return <section aria-label="현장 기준 정보 관리">
     <h2>작업자·현장 배치·구역·팀 관리</h2>
-    <p className="job-help">작업자·구역 변경은 현장 관리자 이상, 팀·협력업체 변경은 회사 관리자만 가능합니다. 최신 기준 정보 API가 배포된 서버가 필요합니다.</p>
+    <p className="job-help">작업자·구역 변경은 현장 관리자 이상, 팀·협력업체 변경은 회사 관리자만 가능합니다.</p>
     <button type="button" disabled={locked} onClick={refresh}>기준 정보 전체 새로고침 (편집 초기화)</button>
     {message && <p role="status">{message}</p>}{error && <p className="dashboard-error" role="alert">{error}</p>}
     {blocked && <p role="alert">저장 결과 또는 최신 버전 확인이 필요합니다. 목록을 새로고침해 반영 여부를 확인하세요.</p>}
@@ -80,7 +79,7 @@ export default function JobReferenceData({ site, user, disabled }) {
           <td>#{entry.workerId} {entry.name}</td><td>{entry.jobType} / {entry.employmentType}</td>
           <td>{entry.teamName ?? '미지정'}</td><td>{entry.assignedFrom} ~ {entry.assignedTo ?? '배치 중'}</td>
           <td><button type="button" disabled={workerLocked || !Number.isInteger(entry.lockVersion)} onClick={() => {
-            setWorker({ ...emptyWorker, ...entry, phone: '', teamId: entry.teamId == null ? '' : String(entry.teamId) });
+            setWorker({ ...emptyWorker, ...entry, phone: '', jobType: entry.jobType ?? '', teamId: entry.teamId == null ? '' : String(entry.teamId) });
           }}>작업자 수정</button></td>
         </tr>)}</tbody>
       </table></div>}
@@ -89,21 +88,15 @@ export default function JobReferenceData({ site, user, disabled }) {
         if (workerLocked) return;
         if (worker.workerId && !window.confirm('작업자 정보는 통째로 변경됩니다. 연락처는 조회되지 않으므로 다시 입력하세요. 빈 연락처·미지정 팀은 기존 값을 지울 수 있습니다. 계속할까요?')) return;
         void run('workers', async () => {
-          const body = {
-            name: worker.name.trim(), phone: worker.phone.trim() || null, jobType: worker.jobType.trim() || null,
-            employmentType: worker.employmentType, teamId: worker.teamId ? jobId(worker.teamId) : null,
-            ...(worker.workerId ? { lockVersion: worker.lockVersion } : { assignedFrom: worker.assignedFrom || null }),
-          };
-          if (!body.name) throw new Error('작업자 이름을 입력하세요.');
-          await saveWorker(site.siteId, worker.workerId, body); setWorker(emptyWorker);
+          await saveWorker(site.siteId, worker.workerId, siteWorkerBody(worker)); setWorker(emptyWorker);
         }, '작업자 정보를 저장했습니다. 목록에서 확인하세요.');
       }}>
         <fieldset disabled={workerLocked}>
           <legend>{worker.workerId ? `작업자 #${worker.workerId} 수정` : '작업자 신규 등록 + 현장 배치'}</legend>
           <div className="job-fields">
-            <label>작업자 이름<input required value={worker.name} onChange={(e) => setWorker({ ...worker, name: e.target.value })} /></label>
-            <label>연락처 (응답에 없음, 수정 시 재입력)<input type="tel" value={worker.phone} onChange={(e) => setWorker({ ...worker, phone: e.target.value })} /></label>
-            <label>직종<input value={worker.jobType ?? ''} onChange={(e) => setWorker({ ...worker, jobType: e.target.value })} /></label>
+            <label>작업자 이름<input required maxLength={50} value={worker.name} onChange={(e) => setWorker({ ...worker, name: e.target.value })} /></label>
+            <label>연락처 (응답에 없음, 수정 시 재입력)<input type="tel" maxLength={20} value={worker.phone} onChange={(e) => setWorker({ ...worker, phone: e.target.value })} /></label>
+            <label>직종<input maxLength={50} value={worker.jobType ?? ''} onChange={(e) => setWorker({ ...worker, jobType: e.target.value })} /></label>
             <label>고용 형태<select value={worker.employmentType} onChange={(e) => setWorker({ ...worker, employmentType: e.target.value })}>
               <option value="DIRECT">직영</option><option value="CONTRACTOR">협력업체</option><option value="DAILY">일용</option>
             </select></label>
@@ -145,7 +138,7 @@ export default function JobReferenceData({ site, user, disabled }) {
         event.preventDefault(); if (zoneLocked) return;
         void run('zones', async () => {
           const body = { code: zone.code.trim(), name: zone.name.trim(), zoneType: zone.zoneType.trim() || null,
-            confined: zone.confined, hazardNote: zone.hazardNote.trim() || null, active: zone.active };
+            confined: zone.confined, hazardNote: zone.hazardNote.trim() || null, active: zone.zoneId ? zone.active : null };
           if (!body.code || !body.name) throw new Error('구역 코드·이름을 입력하세요.');
           await saveZone(site.siteId, zone.zoneId, body); setZone(emptyZone);
         }, '구역을 저장했습니다.');
@@ -153,12 +146,12 @@ export default function JobReferenceData({ site, user, disabled }) {
         <fieldset disabled={zoneLocked}>
           <legend>{zone.zoneId ? `구역 #${zone.zoneId} 수정` : '구역 등록'}</legend>
           <div className="job-fields">
-            <label>구역 코드<input required value={zone.code} onChange={(e) => setZone({ ...zone, code: e.target.value })} /></label>
-            <label>구역 이름<input required value={zone.name} onChange={(e) => setZone({ ...zone, name: e.target.value })} /></label>
-            <label>구역 유형<input value={zone.zoneType} placeholder="예: PROCESS" onChange={(e) => setZone({ ...zone, zoneType: e.target.value })} /></label>
-            <label>유해·위험 참고<textarea value={zone.hazardNote} onChange={(e) => setZone({ ...zone, hazardNote: e.target.value })} /></label>
+            <label>구역 코드<input required maxLength={30} value={zone.code} onChange={(e) => setZone({ ...zone, code: e.target.value })} /></label>
+            <label>구역 이름<input required maxLength={100} value={zone.name} onChange={(e) => setZone({ ...zone, name: e.target.value })} /></label>
+            <label>구역 유형<input maxLength={30} value={zone.zoneType} placeholder="예: PROCESS" onChange={(e) => setZone({ ...zone, zoneType: e.target.value })} /></label>
+            <label>유해·위험 참고<textarea maxLength={500} value={zone.hazardNote} onChange={(e) => setZone({ ...zone, hazardNote: e.target.value })} /></label>
             <label><input type="checkbox" checked={zone.confined} onChange={(e) => setZone({ ...zone, confined: e.target.checked })} />밀폐공간</label>
-            <label><input type="checkbox" checked={zone.active} onChange={(e) => setZone({ ...zone, active: e.target.checked })} />구역 사용 중</label>
+            {zone.zoneId && <label><input type="checkbox" checked={zone.active} onChange={(e) => setZone({ ...zone, active: e.target.checked })} />구역 사용 중</label>}
           </div>
           <button type="submit">구역 저장</button><button type="button" onClick={() => setZone(emptyZone)}>새 구역 / 편집 초기화</button>
         </fieldset>
@@ -177,19 +170,19 @@ export default function JobReferenceData({ site, user, disabled }) {
           if (!team.name.trim()) throw new Error('팀 이름을 입력하세요.');
           if (team.teamType === 'EXTERNAL' && businessNo && !/^\d{10}$/.test(businessNo)) throw new Error('사업자등록번호는 숫자 10자리여야 합니다.');
           await saveTeam(team.teamId, { name: team.name.trim(), teamType: team.teamType,
-            businessNo: team.teamType === 'EXTERNAL' ? businessNo || null : null, active: team.active });
+            businessNo: team.teamType === 'EXTERNAL' ? businessNo || null : null, active: team.teamId ? team.active : null });
           setTeam(emptyTeam);
         }, '팀·협력업체 정보를 저장했습니다.');
       }}>
         <fieldset disabled={teamLocked}>
           <legend>{team.teamId ? `팀 #${team.teamId} 수정` : '팀 등록'}</legend>
           <div className="job-fields">
-            <label>팀·업체 이름<input required value={team.name} onChange={(e) => setTeam({ ...team, name: e.target.value })} /></label>
+            <label>팀·업체 이름<input required maxLength={100} value={team.name} onChange={(e) => setTeam({ ...team, name: e.target.value })} /></label>
             <label>팀 유형<select value={team.teamType} onChange={(e) => setTeam({ ...team, teamType: e.target.value })}>
               <option value="INTERNAL">사내</option><option value="EXTERNAL">외부 업체</option>
             </select></label>
-            {team.teamType === 'EXTERNAL' && <label>사업자등록번호<input value={team.businessNo} onChange={(e) => setTeam({ ...team, businessNo: e.target.value })} /></label>}
-            <label><input type="checkbox" checked={team.active} onChange={(e) => setTeam({ ...team, active: e.target.checked })} />팀 사용 중</label>
+            {team.teamType === 'EXTERNAL' && <label>사업자등록번호<input maxLength={12} value={team.businessNo} onChange={(e) => setTeam({ ...team, businessNo: e.target.value })} /></label>}
+            {team.teamId && <label><input type="checkbox" checked={team.active} onChange={(e) => setTeam({ ...team, active: e.target.checked })} />팀 사용 중</label>}
           </div>
           <button type="submit">팀 저장</button><button type="button" onClick={() => setTeam(emptyTeam)}>새 팀 / 편집 초기화</button>
         </fieldset>
