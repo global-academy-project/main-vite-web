@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
+import { reloadJobConflict } from '../../api/jobs';
 import {
   createRiskAssessment, getRiskAssessment, getWorkRiskAssessment, submitRiskAssessment,
   updateRiskAssessment, reviseRiskAssessment,
@@ -43,8 +44,16 @@ function RiskWorkspace({ site, disabled, initialRiskId, initialWorkId }) {
   const [dirty, setDirty] = useState(false);
   const [needsReload, setNeedsReload] = useState(false);
   const pending = useRef(false);
-  const locked = Boolean(risk && risk.status !== 'DRAFT');
+  const locked = Boolean(risk && (risk.status !== 'DRAFT' || risk.approvalStatus === 'PENDING'));
 
+  const applyRisk = (saved) => {
+    setRisk(saved);
+    setRiskId(String(saved.riskAssessmentId));
+    setWorkId(String(saved.workId));
+    setAssessDate(saved.assessDate);
+    setItems(saved.items.length ? saved.items.map(itemForForm) : [blankItem(1)]);
+    setDirty(false); setNeedsReload(false);
+  };
   const run = async (action, success) => {
     if (pending.current || disabled) return;
     pending.current = true;
@@ -53,21 +62,20 @@ function RiskWorkspace({ site, disabled, initialRiskId, initialWorkId }) {
     setMessage('');
     try {
       const saved = await action();
-      if (saved) {
-        setRisk(saved);
-        setRiskId(String(saved.riskAssessmentId));
-        setWorkId(String(saved.workId));
-        setAssessDate(saved.assessDate);
-        setItems(saved.items.length ? saved.items.map(itemForForm) : [blankItem(1)]);
-        setDirty(false);
-        setNeedsReload(false);
-      }
+      if (saved) applyRisk(saved);
       setMessage(typeof success === 'function' ? success(saved) : success);
     } catch (requestError) {
       if (requestError.status === 409 || requestError.code === 'WRITE_OUTCOME_UNKNOWN') {
         setNeedsReload(true);
       }
       setError(requestError.message || '위험성평가 요청에 실패했습니다.');
+      if (requestError.code === 'CONFLICT_MODIFIED' && risk) {
+        try {
+          const latest = await reloadJobConflict(requestError, () => getRiskAssessment(risk.riskAssessmentId, site.siteId));
+          applyRisk(latest);
+          setMessage('다른 변경과 충돌하여 최신 기록으로 입력을 교체했습니다. 내용을 확인하고 다시 수정하세요. 자동 재저장하지 않았습니다.');
+        } catch (reloadError) { setError(reloadError.message); }
+      }
     } finally {
       pending.current = false;
       setBusy(false);
@@ -136,6 +144,8 @@ function RiskWorkspace({ site, disabled, initialRiskId, initialWorkId }) {
             <h2>{risk ? '위험성평가 수정' : '위험성평가 작성'}</h2></div>
           {risk && <span className="job-status-badge">{risk.status}</span>}
         </div>
+        {risk?.approvalStatus && <p>결재 상태: {risk.approvalStatus}
+          {risk.approvalId && <> · <Link to={`/approvals/${risk.approvalId}`}>결재 #{risk.approvalId} 조회</Link></>}</p>}
         <fieldset disabled={disabled || busy || locked || needsReload}>
           <div className="job-fields">
             <label>작업 ID<input required inputMode="numeric" value={workId} disabled={Boolean(risk)} onChange={(event) => setWorkId(event.target.value)} /></label>
