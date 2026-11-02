@@ -50,7 +50,7 @@ export default function JobWorkList({ siteId, disabled, revision = 0 }) {
             <thead><tr><th>작업</th><th>작업일 / 유형</th><th>인원 / 상태</th><th>허가서</th><th>위험성평가</th><th>TBM</th></tr></thead>
             <tbody>{result.works.map((work) => <tr key={work.workId}>
               <td><Link to={`/job/workspace?workId=${work.workId}`}>#{work.workId} {work.title}</Link></td>
-              <td>{work.workDate} · {workTypes[work.workType] ?? work.workType}</td>
+              <td>{work.workDate} · {workTypes[work.workType] ?? work.workType}<p>구역: {work.zoneId == null ? '미지정' : `#${work.zoneId}`}</p></td>
               <td>{work.workerCount ?? '미지정'} · {work.status}</td>
               <td>{work.permits.length ? work.permits.map((permit) => <p key={permit.permitId}>
                 <Link to={`/job/permits?permitId=${permit.permitId}&workId=${work.workId}`}>{permit.permitNo} · {permit.status}</Link>
