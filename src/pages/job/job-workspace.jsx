@@ -1,15 +1,20 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useWorkSite, workTypes } from '../../api/workers';
 import { createWork, getWork, requireWork, validatePeriod } from '../../api/jobs';
 import JobPageLayout, { JobPageHeading } from '../../components/job-page-layout';
 import { JobSiteSelector } from './job-work-form';
 import JobWorkAgent from './job-work-agent';
+import JobReferenceSelectors from '../../components/job-reference-selectors';
+import WorkIncidentWarnings from '../../components/work-incident-warnings';
 
-function WorkWorkspace({ site, disabled }) {
+const workZoneEnabled = import.meta.env.VITE_ENABLE_WORK_ZONE_API !== 'false';
+
+function WorkWorkspace({ site, disabled, initialWorkId }) {
   const [work, setWork] = useState(null);
-  const [lookupId, setLookupId] = useState('');
-  const [busy, setBusy] = useState(false);
+  const [lookupId, setLookupId] = useState(initialWorkId ?? '');
+  const [zoneId, setZoneId] = useState('');
+  const [busy, setBusy] = useState(Boolean(initialWorkId));
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [creationUncertain, setCreationUncertain] = useState(false);
@@ -19,6 +24,23 @@ function WorkWorkspace({ site, disabled }) {
     mounted.current = true;
     return () => { mounted.current = false; };
   }, []);
+  useEffect(() => {
+    if (!initialWorkId) return undefined;
+    let active = true;
+    getWork(initialWorkId).then((saved) => requireWork(saved, site.siteId)).then((saved) => {
+      if (active) {
+        setWork(saved);
+        setLookupId(String(saved.workId));
+        setZoneId(saved.zoneId == null ? '' : String(saved.zoneId));
+        setMessage('서버의 작업을 조회했습니다.');
+      }
+    }).catch((requestError) => {
+      if (active) setError(requestError.message || '작업 요청에 실패했습니다.');
+    }).finally(() => {
+      if (active) setBusy(false);
+    });
+    return () => { active = false; };
+  }, [initialWorkId, site.siteId]);
 
   const run = async (action, success, creating = false) => {
     if (pending.current || disabled) return;
@@ -31,6 +53,7 @@ function WorkWorkspace({ site, disabled }) {
       if (mounted.current) {
         setWork(saved);
         setLookupId(String(saved.workId));
+        setZoneId(saved.zoneId == null ? '' : String(saved.zoneId));
         setMessage(success);
         if (creating) setCreationUncertain(false);
       }
@@ -59,6 +82,7 @@ function WorkWorkspace({ site, disabled }) {
         siteId: site.siteId, workDate: fields.workDate, title: fields.title.trim(),
         description: fields.description.trim() || null, workType: fields.workType,
         startAt: fields.startAt || null, endAt: fields.endAt || null, workerCount,
+        ...(workZoneEnabled ? { zoneId: zoneId ? Number(zoneId) : null } : {}),
       });
     }, '작업을 서버에 저장했습니다. 작업 승인은 별도 절차입니다.', true);
   };
@@ -84,6 +108,8 @@ function WorkWorkspace({ site, disabled }) {
               <label>작업명<input name="title" required maxLength={200} placeholder="예: 저장탱크 주변 용접 작업" /></label>
               <label>작업일<input name="workDate" type="date" required /></label>
               <label>작업 유형<select name="workType">{Object.entries(workTypes).map(([code, label]) => <option key={code} value={code}>{label}</option>)}</select></label>
+              {workZoneEnabled && <JobReferenceSelectors siteId={site.siteId} zoneId={zoneId}
+                onChange={(_, value) => setZoneId(value)} disabled={disabled || busy} showTeams={false} />}
               <label>작업 인원<input name="workerCount" type="number" min="1" step="1" /></label>
               <label>시작 일시<input name="startAt" type="datetime-local" /></label>
               <label>종료 일시<input name="endAt" type="datetime-local" /></label>
@@ -113,6 +139,8 @@ function WorkWorkspace({ site, disabled }) {
             <p>{work.startAt || '시작 미지정'} ~ {work.endAt || '종료 미지정'} · 인원 {work.workerCount ?? '미지정'}</p>
             <Link className="job-link-button" to={`/job/permits?workId=${work.workId}`}>이 작업의 허가서 작성 <span aria-hidden="true">→</span></Link>
           </section>}
+          {work && <WorkIncidentWarnings key={`work-warnings-${work.workId}`} siteId={site.siteId}
+            initialWorkId={work.workId} disabled={disabled || busy} />}
           {!work && <section className="job-empty-state" aria-label="작업 조회 안내"><span className="job-eyebrow">WORK DETAILS</span><h3>작업 정보를 이곳에서 확인하세요</h3><p className="job-help">새 작업을 저장하거나 기존 작업 ID를 조회하면 상세 정보와 허가서 작성 링크가 표시됩니다.</p></section>}
         </div>
       </div>
@@ -123,6 +151,8 @@ function WorkWorkspace({ site, disabled }) {
 export default function JobWorkspace() {
   const context = useWorkSite();
   const [assistantTab, setAssistantTab] = useState('work');
+  const [params] = useSearchParams();
+  const initialWorkId = params.get('workId');
 
   return (
     <JobPageLayout title="작업 등록·조회" user={context.account?.user} contentClassName="job-management">
@@ -143,7 +173,8 @@ export default function JobWorkspace() {
         <div className="job-section-heading">
           <div><span className="job-eyebrow">WORK MANAGEMENT</span><h2 id="job-workspace-title">작업 등록·조회</h2><p className="job-help">선택 현장의 개별 작업을 실제 서버에 저장하고 조회할 수 있습니다.</p></div>
         </div>
-        <WorkWorkspace key={context.currentSite.siteId} site={context.currentSite} disabled={context.selecting} />
+        <WorkWorkspace key={`${context.currentSite.siteId}:${initialWorkId ?? ''}`} site={context.currentSite}
+          disabled={context.selecting} initialWorkId={initialWorkId} />
       </section>}
     </JobPageLayout>
   );
