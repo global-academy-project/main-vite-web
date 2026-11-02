@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  completeTbmBody, jobRecordPath, localDate, riskAssessmentBody, riskLevelNotice, siteWorkerBody, tbmHeldAt, tbmContentBody,
+  completeTbmBody, jobRecordPath, localDate, riskAssessmentBody, riskLevelNotice, siteWorkerBody, tbmHeldAt, tbmContentBody, tbmPermissions,
 } from './job-forms.js';
 
 const item = {
@@ -35,12 +35,31 @@ test('worker form matches nullable server fields, full update version and input 
     name: '작업자', phone: '010-1234-5678', jobType: '배관공', employmentType: 'DIRECT', teamId: 4, lockVersion: 3,
   });
   assert.equal(siteWorkerBody({ ...worker, name: 'x'.repeat(50), jobType: 'x'.repeat(50) }).name.length, 50);
+  const edit = { ...worker, workerId: 5, lockVersion: 4 };
+  assert.equal(Object.hasOwn(siteWorkerBody(edit), 'phone'), false);
+  assert.equal(siteWorkerBody({ ...edit, clearPhone: true }).phone, '');
+  assert.equal(siteWorkerBody({ ...edit, phone: '010-1234-5678' }).phone, '010-1234-5678');
+  assert.equal(siteWorkerBody({ ...edit, clearPhone: true, phone: '010-1234-5678' }).phone, '');
   for (const invalid of [
     { name: ' ' }, { name: 'x'.repeat(51) }, { jobType: 'x'.repeat(51) },
     { phone: '123456789' }, { phone: '010-ABCD-5678' }, { phone: '0'.repeat(12) }, { teamId: '../4' },
   ]) assert.throws(() => siteWorkerBody({ ...worker, ...invalid }));
 });
 
+test('TBM pending approval locks all edits and status actions independently of TBM status', () => {
+  for (const status of ['DRAFT', 'DONE', 'APPROVED']) {
+    assert.deepEqual(tbmPermissions({ status, approvalStatus: 'PENDING' }), {
+      pending: true, editable: false, canRequest: false,
+    });
+  }
+  assert.deepEqual(tbmPermissions({ status: 'DRAFT', approvalStatus: 'REJECTED' }), {
+    pending: false, editable: true, canRequest: false,
+  });
+  assert.deepEqual(tbmPermissions({ status: 'DONE', approvalStatus: 'CANCELED' }), {
+    pending: false, editable: false, canRequest: true,
+  });
+  assert.deepEqual(tbmPermissions(null), { pending: false, editable: false, canRequest: false });
+});
 test('risk creation requires IDs, and updates omit formData to preserve agent evidence', () => {
   const created = riskAssessmentBody(form);
   assert.deepEqual(created, {
