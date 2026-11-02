@@ -36,6 +36,11 @@ export function clearCachedCurrentUser() {
   accountRequest = null;
 }
 
+export function refreshWorkSite() {
+  clearCachedCurrentUser();
+  window.dispatchEvent(new Event('work-site-changed'));
+}
+
 // Stateless preview; persisted permit evaluations use /permits/{id}/check.
 export async function checkWorkRules({ siteId, workType, input }) {
   return requireRuleEvaluation(await api('/api/v1/rules/check', {
@@ -58,6 +63,14 @@ export function useWorkSite() {
   useEffect(() => {
     mounted.current = true;
     return () => { mounted.current = false; };
+  }, []);
+
+  useEffect(() => {
+    const refresh = () => {
+      setAccount(null); setLoading(true); setRevision((value) => value + 1);
+    };
+    window.addEventListener('work-site-changed', refresh);
+    return () => window.removeEventListener('work-site-changed', refresh);
   }, []);
 
   useEffect(() => {
