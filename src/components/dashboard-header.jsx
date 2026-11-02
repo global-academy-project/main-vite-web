@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import NotificationBell from './notification-bell';
 
 function DashboardHeader({
   userInitial,
@@ -35,12 +36,7 @@ function DashboardHeader({
         >
           {darkMode ? '☀' : '☾'}
         </button>
-        <button type="button" className="notification" aria-label="GitHub 알림함">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M4 4.75h16l1 10.5h-5l-2 3h-4l-2-3H3l1-10.5Z" />
-            <path d="M3.5 12.25h4l1.5 2h6l1.5-2h4" />
-          </svg>
-        </button>
+        <NotificationBell />
         <div className="user-info">
           <strong>{userName}</strong>
           <span>사용자</span>
