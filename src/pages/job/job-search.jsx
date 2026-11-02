@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { siteRoles, useWorkSite } from '../../api/workers';
 import JobPageLayout, { JobPageHeading } from '../../components/job-page-layout';
 import { JobSiteSelector } from './job-work-form';
+import JobReferenceData from './job-reference-data';
 import '../../style/job/job-search.css';
 
 export default function JobSearch() {
@@ -42,6 +43,8 @@ export default function JobSearch() {
           </div>
         )}
       </section>
+      {context.currentSite && <JobReferenceData key={context.currentSite.siteId} site={context.currentSite}
+        user={context.account?.user} disabled={context.selecting || context.loading} />}
     </JobPageLayout>
   );
 }
