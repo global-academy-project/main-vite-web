@@ -4,6 +4,7 @@ import { useWorkSite, workTypes } from '../../api/workers';
 import { createWork, getWork, requireWork, validatePeriod } from '../../api/jobs';
 import JobPageLayout, { JobPageHeading } from '../../components/job-page-layout';
 import { JobSiteSelector } from './job-work-form';
+import JobWorkAgent from './job-work-agent';
 
 function WorkWorkspace({ site, disabled }) {
   const [work, setWork] = useState(null);
@@ -121,12 +122,24 @@ function WorkWorkspace({ site, disabled }) {
 
 export default function JobWorkspace() {
   const context = useWorkSite();
+  const [assistantTab, setAssistantTab] = useState('work');
 
   return (
     <JobPageLayout title="작업 등록·조회" user={context.account?.user} contentClassName="job-management">
       <JobPageHeading title="작업 등록·조회" description={`선택 현장: ${context.currentSite?.name ?? '현장 미선택'}`} />
       <JobSiteSelector context={context} />
       {context.currentSite && <section className="job-overview-workspace" aria-labelledby="job-workspace-title">
+        <section className="panel" aria-label="AI 작업 및 기록 질문">
+          <nav className="approval-tabs" aria-label="AI 도우미 탭">
+            <button type="button" className={assistantTab === 'work' ? 'is-active' : ''} onClick={() => setAssistantTab('work')}>작업 등록</button>
+            <button type="button" className={assistantTab === 'records' ? 'is-active' : ''} onClick={() => setAssistantTab('records')}>기록 질문</button>
+          </nav>
+          {assistantTab === 'work' ? (
+            <JobWorkAgent key={`agent-work-${context.currentSite.siteId}`} siteId={context.currentSite.siteId} disabled={context.selecting} taskType="WORK_REGISTER" />
+          ) : (
+            <JobWorkAgent key={`agent-records-${context.currentSite.siteId}`} siteId={context.currentSite.siteId} disabled={context.selecting} taskType="RECORD_QUERY" />
+          )}
+        </section>
         <div className="job-section-heading">
           <div><span className="job-eyebrow">WORK MANAGEMENT</span><h2 id="job-workspace-title">작업 등록·조회</h2><p className="job-help">선택 현장의 개별 작업을 실제 서버에 저장하고 조회할 수 있습니다.</p></div>
         </div>
