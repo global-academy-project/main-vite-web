@@ -253,7 +253,7 @@ function ChecklistWorkspace({ context }) {
   );
 }
 
-export default function DaileyChecklist() {
+export default function DailyChecklist() {
   const context = useWorkSite();
   return <ChecklistWorkspace key={context.currentSite?.siteId ?? 'no-site'} context={context} />;
 }
