@@ -146,16 +146,13 @@ export default function JobWorkspace() {
             <button type="button" className={assistantTab === 'work' ? 'is-active' : ''} onClick={() => setAssistantTab('work')}>작업 등록</button>
             <button type="button" className={assistantTab === 'records' ? 'is-active' : ''} onClick={() => setAssistantTab('records')}>기록 질문</button>
           </nav>
-          {assistantTab === 'work' ? <JobWorkAgent key={`agent-${context.currentSite.siteId}`} siteId={context.currentSite.siteId} disabled={context.selecting} /> : (
-            <section className="job-form" aria-labelledby="record-query-title">
-              <span className="job-eyebrow">RECORD QUERY</span>
-              <h2 id="record-query-title">기록 질문</h2>
-              <p className="job-help">작업 등록 대화와 분리된 기록 조회 영역입니다. 답변·근거 링크·조회 조건·진행 과정은 기록 질의 에이전트 API 연결 후 표시됩니다.</p>
-              {/* API: POST /api/v1/agent/record-query → GET /api/v1/agent/runs/{runId} */}
-              {/* TODO: API NOT CONNECTED: main-ai-model에 RECORD_QUERY 라우트가 없음 */}
-              <p className="dashboard-error" role="status">기록 질문 에이전트 API가 아직 연결되지 않았습니다.</p>
-            </section>
-          )}
+          <div hidden={assistantTab !== 'work'}>
+            <JobWorkAgent key={`agent-${context.currentSite.siteId}`} siteId={context.currentSite.siteId} disabled={context.selecting} />
+          </div>
+          <div hidden={assistantTab !== 'records'}>
+            <JobWorkAgent key={`records-${context.currentSite.siteId}`} siteId={context.currentSite.siteId}
+              disabled={context.selecting} taskType="RECORD_QUERY" />
+          </div>
         </section>
         <div className="job-section-heading">
           <div><span className="job-eyebrow">WORK MANAGEMENT</span><h2 id="job-workspace-title">작업 등록·조회</h2><p className="job-help">위 현황과 별개로, 선택 현장의 개별 작업은 실제 서버에 저장하고 조회할 수 있습니다.</p></div>
