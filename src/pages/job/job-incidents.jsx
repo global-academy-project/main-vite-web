@@ -12,14 +12,13 @@ import { toIncidentFilters } from '../../utils/agentic-rag-tags';
 import { JobSiteSelector } from './job-work-form';
 import '../../style/job/job-incidents.css';
 
-const incidentApiEnabled = import.meta.env.VITE_ENABLE_INCIDENT_API === 'true';
-
 function IncidentWorkspace({ site, reporter, disabled, initialId }) {
   const [resources, setResources] = useState(null);
   const [loading, setLoading] = useState(true);
   const [revision, setRevision] = useState(0);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+  const [writeUncertain, setWriteUncertain] = useState(false);
   const [busy, setBusy] = useState(false);
   const [selected, setSelected] = useState(null);
   const [tags, setTags] = useState([]);
@@ -38,7 +37,7 @@ function IncidentWorkspace({ site, reporter, disabled, initialId }) {
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all([getTagCodes(site.siteId), getSiteZones(site.siteId), getIncidents(site.siteId)])
+    Promise.all([getTagCodes(), getSiteZones(site.siteId), getIncidents(site.siteId)])
       .then(async ([codes, zones, incidents]) => {
         if (!Array.isArray(codes) || !Array.isArray(zones) || !Array.isArray(incidents)) {
           throw new Error('태그·구역·보고 목록 응답 형식이 올바르지 않습니다.');
@@ -69,7 +68,7 @@ function IncidentWorkspace({ site, reporter, disabled, initialId }) {
     }));
   };
   const run = async (action) => {
-    if (pending.current || disabled || loading) return;
+    if (pending.current || disabled || loading || writeUncertain) return;
     pending.current = true;
     setBusy(true);
     setError('');
@@ -77,7 +76,13 @@ function IncidentWorkspace({ site, reporter, disabled, initialId }) {
     try {
       await action();
     } catch (requestError) {
-      if (mounted.current) setError(requestError.message || '요청에 실패했습니다.');
+      if (mounted.current) {
+        setError(requestError.message || '요청에 실패했습니다.');
+        if (requestError.code === 'WRITE_OUTCOME_UNKNOWN') {
+          setWriteUncertain(true);
+          setRevision((value) => value + 1);
+        }
+      }
     } finally {
       pending.current = false;
       if (mounted.current) setBusy(false);
@@ -90,6 +95,7 @@ function IncidentWorkspace({ site, reporter, disabled, initialId }) {
   });
   const create = (event) => {
     event.preventDefault();
+    if (writeUncertain) return;
     void run(async () => {
       if (form.workId && (!/^[1-9]\d*$/.test(form.workId) || !Number.isSafeInteger(Number(form.workId)))) {
         throw new Error('관련 작업 ID는 정확한 양의 정수로 입력하세요.');
@@ -106,7 +112,7 @@ function IncidentWorkspace({ site, reporter, disabled, initialId }) {
     });
   };
   const updateForm = (field, value) => setForm((current) => ({ ...current, [field]: value }));
-  const locked = disabled || busy || loading || !resources;
+  const locked = disabled || busy || loading || !resources || writeUncertain;
 
   return (
     <>
@@ -117,9 +123,17 @@ function IncidentWorkspace({ site, reporter, disabled, initialId }) {
           setLoading(true); setRevision((value) => value + 1);
         }}>목록 다시 조회</button>
       </div>}
+      {writeUncertain && <section className="job-demo-notice" role="alert">
+        <p>저장 결과가 불확실합니다. 최신 보고를 다시 조회해 반영 여부를 확인할 때까지 추가 저장을 중지했습니다.</p>
+        <button type="button" disabled={busy || loading} onClick={() => {
+          if (window.confirm('최신 목록과 보고 상세에서 저장 여부를 확인했습니까? 확인 후 잠금을 해제합니다.')) {
+            setWriteUncertain(false); setError('');
+          }
+        }}>반영 여부 확인 후 잠금 해제</button>
+      </section>}
       {message && <p className="job-review-notice" role="status">{message}</p>}
       <form className="panel job-form" onSubmit={create}>
-        <h2>아차사고 보고</h2>
+        <h2>아차사고·사고 보고</h2>
         <fieldset disabled={locked}>
           <legend>{site.name} · 새 보고</legend>
           <div className="job-fields">
@@ -139,8 +153,7 @@ function IncidentWorkspace({ site, reporter, disabled, initialId }) {
             <label className="job-field-wide">즉시 조치<textarea maxLength={10000} rows={3} value={form.immediateAction}
               onChange={(event) => updateForm('immediateAction', event.target.value)} /></label>
           </div>
-          <label className="incident-auto-option"><input type="checkbox" checked={false} disabled readOnly />저장 후 자동 태깅 요청 (비동기 API 연결 대기)</label>
-          <p className="job-help">자동 태깅은 Spring이 실행을 등록하고 AI 서버에 처리를 요청하는 방식으로 예정되어 있습니다. 202 응답의 runId 처리·실행 상태 조회 API 연결 전에는 요청하지 않습니다. 외부 모델로 보고 내용을 전송하는 기능도 활성화하지 않았습니다.</p>
+          <p className="job-help">자동 태깅은 이번 연결 범위에 포함되지 않습니다. 태그는 저장 후 직접 검토해 주세요.</p>
           <div className="job-form-actions"><button type="submit">보고 저장</button></div>
         </fieldset>
       </form>
@@ -166,7 +179,6 @@ function IncidentWorkspace({ site, reporter, disabled, initialId }) {
           <TagEditor tags={tags} codes={resources?.codes ?? []} disabled={locked}
             onChange={(next) => { setTags(next); setResult(null); }} />
           <div className="job-form-actions">
-            <button type="button" disabled>자동 태깅 요청 (비동기 API 연결 대기)</button>
             <button type="button" disabled={locked} onClick={() => run(async () => {
               if (tags.filter((tag) => tag.axis === 'SEVERITY').length > 1) {
                 throw new Error('중대도(SEVERITY)는 하나만 선택할 수 있습니다.');
@@ -177,7 +189,7 @@ function IncidentWorkspace({ site, reporter, disabled, initialId }) {
             <button type="button" className="job-history-refresh" disabled={locked}
               onClick={() => open(selected.nearMissId)}>최신 보고 다시 조회</button>
           </div>
-          <p className="job-help">자동 태깅은 AI 서버 처리 후 보고 상세를 다시 조회하는 방식으로 연결할 예정입니다. 사용자 태그 검토 중 충돌이 발생하면 최신 보고를 조회한 뒤 다시 검토하세요.</p>
+          <p className="job-help">태그 저장은 전체 교체입니다. 다른 사용자가 먼저 저장해 버전 충돌이 나면 최신 보고를 조회한 뒤 다시 검토하세요.</p>
           <label className="incident-cas-input">관련 사고 검색어
             <input maxLength={500} value={query} disabled={locked} onChange={(event) => { setQuery(event.target.value); setResult(null); }} />
           </label>
@@ -193,7 +205,7 @@ function IncidentWorkspace({ site, reporter, disabled, initialId }) {
       )}
       <RelatedEvidenceList result={result} codes={resources?.codes ?? []} onOpen={open} />
       {busy && <p role="status">보고·태그 요청을 처리하는 중입니다...</p>}
-      <p className="job-help">작업 경고 연결은 같은 현장·구역에서 현장 설정 near_miss_warn_days(기본 30일) 이내의 보고를 대상으로 하는 계약입니다. 기간은 서버에서 적용하며, 모든 과거 보고를 연결하는 기능이 아닙니다. 경고 확인 및 조치 내용은 1~300자로 입력해야 합니다. 현재 경고 API는 연결 대기 상태입니다.</p>
+      <p className="job-help">경고는 같은 현장·구역의 작업에 서버가 자동으로 생성합니다. 기간은 현장 설정을 따르며, 긴급 경고는 확인 시 조치 내용을 입력해야 합니다.</p>
       <WorkIncidentWarnings siteId={site.siteId} disabled={disabled || loading} />
     </>
   );
@@ -204,12 +216,9 @@ export default function JobIncidents() {
   const [params] = useSearchParams();
   return (
     <JobPageLayout title="위험·근접 사고" user={context.account?.user} contentClassName="job-management">
-      <JobPageHeading title="위험·근접 사고" description="보고 저장 → 자동 태깅 → 사용자 검토 → 관련 사고 검색 → 작업 경고 확인" />
+      <JobPageHeading title="위험·근접 사고" description="보고 저장 → 태그 검토 → 관련 사고 검색 → 작업 경고 확인" />
       <JobSiteSelector context={context} />
-      <p className="job-demo-notice" role="status">{incidentApiEnabled
-        ? '호환 서버용 아차사고 API 연결을 명시적으로 활성화했습니다. 서버가 해당 계약을 구현했는지 확인하세요. 자동 태깅은 여전히 비활성화되어 있습니다.'
-        : '현재 main-server에는 아차사고·태그·구역·검색·경고 API가 없습니다. 존재하지 않는 경로로 요청하지 않도록 보고·검색·경고 기능을 비활성화했습니다. 작업 등록·작업허가는 각 화면에서 사용할 수 있습니다.'}</p>
-      {incidentApiEnabled && context.currentSite && <IncidentWorkspace key={context.currentSite.siteId} site={context.currentSite}
+      {context.currentSite && <IncidentWorkspace key={context.currentSite.siteId} site={context.currentSite}
         reporter={context.account?.user} disabled={context.selecting} initialId={params.get('incidentId')} />}
     </JobPageLayout>
   );
