@@ -1,7 +1,7 @@
 import { api } from './client.js';
 import { jobId, jobWrite } from './jobs.js';
 
-const tbmStatuses = ['DRAFT', 'DONE', 'PENDING', 'APPROVED'];
+const tbmStatuses = ['DRAFT', 'DONE', 'APPROVED'];
 
 function requireTbm(tbm, siteId) {
   if (!tbm || !Number.isSafeInteger(tbm.tbmId) || tbm.tbmId < 1
@@ -9,6 +9,12 @@ function requireTbm(tbm, siteId) {
     || !Number.isInteger(tbm.lockVersion) || !Array.isArray(tbm.attendees)
     || !Array.isArray(tbm.works) || typeof tbm.tbmDate !== 'string') {
     throw new Error('TBM 응답 형식이 올바르지 않습니다.');
+  }
+  if (!['teamId', 'zoneId', 'approvalId', 'approvalStatus'].every((field) => Object.hasOwn(tbm, field))
+    || !['teamId', 'zoneId', 'approvalId'].every((field) => tbm[field] === null
+      || (Number.isSafeInteger(tbm[field]) && tbm[field] > 0))
+    || (tbm.approvalStatus !== null && !['PENDING', 'APPROVED', 'REJECTED', 'CANCELED'].includes(tbm.approvalStatus))) {
+    throw new Error('TBM 팀·구역·결재 응답이 올바르지 않습니다. 최신 서버 배포 여부를 확인하세요.');
   }
   if (siteId != null && tbm.siteId !== jobId(siteId)) {
     throw new Error('선택한 현장의 TBM이 아닙니다.');
