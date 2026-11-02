@@ -1,5 +1,14 @@
 import { api, ApiError } from './client.js';
 
+export async function reloadJobConflict(error, load) {
+  if (error.code !== 'CONFLICT_MODIFIED') return null;
+  try {
+    return await load();
+  } catch (reloadError) {
+    throw new Error(`${error.message} 최신 기록 재조회도 실패했습니다: ${reloadError.message}`, { cause: reloadError });
+  }
+}
+
 export async function jobWrite(request) {
   try {
     return await request();
