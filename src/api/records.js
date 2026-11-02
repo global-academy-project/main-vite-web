@@ -1,7 +1,12 @@
 import { api } from './client';
 
 export function getRecordDetail(recordType, recordId) {
-  return api(`/api/v1/records/${recordType}/${recordId}`);
+  const paths = {
+    PERMIT: 'permits', RISK: 'risk-assessments', TBM: 'tbm', WORK: 'works', APPROVAL: 'approvals',
+  };
+  const resource = paths[String(recordType || '').toUpperCase()];
+  if (!resource || !recordId) throw new Error('기록 종류 또는 기록 ID가 올바르지 않습니다.');
+  return api(`/api/v1/${resource}/${recordId}`);
 }
 
 // API: POST /api/v1/agent/record-query
