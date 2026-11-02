@@ -1,12 +1,45 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { completeTbmBody, localDate, riskAssessmentBody, riskLevelNotice, tbmHeldAt, tbmContentBody } from './job-forms.js';
+import {
+  completeTbmBody, jobRecordPath, localDate, riskAssessmentBody, riskLevelNotice, siteWorkerBody, tbmHeldAt, tbmContentBody,
+} from './job-forms.js';
 
 const item = {
   workStep: ' 용접 ', hazard: ' 불티 ', controls: ' 소화기 ', accidentType: 'FIRE',
   frequency: '4', severity: '3', riskLevel: 'MEDIUM', residualFrequency: '', residualSeverity: '',
 };
 const form = { siteId: 1, workId: '31', assessDate: '2026-11-02', items: [item] };
+
+test('agent record links match existing document routes without inventing unsupported screens', () => {
+  const expected = {
+    WORK: '/job/workspace?workId=31', PERMIT: '/job/permits?permitId=31',
+    RISK: '/job/risk-assessment?riskId=31', TBM: '/job/tbm?tbmId=31', APPROVAL: '/approvals/31',
+  };
+  for (const [type, path] of Object.entries(expected)) assert.equal(jobRecordPath(type, 31), path);
+  for (const type of ['INSPECTION', 'DAILY_LOG', 'NEAR_MISS', 'CORRECTIVE_ACTION', undefined]) {
+    assert.equal(jobRecordPath(type, 31), null);
+  }
+  for (const id of [0, -1, '31', 1.5, NaN, Number.MAX_SAFE_INTEGER + 1]) {
+    assert.equal(jobRecordPath('WORK', id), null);
+  }
+});
+
+test('worker form matches nullable server fields, full update version and input constraints', () => {
+  const worker = { name: ' 작업자 ', phone: '', jobType: null, employmentType: 'DIRECT', teamId: '', assignedFrom: '' };
+  assert.deepEqual(siteWorkerBody(worker), {
+    name: '작업자', phone: null, jobType: null, employmentType: 'DIRECT', teamId: null, assignedFrom: null,
+  });
+  assert.deepEqual(siteWorkerBody({
+    ...worker, workerId: 5, lockVersion: 3, teamId: '4', phone: '010-1234-5678', jobType: ' 배관공 ',
+  }), {
+    name: '작업자', phone: '010-1234-5678', jobType: '배관공', employmentType: 'DIRECT', teamId: 4, lockVersion: 3,
+  });
+  assert.equal(siteWorkerBody({ ...worker, name: 'x'.repeat(50), jobType: 'x'.repeat(50) }).name.length, 50);
+  for (const invalid of [
+    { name: ' ' }, { name: 'x'.repeat(51) }, { jobType: 'x'.repeat(51) },
+    { phone: '123456789' }, { phone: '010-ABCD-5678' }, { phone: '0'.repeat(12) }, { teamId: '../4' },
+  ]) assert.throws(() => siteWorkerBody({ ...worker, ...invalid }));
+});
 
 test('risk creation requires IDs, and updates omit formData to preserve agent evidence', () => {
   const created = riskAssessmentBody(form);
