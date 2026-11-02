@@ -19,7 +19,7 @@ import ProtectedRoute from "./components/protected-route";
 import JobSearch from "./pages/job/job-search";
 import JobDashboard from "./pages/job/job-dashboard";
 import JobWorkspace from "./pages/job/job-workspace";
-import DaileyChecklist from "./pages/job/job-dailey-checklist";
+import DailyChecklist from "./pages/job/job-daily-checklist";
 import JobDocumentHistory from "./pages/job/job-document-history";
 import JobIncidents from "./pages/job/job-incidents";
 import JobPermits from "./pages/job/job-permits";
@@ -104,7 +104,7 @@ function App() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route
           path="/job/dailey-checklist"
-          element={<ProtectedRoute><DaileyChecklist /></ProtectedRoute>}
+          element={<ProtectedRoute><DailyChecklist /></ProtectedRoute>}
         />
         <Route path="/job/document-history" element={<ProtectedRoute><JobDocumentHistory /></ProtectedRoute>} />
         <Route path="/job/incidents" element={<ProtectedRoute><JobIncidents /></ProtectedRoute>} />
