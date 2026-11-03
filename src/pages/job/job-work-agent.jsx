@@ -78,20 +78,27 @@ function RecordQueryResult({ result }) {
   </section>;
 }
 
-export default function JobWorkAgent({ siteId, disabled, taskType = 'WORK_REGISTER' }) {
+
+export default function JobWorkAgent({
+  siteId,
+  disabled,
+  taskType = 'WORK_REGISTER',
+  persistedState = null,
+  onPersistedStateChange = null,
+}) {
   const records = taskType === 'RECORD_QUERY';
   const statusLabels = { ...statuses, DONE: records ? '답변 완료' : statuses.DONE };
   const title = records ? 'AI 기록 질문' : 'AI 작업 등록 대화';
   const titleId = records ? 'job-record-agent-title' : 'job-agent-title';
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = useState(() => persistedState?.message ?? '');
   const [permitId, setPermitId] = useState('');
-  const [lookupId, setLookupId] = useState('');
-  const [execution, setExecution] = useState(null);
-  const [run, setRun] = useState(null);
-  const [messages, setMessages] = useState([]);
-  const [polling, setPolling] = useState(false);
+  const [lookupId, setLookupId] = useState(() => persistedState?.lookupId ?? '');
+  const [execution, setExecution] = useState(() => persistedState?.execution ?? null);
+  const [run, setRun] = useState(() => persistedState?.run ?? null);
+  const [messages, setMessages] = useState(() => persistedState?.messages ?? []);
+  const [polling, setPolling] = useState(() => persistedState?.polling ?? false);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState(() => persistedState?.error ?? '');
   const [creationUncertain, setCreationUncertain] = useState(false);
   const pending = useRef(false);
   const mounted = useRef(false);
@@ -99,6 +106,11 @@ export default function JobWorkAgent({ siteId, disabled, taskType = 'WORK_REGIST
     mounted.current = true;
     return () => { mounted.current = false; };
   }, []);
+
+  useEffect(() => {
+    if (!records || !onPersistedStateChange) return;
+    onPersistedStateChange({ message, execution, run, messages, polling, lookupId, error });
+  }, [records, onPersistedStateChange, message, execution, run, messages, polling, lookupId, error]);
 
   useEffect(() => {
     if (!execution || !polling || disabled) return;
