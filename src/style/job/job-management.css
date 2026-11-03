@@ -33,9 +33,8 @@
 .job-review-notice { padding: 12px; border-radius: 8px; background: #eef5ff; color: #145fd7; font-size: 13px; line-height: 1.7; }
 .job-example { margin-top: 20px; }
 .job-demo-notice a { text-decoration: underline; font-weight: 700; }
-.job-history-refresh, .job-history-pagination button { padding: 8px 12px; border: 1px solid #cbd6e5; border-radius: 8px; background: #eef5ff; color: #145fd7; font-size: 12px; }
-.job-history-pagination { display: flex; justify-content: center; align-items: center; gap: 16px; margin-top: 20px; font-size: 13px; }
-.dark-mode .job-history-refresh, .dark-mode .job-history-pagination button { border-color: #475569; background: #243b63; color: #93c5fd; }
+.job-history-refresh { padding: 8px 12px; border: 1px solid #cbd6e5; border-radius: 8px; background: #eef5ff; color: #145fd7; font-size: 12px; }
+.dark-mode .job-history-refresh { border-color: #475569; background: #243b63; color: #93c5fd; }
 .job-example h3 { font-size: 15px; }
 .job-example > p, .job-file-summary p { color: #59657a; font-size: 13px; overflow-wrap: anywhere; }
 .dark-mode .job-management .job-demo-notice { border-color: #70572e; background: #352e21; color: #f6d58e; }

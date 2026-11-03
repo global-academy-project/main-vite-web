@@ -10,17 +10,12 @@ import ForgotPassword from "./pages/users/forgot-password";
 import ResetPassword from "./pages/users/reset-password";
 import VerifyEmail from "./pages/users/verify-email";
 import VerifyEmailChange from "./pages/users/verify-email-change";
-// Feature Component 모듈
-import DocumentDetail from "./pages/features/document-detail";
-import Feature from "./pages/features/feature";
-import Upload from "./pages/features/upload";
 import ProtectedRoute from "./components/protected-route";
 // Job Component 모듈
 import JobSearch from "./pages/job/job-search";
 import JobDashboard from "./pages/job/job-dashboard";
 import JobWorkspace from "./pages/job/job-workspace";
 import DailyChecklist from "./pages/job/job-daily-checklist";
-import JobDocumentHistory from "./pages/job/job-document-history";
 import JobIncidents from "./pages/job/job-incidents";
 import JobPermits from "./pages/job/job-permits";
 import JobRiskAssessment from "./pages/job/job-risk-assessment";
@@ -66,22 +61,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-        <Route
-          path="/feature"
-          element={<ProtectedRoute><Feature /></ProtectedRoute>}
-        />
-        <Route
-          path="/upload"
-          element={<ProtectedRoute><Upload /></ProtectedRoute>}
-        />
-        <Route
-          path="/documents/:documentId"
-          element={<ProtectedRoute><DocumentDetail /></ProtectedRoute>}
-        />
-        <Route
-          path="/documents/:documentId/runs/:runId"
-          element={<ProtectedRoute><DocumentDetail /></ProtectedRoute>}
-        />
         {/* Job List, Details 라우팅 */}
         <Route
           path="/job/list"
@@ -105,7 +84,6 @@ function App() {
           path="/job/dailey-checklist"
           element={<ProtectedRoute><DailyChecklist /></ProtectedRoute>}
         />
-        <Route path="/job/document-history" element={<ProtectedRoute><JobDocumentHistory /></ProtectedRoute>} />
         <Route path="/job/incidents" element={<ProtectedRoute><JobIncidents /></ProtectedRoute>} />
         <Route path="/job/permits" element={<ProtectedRoute><JobPermits /></ProtectedRoute>} />
         <Route path="/job/risk-assessment" element={<ProtectedRoute><JobRiskAssessment /></ProtectedRoute>} />
@@ -121,7 +99,7 @@ export default App;
 
 /* 생성한 파일
 - App.jsx: React Router를 사용하여 애플리케이션의 라우팅을 설정하는 컴포넌트
-- EntryRedirect: 사용자가 로그인 상태인지 확인하고, 로그인 상태에 따라 /feature 또는 /signin으로 리디렉션하는 컴포넌트 
+- EntryRedirect: 사용자가 로그인 상태인지 확인하고, 로그인 상태에 따라 /dashboard 또는 /signin으로 리디렉션하는 컴포넌트
 - App: 애플리케이션의 주요 라우팅을 정의하는 컴포넌트
 - 다른 파일들과의 관계
 - pages: 각 페이지 컴포넌트들을 import하여 라우팅에 사용
