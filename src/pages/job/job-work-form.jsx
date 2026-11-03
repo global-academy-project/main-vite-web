@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { siteRoles, useWorkSite } from '../../api/workers';
 import JobPageLayout, { JobPageHeading } from '../../components/job-page-layout';
 
-export function JobSiteSelector({ context }) {
+export function JobSiteSelector({ context, onBeforeSelect }) {
   const { account, currentSite, loading, selecting, error, selectSite, reload } = context;
   return (
     <section className="panel job-example job-site-selector" aria-label="작업 현장 선택">
@@ -12,7 +12,7 @@ export function JobSiteSelector({ context }) {
         account?.sites.length ? (
           <div className="job-site-controls">
             <label>현장
-              <select value={currentSite?.siteId ?? ''} disabled={selecting} onChange={(event) => selectSite(event.target.value)}>
+              <select value={currentSite?.siteId ?? ''} disabled={selecting} onChange={(event) => { onBeforeSelect?.(event.target.value); selectSite(event.target.value); }}>
                 <option value="" disabled>현장을 선택해 주세요</option>
                 {account.sites.map((site) => <option key={site.siteId} value={site.siteId}>{site.name}</option>)}
               </select>
