@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useWorkSite, workTypes } from '../../api/workers';
 import { createWork, getWork, requireWork, validatePeriod } from '../../api/jobs';
@@ -9,7 +9,18 @@ import JobReferenceSelectors from '../../components/job-reference-selectors';
 import WorkIncidentWarnings from '../../components/work-incident-warnings';
 
 const workZoneEnabled = import.meta.env.VITE_ENABLE_WORK_ZONE_API !== 'false';
+// 작업 등록·조회 페이지는 현장 선택과 작업 ID 조회를 통해 서버의 개별 작업을 직접 조회하고 저장할 수 있는 기능을 제공합니다.
 
+const createRecordQueryState = () => ({
+  message: '',
+  execution: null,
+  run: null,
+  messages: [],
+  polling: false,
+  lookupId: '',
+  error: '',
+});
+// 기록 질문 대화는 현장에 종속되므로 현장 변경 시 이전 대화를 폐기한다.
 function WorkWorkspace({ site, disabled, initialWorkId }) {
   const [work, setWork] = useState(null);
   const [lookupId, setLookupId] = useState(initialWorkId ?? '');
@@ -151,8 +162,19 @@ function WorkWorkspace({ site, disabled, initialWorkId }) {
 export default function JobWorkspace() {
   const context = useWorkSite();
   const [assistantTab, setAssistantTab] = useState('work');
+  const [recordQueryState, setRecordQueryState] = useState(createRecordQueryState);
   const [params] = useSearchParams();
   const initialWorkId = params.get('workId');
+
+  const updateRecordQueryState = useCallback((patch) => {
+    setRecordQueryState((previous) => ({ ...previous, ...patch }));
+  }, []);
+
+  useEffect(() => {
+    // 기록질문 대화는 현장에 종속되므로 현장 변경 시 이전 대화를 폐기한다.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setRecordQueryState(createRecordQueryState());
+  }, [context.currentSite?.siteId]);
 
   return (
     <JobPageLayout title="작업 등록·조회" user={context.account?.user} contentClassName="job-management">
@@ -167,7 +189,8 @@ export default function JobWorkspace() {
           {assistantTab === 'work' ? (
             <JobWorkAgent key={`agent-work-${context.currentSite.siteId}`} siteId={context.currentSite.siteId} disabled={context.selecting} taskType="WORK_REGISTER" />
           ) : (
-            <JobWorkAgent key={`agent-records-${context.currentSite.siteId}`} siteId={context.currentSite.siteId} disabled={context.selecting} taskType="RECORD_QUERY" />
+            <JobWorkAgent key={`agent-records-${context.currentSite.siteId}`} siteId={context.currentSite.siteId} disabled={context.selecting} taskType="RECORD_QUERY"
+              persistedState={recordQueryState} onPersistedStateChange={updateRecordQueryState} />
           )}
         </section>
         <div className="job-section-heading">
