@@ -74,6 +74,13 @@ function RecordQueryResult({ result }) {
         <p>조회 건수: {query.total ?? '미제공'}{query.truncated && ' · 일부 결과만 반환됨'}</p>
       </section>)}
     </details>}
+    {result.evidence?.length > 0 && <details open><summary>답변 근거 기록</summary><ul>
+      {result.evidence.map((item, index) => {
+        const path = jobRecordPath(item.type, item.id);
+        const label = item.label || `${item.type} #${item.id}`;
+        return <li key={`${item.type}-${item.id}-${index}`}>{path ? <Link to={path}>{label}</Link> : label}</li>;
+      })}
+    </ul></details>}
     <p className="job-help">근거 링크는 서버가 현장 소속과 존재 여부를 확인한 기록만 표시합니다. 업무 기록은 변경하지 않습니다.</p>
   </section>;
 }
@@ -233,11 +240,15 @@ export default function JobWorkAgent({
           <p>{item.content}</p></article>)}
       </section>}
       {run?.result && (records ? <RecordQueryResult result={run.result} /> : <AgentResult result={run.result} />)}
-      {run?.steps.length > 0 && <details><summary>실행 단계</summary><ol>
-        {run.steps.map((item) => <li key={item.seq}>{item.type} {item.toolName} · {item.status}{item.latencyMs != null && <> · {item.latencyMs}ms</>}</li>)}
+      {(run?.steps?.length > 0 || run?.result?.steps?.length > 0) && <details><summary>실행 단계</summary><ol>
+        {(run.steps?.length ? run.steps : run.result.steps).map((item) => <li key={item.seq}>
+          {item.kind || item.type} · {item.name || item.toolName || ''} · {item.status}
+          {item.elapsedMs != null && <> · {item.elapsedMs}ms</>}
+          {item.latencyMs != null && item.elapsedMs == null && <> · {item.latencyMs}ms</>}
+        </li>)}
       </ol></details>}
-      {run?.citations.length > 0 && <details><summary>서버에 저장된 근거</summary><ul>
-        {run.citations.map((item, index) => {
+      {(run?.citations?.length > 0 || run?.result?.citations?.length > 0) && <details><summary>서버에 저장된 근거</summary><ul>
+        {(run.citations?.length ? run.citations : run.result.citations).map((item, index) => {
           const match = item.sourceType === 'RECORD' ? /^(WORK|PERMIT|RISK|TBM|APPROVAL):(\d+)$/.exec(item.locator ?? '') : null;
           const path = match ? jobRecordPath(match[1], Number(match[2])) : null;
           return <li key={index}><strong>{item.title || item.locator}</strong>
