@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { logout } from '../api/auth';
-import { sendAgentChat } from '../api/agent-chat';
+import { sendAndWait } from '../api/agent-chat';
 import { clearToken } from '../api/client';
 import { getCachedCurrentUser } from '../api/workers';
 import DashboardHeader from '../components/dashboard-header';
@@ -24,7 +24,7 @@ function Dashboard() {
   const [userError, setUserError] = useState('');
   const [question, setQuestion] = useState('');
   const [messages, setMessages] = useState([]);
-  const [chatContext, setChatContext] = useState({ pendingText: null, inProgress: null, slots: null });
+  const [conversationId, setConversationId] = useState(null);
   const [chatError, setChatError] = useState('');
   const [sending, setSending] = useState(false);
 
@@ -63,15 +63,10 @@ function Dashboard() {
     setChatError('');
     setSending(true);
     try {
-      const response = await sendAgentChat({ message, ...chatContext });
-      setMessages((current) => [...current, { role: 'assistant', text: agentReply(response) }]);
-      if (response.askKind === 'SCENARIO') {
-        setChatContext({ pendingText: response.pendingText, inProgress: null, slots: null });
-      } else if (response.askKind === 'SLOT') {
-        setChatContext({ pendingText: null, inProgress: response.inProgress, slots: response.result?.slots ?? null });
-      } else {
-        setChatContext({ pendingText: null, inProgress: null, slots: null });
-      }
+      const { conversationId: nextId, run } = await sendAndWait({ message, conversationId });
+      console.debug('agent run', run); // 응답 필드 이름 확인용. 확인 뒤 지워도 된다.
+      setConversationId(nextId);
+      setMessages((current) => [...current, { role: 'assistant', text: agentReply(run) }]);
     } catch (requestError) {
       setChatError(requestError.message || 'AI 답변을 받지 못했습니다.');
     } finally {
@@ -151,20 +146,33 @@ function Dashboard() {
   );
 }
 
-function agentReply(response) {
-  if (response?.askMessage) return response.askMessage;
-  if (response?.redirect) return `이 질문은 ${response.redirect} 전용 화면에서 처리할 수 있습니다.`;
-  const guidance = response?.result?.guidance;
+// 실행 결과에서 AI 응답(WorkRegisterResult)을 꺼낸다. 필드 이름은 확인 전이라 여러 후보를 본다.
+function extractResult(run) {
+  const raw = run?.result ?? run?.output ?? run?.outputJson ?? run?.response ?? run;
+  if (typeof raw === 'string') {
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return null;
+    }
+  }
+  return raw;
+}
+
+function agentReply(run) {
+  if (run?.status === 'FAILED') return 'AI 처리에 실패했습니다. 잠시 후 다시 시도해 주세요.';
+  const result = extractResult(run);
+  const askText = result?.ask?.message ?? result?.ask?.question ?? run?.askMessage;
+  if (askText) return askText;
+  const guidance = result?.guidance;
   if (Array.isArray(guidance) && guidance.length) {
     return guidance.map((item) => `${item.title}: ${item.why}`).join('\n');
   }
-  const result = response?.result;
   if (result?.runStatus === 'DONE') {
     const workTypes = result.classification?.workTypes?.join(', ');
     const approval = result.approvalGate?.canRequest ? '승인 요청 요건을 충족했습니다.' : result.approvalGate?.reasons?.join(' ');
     return [`질문을 분석했습니다${workTypes ? ` (작업 유형: ${workTypes})` : ''}.`, approval].filter(Boolean).join('\n');
   }
-  if (response?.handled === false) return response.label ? `${response.label} 질문은 현재 전용 처리 화면에서 지원합니다.` : '현재 이 질문을 처리할 수 없습니다.';
   return '질문 처리가 완료됐지만 표시할 답변이 없습니다.';
 }
 
