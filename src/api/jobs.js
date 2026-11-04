@@ -75,6 +75,60 @@ export const measurementFields = {
   HEIGHT: [],
 };
 
+// 허가 유형별 양식 확인 항목 (서버 규칙 R__rules_seed.sql 의 form.* 대상과 같은 키)
+// checks: 예/아니오 항목 (true = 조치 확인, false = 미조치, 키 없음 = 미확인)
+// choices: 여러 방법 중 하나를 고르는 항목 (값 = 서버 허용값)
+export const permitFormFields = {
+  HOT: {
+    watcherLabel: '화재감시자',
+    checks: [
+      { code: 'extinguisher_ready', label: '소화기 비치' },
+      { code: 'spark_prevention', label: '불티 비산 방지' },
+      { code: 'flammable_vapor_removed', label: '인화성 증기 제거' },
+    ],
+    choices: [],
+  },
+  CONFINED: {
+    watcherLabel: '감시인 (밀폐공간 외부 배치)',
+    checks: [
+      { code: 'ventilation_done', label: '작업 전 환기 (적정공기 유지)' },
+      { code: 'rescue_equipment_ready', label: '대피·구출 기구 비치 (공기호흡기 또는 송기마스크, 사다리, 섬유로프)' },
+    ],
+    choices: [],
+  },
+  HEIGHT: {
+    watcherLabel: '감시자',
+    checks: [
+      { code: 'helmet_worn', label: '안전모 착용' },
+      { code: 'harness_worn', label: '안전대 착용 (안전대 걸이 설비 확인)' },
+    ],
+    choices: [
+      {
+        code: 'fall_protection', label: '추락 방지 조치',
+        help: '작업발판을 먼저 설치하고, 곤란하면 추락방호망, 그것도 곤란하면 안전대 착용 순서로 고릅니다.',
+        options: [
+          { value: 'WORK_PLATFORM', label: '작업발판 설치' },
+          { value: 'SAFETY_NET', label: '추락방호망 설치' },
+          { value: 'SAFETY_HARNESS', label: '안전대 착용' },
+        ],
+      },
+    ],
+  },
+};
+
+export function permitFormFieldsOf(type) {
+  if (!Object.hasOwn(permitFormFields, type)) throw new Error('허가 유형이 올바르지 않습니다.');
+  return permitFormFields[type];
+}
+
+// 고르는 항목 값 바꾸기. 빈 값('')이면 키를 빼서 "미선택"(서버 판정 MISSING)으로 둔다
+export function setPermitChoice(form, code, value) {
+  const next = { ...form };
+  if (value === '' || value == null) delete next[code];
+  else next[code] = value;
+  return next;
+}
+
 export function measurementItems(type, values) {
   if (!Object.hasOwn(measurementFields, type)) throw new Error('허가 유형이 올바르지 않습니다.');
   const items = [];
