@@ -1,4 +1,4 @@
-import { api } from './client';
+import { api } from './client.js';
 
 export function getRecordDetail(recordType, recordId) {
   const paths = {
@@ -32,14 +32,35 @@ export function getRecordQueryRun(runId) {
   return api(`/api/v1/agent/runs/${runId}`);
 }
 
-export function getDailySafetyLogs(siteId) {
-  return api(`/api/v1/sites/${siteId}/daily-safety-logs`);
+export function getDailySafetyLogs(siteId, { from, to } = {}) {
+  if (!siteId) throw new Error('현장을 선택하세요.');
+  const params = new URLSearchParams();
+  if (from) params.set('from', from);
+  if (to) params.set('to', to);
+  const query = params.size ? `?${params}` : '';
+  return api(`/api/v1/sites/${siteId}/daily-safety-logs${query}`);
 }
 
 export function createDailySafetyLogDraft(siteId, request) {
+  if (!siteId || !request?.date) throw new Error('현장과 일지 날짜를 입력하세요.');
   return api(`/api/v1/sites/${siteId}/daily-safety-logs/draft`, { method: 'POST', body: request });
 }
 
-export function submitDailySafetyLog(logId) {
-  return api(`/api/v1/daily-safety-logs/${logId}/submit`, { method: 'POST' });
+export function getDailySafetyLog(logId) {
+  if (!logId) throw new Error('안전일지 ID가 없습니다.');
+  return api(`/api/v1/daily-safety-logs/${logId}`);
+}
+
+export function updateDailySafetyLog(logId, { lockVersion, summary }) {
+  if (!logId || !Number.isSafeInteger(lockVersion) || !summary?.trim()) {
+    throw new Error('안전일지 버전과 요약을 확인하세요.');
+  }
+  return api(`/api/v1/daily-safety-logs/${logId}`, {
+    method: 'PUT', body: { lockVersion, summary: summary.trim() },
+  });
+}
+
+export function submitDailySafetyLog(logId, lockVersion) {
+  if (!logId || !Number.isSafeInteger(lockVersion)) throw new Error('안전일지 버전을 확인하세요.');
+  return api(`/api/v1/daily-safety-logs/${logId}/submit`, { method: 'POST', body: { lockVersion } });
 }
