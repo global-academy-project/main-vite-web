@@ -2,17 +2,17 @@ import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useWorkSite } from '../../api/workers';
 import {
-  checkPermit, createPermit, getPermit, getWork, measurementFields, measurementItems,
-  requireWork, saveMeasurements, submitPermit, updatePermit, validatePeriod,
+  checkPermit, createPermit, getPermit, getWork, measurementFields, measurementItems, permitFormFieldsOf,
+  requireWork, saveMeasurements, setPermitChoice, submitPermit, updatePermit, validatePeriod,
 } from '../../api/jobs';
 import JobPageLayout, { JobPageHeading } from '../../components/job-page-layout';
 import { JobSiteSelector } from './job-work-form';
 import WorkIncidentWarnings from '../../components/work-incident-warnings';
 
-const hotChecks = {
-  extinguisher_ready: '소화기 비치',
-  spark_prevention: '불티 비산 방지',
-  flammable_vapor_removed: '인화성 증기 제거',
+const permitRuleSummary = {
+  HOT: '화기는 가연성가스 측정값, 화재감시자, 안전 확인 3항목(소화기·불티 비산 방지·인화성 증기 제거)을 판정합니다.',
+  CONFINED: '밀폐공간은 측정값 5종(산소·탄산가스·일산화탄소·황화수소·가연성가스), 감시인, 환기, 대피·구출 기구 비치를 판정합니다. 암모니아·염소는 기록만 하고 판정하지 않습니다.',
+  HEIGHT: '고소는 측정값 없이 추락 방지 조치(하나 선택), 안전모·안전대 착용을 판정합니다. 감시자는 판정 대상이 아닙니다.',
 };
 const emptyForm = { validFrom: '', validTo: '', watcherName: '', supervisorName: '', form: {} };
 // TODO: BACKEND CONTRACT REQUIRED: POST /api/v1/permits/{permitId}/signatures
@@ -76,10 +76,15 @@ function PermitWorkspace({ siteId, disabled, initialWorkId, initialPermitId }) {
   const [creationUncertain, setCreationUncertain] = useState(false);
   const mounted = useRef(false);
   const pending = useRef(false);
+  const notices = useRef(null);
   useEffect(() => {
     mounted.current = true;
     return () => { mounted.current = false; };
   }, []);
+  // 결과·오류 문구는 화면 위쪽에 나온다. 아래 버튼을 누른 뒤에도 보이도록 그 자리로 스크롤한다
+  useEffect(() => {
+    if (error || message) notices.current?.scrollIntoView?.({ behavior: 'smooth', block: 'nearest' });
+  }, [error, message]);
 
   const apply = (saved) => {
     setPermit(saved);
@@ -154,6 +159,7 @@ function PermitWorkspace({ siteId, disabled, initialWorkId, initialPermitId }) {
     setEvaluation(null);
     setMessage('');
   };
+  const formFields = permitFormFieldsOf(type);
   const editable = !permit || ['DRAFT', 'CHECKING', 'BLOCKED'].includes(permit.status);
   const locked = busy || disabled;
   const measurementDirty = Object.values(values).some((value) => String(value).trim());
@@ -170,9 +176,11 @@ function PermitWorkspace({ siteId, disabled, initialWorkId, initialPermitId }) {
         <li aria-current={permit?.lastEvaluation && permit.status !== 'PENDING' ? 'step' : undefined}><span>3</span>규칙 판정</li>
         <li aria-current={permit?.status === 'PENDING' ? 'step' : undefined}><span>4</span>승인 요청</li>
       </ol>
-      {error && <p className="dashboard-error" role="alert">{error}</p>}
-      {conflict && <p className="job-demo-notice" role="status">최신 버전 확인이 필요합니다. 허가서 ID로 다시 조회한 뒤 수정·판정·승인 요청하세요.</p>}
-      {message && <p className="job-review-notice" role="status">{message}</p>}
+      <div ref={notices}>
+        {error && <p className="dashboard-error" role="alert">{error}</p>}
+        {conflict && <p className="job-demo-notice" role="status">최신 버전 확인이 필요합니다. 허가서 ID로 다시 조회한 뒤 수정·판정·승인 요청하세요.</p>}
+        {message && <p className="job-review-notice" role="status">{message}</p>}
+      </div>
       {creationUncertain && <section className="job-demo-notice" role="alert">
         <p>허가서 생성 여부가 불확실하여 재등록을 중지했습니다. 허가서 ID로 조회하거나 관리자에게 저장 여부를 확인하세요. 기존 허가서가 있으면 새로 만들지 말고 조회하세요.</p>
         <button type="button" disabled={busy || disabled} onClick={() => {
@@ -205,11 +213,22 @@ function PermitWorkspace({ siteId, disabled, initialWorkId, initialPermitId }) {
             }}>{Object.entries({ HOT: '화기', CONFINED: '밀폐공간', HEIGHT: '고소' }).map(([code, label]) => <option key={code} value={code}>{label}</option>)}</select></label>
             <label>유효 시작<input type="datetime-local" step="any" required value={form.validFrom} onChange={(event) => update('validFrom', event.target.value)} /></label>
             <label>유효 종료<input type="datetime-local" step="any" required value={form.validTo} onChange={(event) => update('validTo', event.target.value)} /></label>
-            <div><label>감시자<input maxLength={50} value={form.watcherName} onChange={(event) => update('watcherName', event.target.value)} /></label>
+            <div><label>{formFields.watcherLabel}<input maxLength={50} value={form.watcherName} onChange={(event) => update('watcherName', event.target.value)} /></label>
               {visibleChecks && <FieldRuleChecks checks={visibleChecks} target="form.watcher_name" />}
             </div>
             <label>작업책임자<input maxLength={50} value={form.supervisorName} onChange={(event) => update('supervisorName', event.target.value)} /></label>
-            {type === 'HOT' && Object.entries(hotChecks).map(([code, label]) => (
+            {formFields.choices.map(({ code, label, help, options }) => (
+              <div key={code}>
+                <label>{label}<select value={form.form[code] ?? ''} aria-describedby={`${code}-help`}
+                  onChange={(event) => update('form', setPermitChoice(form.form, code, event.target.value))}>
+                  <option value="">선택 안 함 (미확인)</option>
+                  {options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                </select></label>
+                <p className="job-help" id={`${code}-help`}>{help}</p>
+                {visibleChecks && <FieldRuleChecks checks={visibleChecks} target={`form.${code}`} />}
+              </div>
+            ))}
+            {formFields.checks.map(({ code, label }) => (
               <div key={code}>
                 <label className="job-safety-check"><input type="checkbox" checked={form.form[code] === true}
                   aria-describedby={`${code}-state`} onChange={(event) => {
@@ -231,8 +250,8 @@ function PermitWorkspace({ siteId, disabled, initialWorkId, initialPermitId }) {
           <div className="job-form-actions"><span>내용 변경 후에는 다시 판정해야 합니다.</span><button type="submit">{permit ? '내용 변경 저장 (판정 무효화)' : '허가서 저장'}</button></div>
         </fieldset>
         <p className="job-help">감시자 이름은 작업자 배치가 아닙니다. 기존 양식의 추가 필드는 수정 저장 시 보존합니다. 구역·작업자 배치 API는 미지원입니다.</p>
-        {type === 'HOT' && <p className="job-help">체크하면 조치 확인(true), 체크를 해제하거나 미조치로 기록하면 false입니다. 미확인으로 초기화한 항목은 키를 보내지 않습니다. 미확인은 MISSING, 미조치는 FAIL로 차단됩니다.</p>}
-        <p className="job-help">화기는 측정값·화재감시자·안전 확인 3항목을 판정합니다. 현재 등록된 판정 규칙이 없는 유형은 고소입니다.</p>
+        <p className="job-help">체크하면 조치 확인(true), 체크를 해제하거나 미조치로 기록하면 false입니다. 미확인으로 초기화한 항목은 키를 보내지 않습니다. 미확인은 MISSING, 미조치는 FAIL로 차단됩니다.</p>
+        <p className="job-help">{permitRuleSummary[type]}</p>
       </form>
       {permit && <>
         <WorkIncidentWarnings key={`work-warnings-${permit.workId}`} siteId={siteId}
