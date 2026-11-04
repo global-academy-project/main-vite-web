@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { logout } from '../api/auth';
 import { clearToken } from '../api/client';
 import DashboardHeader from './dashboard-header';
@@ -59,10 +59,6 @@ export default function JobPageLayout({
           title={title}
         />
         <main className={`dashboard-content job-page-content ${contentClassName}`.trim()}>
-          <div className="job-home-bar">
-            <Link to="/dashboard"><span aria-hidden="true">←</span> 대시보드 · AI 질문 홈</Link>
-            <span>현장 업무 관리</span>
-          </div>
           {children}
         </main>
       </div>
