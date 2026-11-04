@@ -230,3 +230,29 @@ test('work and permit API HTTP contracts, state transitions and failures', async
   responseBody = { permitId: 11 };
   await assert.rejects(getPermit(11, 1), (error) => error.code === 'INVALID_RESPONSE');
 });
+
+test('permit form fields match server rule targets per permit type', async () => {
+  const { permitFormFields, permitFormFieldsOf } = await import('./jobs.js');
+  // R__rules_seed.sql 의 form.* 대상 (watcher_name 은 감시자 칸)
+  const serverTargets = {
+    HOT: ['extinguisher_ready', 'spark_prevention', 'flammable_vapor_removed'],
+    CONFINED: ['ventilation_done', 'rescue_equipment_ready'],
+    HEIGHT: ['fall_protection', 'helmet_worn', 'harness_worn'],
+  };
+  for (const [type, targets] of Object.entries(serverTargets)) {
+    const fields = permitFormFields[type];
+    assert.deepEqual([...fields.checks, ...fields.choices].map((item) => item.code).sort(), [...targets].sort());
+  }
+  assert.deepEqual(permitFormFields.HEIGHT.choices[0].options.map((item) => item.value),
+    ['WORK_PLATFORM', 'SAFETY_NET', 'SAFETY_HARNESS']);
+  assert.throws(() => permitFormFieldsOf('GENERAL'), /허가 유형/);
+});
+
+test('permit choice keeps other keys and removes the key when cleared', async () => {
+  const { setPermitChoice } = await import('./jobs.js');
+  const form = { helmet_worn: true, _source: { text: '원문' } };
+  const chosen = setPermitChoice(form, 'fall_protection', 'SAFETY_NET');
+  assert.deepEqual(chosen, { helmet_worn: true, _source: { text: '원문' }, fall_protection: 'SAFETY_NET' });
+  assert.equal(form.fall_protection, undefined);
+  assert.deepEqual(setPermitChoice(chosen, 'fall_protection', ''), form);
+});
