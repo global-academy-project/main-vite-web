@@ -359,13 +359,13 @@ function PermitWorkspace({ siteId, disabled, initialWorkId, initialPermitId }) {
           {permit && dirty && <span className="job-help">저장하면 최근 판정이 무효가 되어 다시 판정해야 합니다.</span>}
           {editable
             ? <button type="submit" disabled={locked || conflict || creationUncertain}>{!permit ? '저장하고 다음' : dirty ? '변경 저장하고 다음' : '다음'}</button>
-            : <button type="button" disabled={locked} onClick={() => goTo(hasMeasurements ? 2 : 4)}>다음</button>}
+            : <button type="button" disabled={locked} onClick={() => goTo(hasMeasurements ? 2 : 3)}>다음</button>}
         </div>
       </form>}
 
       {step === 2 && permit && <section className="panel job-form">
-        <div className="job-section-heading"><div><span className="job-eyebrow">STEP 2 · PRE-WORK MEASUREMENTS</span><h2>작업 전 측정값</h2><p className="job-help">실제로 측정한 항목만 입력하세요. 빈 칸은 보내지 않습니다.</p></div><span className="job-status-badge job-status-muted">저장된 측정 {permit.measurements.length}건</span></div>
-        <fieldset disabled={locked || !editable || conflict}>
+        <div className="job-section-heading"><div><span className="job-eyebrow">STEP 2 · PRE-WORK MEASUREMENTS</span><h2>작업 전 측정값</h2><p className="job-help">{editable ? '실제로 측정한 항목만 입력하세요. 빈 칸은 보내지 않습니다.' : '승인 요청 후라 측정값을 추가할 수 없습니다. 저장된 측정 이력만 보여 줍니다.'}</p></div><span className="job-status-badge job-status-muted">저장된 측정 {permit.measurements.length}건</span></div>
+        {editable && <fieldset disabled={locked || conflict}>
           <div className="job-fields">
             {measurementFields[type].map(({ code, label }) => <div key={code}>
               <label>{label}<input type="number" min="0" max={['O2', 'CO2', 'LEL'].includes(code) ? 100 : undefined} step="any" value={values[code] ?? ''}
@@ -373,7 +373,7 @@ function PermitWorkspace({ siteId, disabled, initialWorkId, initialPermitId }) {
               {visibleChecks && <FieldRuleChecks checks={visibleChecks} target={`measurement.${code}`} />}
             </div>)}
           </div>
-        </fieldset>
+        </fieldset>}
         <p className="job-help">단위와 PRE_WORK 단계는 서버가 정하고, 측정 시각은 서버 현재 시각입니다. 다시 측정해 저장하면 재측정으로 쌓이고 최근 값으로 판정합니다.</p>
         {permit.measurements.length > 0 && <div className="table-scroll"><table className="job-measurements-table"><caption className="sr-only">저장된 작업 전 측정 이력</caption><thead><tr><th>항목</th><th>측정값</th><th>측정 일시</th><th>구분</th></tr></thead><tbody>{permit.measurements.map((item) => <tr key={item.id}><td>{item.item}</td><td><strong>{item.value}</strong> {item.unit}</td><td>{item.measuredAt}</td><td>{item.remeasure ? '재측정' : '최초 측정'}</td></tr>)}</tbody></table></div>}
         {notices}
@@ -384,7 +384,7 @@ function PermitWorkspace({ siteId, disabled, initialWorkId, initialPermitId }) {
           }}>이전</button>
           {editable
             ? <button type="button" disabled={locked || conflict} onClick={saveMeasurementsAndNext}>{measurementDirty ? '저장하고 다음' : '다음'}</button>
-            : <button type="button" disabled={locked} onClick={() => goTo(4)}>다음</button>}
+            : <button type="button" disabled={locked} onClick={() => goTo(3)}>다음</button>}
         </div>
       </section>}
 
