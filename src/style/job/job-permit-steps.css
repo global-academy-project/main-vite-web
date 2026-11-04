@@ -1,0 +1,29 @@
+/* 허가 화면 단계형 진행 (job-permits.jsx). 단계 표시는 기존 .job-workflow 모양을 그대로 쓰고 버튼만 덧붙인다 */
+.job-permit-steps li { padding: 0; }
+.job-permit-steps li > button {
+  display: flex; align-items: center; gap: 10px; width: 100%; min-width: 0; min-height: 0; padding: 14px;
+  border: 0; border-radius: inherit; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer;
+}
+.job-permit-steps li > button > span {
+  display: grid; width: 26px; height: 26px; flex-shrink: 0; place-items: center; border-radius: 50%;
+  background: var(--job-subtle); font-size: 11px; font-weight: 700;
+}
+.job-permit-steps li[aria-current="step"] > button > span { background: #246be2; color: #fff; }
+.job-permit-steps li > button:disabled { cursor: default; opacity: 1; }
+.job-permit-steps li:not(.is-reachable):not([aria-current="step"]) { opacity: 0.55; }
+.job-permit-steps li.is-reachable:not([aria-current="step"]) > button:hover { color: var(--job-accent); }
+.job-permit-summary { margin: -8px 0 14px; }
+
+.job-step-nav { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 10px; margin-top: 18px; }
+.job-step-nav > .job-help { margin: 0 auto 0 0; }
+
+.job-step-fixes { margin-top: 16px; }
+.job-step-fixes h3 { margin: 0 0 8px; font-size: 14px; }
+.job-step-fixes ul { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.job-step-fixes li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 10px 12px; border: 1px solid var(--job-border); border-radius: 10px; font-size: 13px; }
+
+.job-permit-review { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin: 16px 0 0; }
+.job-permit-review > div { padding: 10px 12px; border: 1px solid var(--job-border); border-radius: 10px; }
+.job-permit-review dt { color: var(--job-muted); font-size: 12px; }
+.job-permit-review dd { margin: 4px 0 0; font-weight: 600; }

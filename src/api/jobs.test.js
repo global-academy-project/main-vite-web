@@ -256,3 +256,18 @@ test('permit choice keeps other keys and removes the key when cleared', async ()
   assert.equal(form.fall_protection, undefined);
   assert.deepEqual(setPermitChoice(chosen, 'fall_protection', ''), form);
 });
+
+test('permit step follows saved state and blocked targets point to the step to fix', async () => {
+  const { stepForPermit, stepForTarget } = await import('./jobs.js');
+  const base = { status: 'DRAFT', permitType: 'CONFINED', measurements: [], lastEvaluation: null, canSubmit: false };
+  assert.equal(stepForPermit(base), 2);
+  assert.equal(stepForPermit({ ...base, permitType: 'HEIGHT' }), 3);
+  assert.equal(stepForPermit({ ...base, measurements: [{ id: 1 }] }), 3);
+  assert.equal(stepForPermit({ ...base, measurements: [{ id: 1 }], lastEvaluation: { result: 'BLOCK' } }), 3);
+  assert.equal(stepForPermit({ ...base, status: 'BLOCKED', measurements: [{ id: 1 }], lastEvaluation: { result: 'BLOCK' } }), 3);
+  assert.equal(stepForPermit({ ...base, measurements: [{ id: 1 }], lastEvaluation: { result: 'PASS' }, canSubmit: true }), 4);
+  assert.equal(stepForPermit({ ...base, status: 'PENDING' }), 4);
+  assert.equal(stepForTarget('measurement.O2'), 2);
+  assert.equal(stepForTarget('form.ventilation_done'), 1);
+  assert.equal(stepForTarget(undefined), 1);
+});
