@@ -121,6 +121,21 @@ export function permitFormFieldsOf(type) {
   return permitFormFields[type];
 }
 
+export const editablePermitStatuses = ['DRAFT', 'CHECKING', 'BLOCKED'];
+
+export const hasMeasurementItems = (type) => measurementFields[type].length > 0;
+
+// 허가 화면 단계 (1 작성, 2 측정값, 3 규칙 판정, 4 승인 요청): 조회한 허가서가 이어서 할 단계
+export function stepForPermit(permit) {
+  if (!editablePermitStatuses.includes(permit.status)) return 4;
+  if (permit.lastEvaluation) return permit.canSubmit ? 4 : 3;
+  if (hasMeasurementItems(permit.permitType) && permit.measurements.length === 0) return 2;
+  return 3;
+}
+
+// 판정에서 막힌 항목을 고칠 단계 (measurement.* → 2단계, 그 밖의 form.* → 1단계)
+export const stepForTarget = (target) => (String(target ?? '').startsWith('measurement.') ? 2 : 1);
+
 // 고르는 항목 값 바꾸기. 빈 값('')이면 키를 빼서 "미선택"(서버 판정 MISSING)으로 둔다
 export function setPermitChoice(form, code, value) {
   const next = { ...form };
