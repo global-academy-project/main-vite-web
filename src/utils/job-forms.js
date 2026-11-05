@@ -11,6 +11,7 @@ export function jobRecordPath(type, id) {
     case 'PERMIT': return `/job/permits?permitId=${id}`;
     case 'RISK': return `/job/risk-assessment?riskId=${id}`;
     case 'TBM': return `/job/tbm?tbmId=${id}`;
+    case 'INSPECTION': return `/job/dailey-checklist?inspectionId=${id}`;
     case 'APPROVAL': return `/approvals/${id}`;
     default: return null;
   }
