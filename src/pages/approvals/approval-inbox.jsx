@@ -92,7 +92,7 @@ function Inbox({ site }) {
         })}
       </ul>
 
-      <section className="work-filters" aria-label="결재 거르기">
+      <section className="work-filters" aria-label="결재 검색 조건">
         <div className="work-filters__row">
           <div className="work-types" role="group" aria-label="문서 종류">
             {TARGET_FILTERS.map((type) => (
@@ -120,7 +120,7 @@ function Inbox({ site }) {
           <label className="work-search"><span className="sr-only">문서명·요청자 검색</span>
             <input type="search" value={filters.keyword} placeholder="문서명·요청자 검색" onChange={(event) => update('keyword', event.target.value)} />
           </label>
-          {filtered && <button type="button" className="ui-btn ui-btn--ghost" onClick={() => setFilters(EMPTY_FILTERS)}>거르기 지우기</button>}
+          {filtered && <button type="button" className="ui-btn ui-btn--ghost" onClick={() => setFilters(EMPTY_FILTERS)}>조건 초기화</button>}
         </div>
       </section>
 
@@ -129,7 +129,7 @@ function Inbox({ site }) {
         {section.status === 'error' && <StatusView kind={section.code === 403 ? 'forbidden' : 'error'} message={section.error} onRetry={inbox.reload} />}
         {section.status === 'ready' && !rows.length && (
           <StatusView kind="empty" title={section.rows.length ? '조건에 맞는 결재가 없습니다' : TABS.find((item) => item.key === tab).empty}
-            action={section.rows.length ? { label: '거르기 지우기', onClick: () => setFilters(EMPTY_FILTERS) } : undefined} />
+            action={section.rows.length ? { label: '조건 초기화', onClick: () => setFilters(EMPTY_FILTERS) } : undefined} />
         )}
         {section.status === 'ready' && rows.length > 0 && (
           <table className="home-table appr-table-list">

@@ -42,7 +42,7 @@ export function effectiveRole(accountRole, siteRole) {
   return ALL.includes(siteRole) && siteRole !== 'ADMIN' ? siteRole : null;
 }
 
-/** 역할로 걸러 낸 메뉴. 관리(accountOnly)는 계정 ADMIN 만 */
+/** 역할에 맞는 메뉴만 남긴다. 관리(accountOnly)는 계정 ADMIN 만 */
 export function navFor(accountRole, siteRole) {
   const role = effectiveRole(accountRole, siteRole);
   return NAV.filter((item) => {

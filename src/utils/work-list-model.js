@@ -1,7 +1,7 @@
-// 작업 목록 화면의 거르기·건수 (서버 목록 응답 WorkListItem 만 쓴다)
+// 작업 목록 화면의 검색 조건·건수 (서버 목록 응답 WorkListItem 만 쓴다)
 import { nextAction } from './home-model.js';
 
-/** 거르기: 종류(여러 개), 상태, 제목 검색, "지금 할 일 있음"만 */
+/** 검색 조건: 종류(여러 개), 상태, 제목 검색, "지금 할 일 있음"만 */
 export function filterWorks(works = [], { types = [], status = '', query = '', actionOnly = false } = {}) {
   const q = query.trim().toLowerCase();
   return works.filter((work) => {

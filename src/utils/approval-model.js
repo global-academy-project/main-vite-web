@@ -15,7 +15,7 @@ export function shortDateTime(value) {
   return `${value.slice(5, 7)}/${value.slice(8, 10)} ${value.slice(11, 16)}`;
 }
 
-/** 거르기: 문서 종류(여러 개), 상태, 기간(요청일), 검색어(제목·요청자) */
+/** 검색 조건: 문서 종류(여러 개), 상태, 기간(요청일), 검색어(제목·요청자) */
 export function filterApprovals(rows = [], { types = [], status = '', from = '', to = '', keyword = '' } = {}) {
   const q = keyword.trim().toLowerCase();
   return rows.filter((row) => {
@@ -62,3 +62,7 @@ export function missingItemOptions(preview) {
 
 /** 다음 결재 단계 (결과 화면용) */
 export const nextStep = (detail) => detail?.steps?.find((step) => step.status === 'PENDING') ?? null;
+
+// 서버 측정 단위 코드(MeasurementItem.unit) → 화면 표시
+const UNIT_LABELS = Object.freeze({ PCT: '%', PPM: 'ppm', PCT_LEL: '%LEL' });
+export const unitLabel = (unit) => UNIT_LABELS[unit] ?? unit ?? '';
