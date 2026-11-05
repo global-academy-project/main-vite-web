@@ -1,9 +1,11 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { logout } from '../api/auth';
 import { clearToken } from '../api/client';
 import DashboardHeader from './dashboard-header';
 import PageHeader from './ui/page-header.jsx';
+import Icon from './ui/icon.jsx';
+import { backToHubPath } from '../utils/work-list-model.js';
 import Sidebar from './sidebar';
 import { useTheme } from '../contexts/theme-context';
 import '../style/job/job-dashboard.css';
@@ -16,9 +18,13 @@ import '../style/job/job-pages.css';
  * context(useWorkSite 결과)를 넘기면 오른쪽 맨 앞에 현장 선택이 붙는다. eyebrow 는 더 이상 표시하지 않는다.
  */
 export function JobPageHeading({ title, description, actions, children, className = '', context, onBeforeSelect, badges }) {
+  // 작업 허브에서 왔으면(주소에 back=작업번호) 버튼 줄 맨 앞에 "작업 허브로"
+  const [params] = useSearchParams();
+  const back = backToHubPath(params.get('back'));
+  const allActions = back ? <><Link className="ui-btn ui-btn--ghost page-head__back" to={back}><Icon name="chevronLeft" size={16} />작업 허브로</Link>{actions}</> : actions;
   return (
     <div className={`job-page-heading ${className}`.trim()}>
-      <PageHeader title={title} description={description} actions={actions} context={context} onBeforeSelect={onBeforeSelect} badges={badges}>{children}</PageHeader>
+      <PageHeader title={title} description={description} actions={allActions} context={context} onBeforeSelect={onBeforeSelect} badges={badges}>{children}</PageHeader>
     </div>
   );
 }

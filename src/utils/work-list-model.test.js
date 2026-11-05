@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { filterWorks, hubDocs, parseDocParam, sortWorks, workStats } from './work-list-model.js';
+import { backToHubPath, filterWorks, hubDocs, parseDocParam, sortWorks, withBack, workStats } from './work-list-model.js';
 
 const w = (patch) => ({ workId: 1, workDate: '2026-11-05', title: '탱크 청소', workType: 'CONFINED', status: 'DRAFT', permits: [], riskAssessment: null, tbm: null, ...patch });
 const list = [
@@ -38,4 +38,14 @@ test('주소의 문서 값: 올바른 것만 받는다', () => {
   assert.equal(parseDocParam('PERMIT-0'), null);
   assert.equal(parseDocParam('X-3'), null);
   assert.equal(parseDocParam(null), null);
+});
+
+test('작업 허브에서 다른 화면으로 갈 때 back=작업번호 를 붙이고, 돌아갈 경로는 숫자만 받는다', () => {
+  assert.equal(withBack('/job/risk-assessment?workId=7', 7), '/job/risk-assessment?workId=7&back=7');
+  assert.equal(withBack('/job/permits', 7), '/job/permits?back=7');
+  assert.equal(withBack(null, 7), null);
+  assert.equal(withBack('/job/tbm?date=2026-11-05', undefined), '/job/tbm?date=2026-11-05');
+  assert.equal(backToHubPath('7'), '/job/workspace?workId=7');
+  assert.equal(backToHubPath('//evil.example'), null);
+  assert.equal(backToHubPath(null), null);
 });

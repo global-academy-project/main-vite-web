@@ -71,8 +71,14 @@ export function WorkStatusPanel({ dashboard, works, onRetry }) {
 }
 
 /** 오늘 작업: PC 표 / 모바일 카드. 방금 AI 가 만든 작업은 강조 */
+const MOBILE_ROWS = 5;
+const APPROVAL_ROWS = 20;
+
 export function TodayWorksPanel({ section, zones, highlightId, onRetry }) {
   const rows = section.data ?? [];
+  // 모바일은 카드가 길어지지 않게 5건만 먼저 보이고 "더 보기"로 펼친다 (PC·태블릿은 카드 안에서 스크롤)
+  const [expanded, setExpanded] = useState(false);
+  const hidden = expanded ? 0 : Math.max(0, rows.length - MOBILE_ROWS);
   const zoneName = (id) => zones.data?.find((zone) => zone.zoneId === id)?.name ?? (id ? `구역 #${id}` : '구역 미지정');
   return (
     <Panel
@@ -81,7 +87,7 @@ export function TodayWorksPanel({ section, zones, highlightId, onRetry }) {
       empty={{ title: '오늘 등록된 작업이 없습니다', message: '아래 AI 도우미에게 말하거나 단계별로 등록하세요.', action: { label: '작업 등록', onClick: () => document.getElementById('home-composer')?.focus() } }}
       className="home-works"
     >
-      <table className="home-table">
+      <table className={`home-table${hidden ? ' home-table--collapsed' : ''}`}>
         <thead>
           <tr><th scope="col">작업</th><th scope="col">종류</th><th scope="col">진행</th><th scope="col">지금 할 일</th></tr>
         </thead>
@@ -114,6 +120,7 @@ export function TodayWorksPanel({ section, zones, highlightId, onRetry }) {
           })}
         </tbody>
       </table>
+      {hidden > 0 && <button type="button" className="home-more" onClick={() => setExpanded(true)}>나머지 {hidden}건 더 보기<Icon name="chevronDown" size={16} /></button>}
     </Panel>
   );
 }
@@ -128,17 +135,17 @@ export function ApprovalsPanel({ pending, requested, approver, onRetry }) {
   const rows = section.data ?? [];
   const waiting = (list) => (list.status === 'ready' ? list.data.filter((row) => row.status === 'PENDING').length : null);
   return (
-    <Panel id="approvals" title="승인함" count={waiting(pending)} link="/approvals" linkLabel="승인함 열기" className="home-approvals">
-      <div className="home-seg" role="tablist" aria-label="승인함 목록">
+    <Panel id="approvals" title="승인함" count={waiting(pending)} link="/approvals" linkLabel="승인함 열기" className="home-approvals"
+      toolbar={<div className="home-seg" role="tablist" aria-label="승인함 목록">
         {[['pending', '결재 대기', waiting(pending)], ['requested', '내 요청', waiting(requested)]].map(([key, label, count]) => (
           <button key={key} type="button" role="tab" aria-selected={view === key} className={`home-seg__btn${view === key ? ' is-active' : ''}`} onClick={() => setView(key)}>
             {label}{count != null && <span className="home-seg__count">{count}</span>}
           </button>
         ))}
-      </div>
+      </div>}>
       <SectionBody section={section} onRetry={onRetry} isEmpty={!rows.length} empty={view === 'pending' ? '지금 결재할 문서가 없습니다' : '요청한 문서가 없습니다'}>
         <ul className="home-list">
-          {rows.slice(0, 20).map((row) => (
+          {rows.slice(0, APPROVAL_ROWS).map((row) => (
             <li key={row.approvalId}>
               <Link to={`/approvals?tab=${view}&open=${row.approvalId}`} className="home-list__item">
                 <span className="home-list__main">
@@ -153,6 +160,7 @@ export function ApprovalsPanel({ pending, requested, approver, onRetry }) {
             </li>
           ))}
         </ul>
+        {rows.length > APPROVAL_ROWS && <Link className="home-more" to={`/approvals?tab=${view}`}>최근 {APPROVAL_ROWS}건만 보입니다 · 나머지 {rows.length - APPROVAL_ROWS}건은 승인함에서</Link>}
       </SectionBody>
     </Panel>
   );

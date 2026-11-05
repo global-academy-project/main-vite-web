@@ -9,6 +9,7 @@ import StatusView from '../ui/status-view.jsx';
 import { Badge } from '../home/panel.jsx';
 import { PERMIT_STATUS_LABELS, RISK_LEVEL_LABELS, RISK_STATUS_LABELS, TBM_STATUS_LABELS, timeRange, toneOf, WORK_STATUS_LABELS, WORK_TYPE_LABELS } from '../../utils/home-model.js';
 import { jobRecordPath } from '../../utils/job-forms.js';
+import { withBack } from '../../utils/work-list-model.js';
 
 /*
  * 문서 하나(작업·위험성평가·허가·TBM)를 보여 주고 바로 처리하는 부품.
@@ -16,11 +17,11 @@ import { jobRecordPath } from '../../utils/job-forms.js';
  */
 
 
-export function DocPanel({ doc, entry, siteId, zones, gate, onReload, onDone, showFull = true }) {
+export function DocPanel({ doc, entry, siteId, zones, gate, onReload, onDone, showFull = true, backWorkId }) {
   if (!entry) return <StatusView kind="loading" compact />;
   if (entry.status === 'error') return <StatusView kind="error" compact message={entry.error} onRetry={onReload} />;
   const record = entry.data;
-  const full = jobRecordPath(doc.type, doc.id);
+  const full = withBack(jobRecordPath(doc.type, doc.id), backWorkId);
   const footer = showFull && full && <Link className="ui-btn ui-btn--ghost" to={full}>전체 화면</Link>;
   if (doc.type === 'WORK') return <WorkDraft work={record} zones={zones} footer={footer} />;
   if (doc.type === 'RISK') return <RiskDraft risk={record} siteId={siteId} footer={footer} onDone={onDone} />;
