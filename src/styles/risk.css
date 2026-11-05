@@ -1,0 +1,93 @@
+/* 위험성평가. 값은 tokens.css 변수만 */
+
+.risk-lookup { display: flex; align-items: center; gap: var(--space-2); margin-left: auto; }
+.risk-lookup input, .risk-field input, .risk-field select, .risk-field textarea {
+  width: 100%; min-height: 40px; padding: 0 var(--space-3); border: 1px solid var(--color-border-input); border-radius: var(--radius-sm);
+  background: var(--color-surface); color: var(--color-text); font: inherit; font-size: var(--text-md); box-sizing: border-box;
+}
+.risk-lookup input { width: 160px; }
+.risk-field textarea { min-height: 64px; padding: var(--space-2) var(--space-3); line-height: 1.5; resize: vertical; }
+.risk-field input:focus-visible, .risk-field select:focus-visible, .risk-field textarea:focus-visible, .risk-lookup input:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 0; border-color: var(--color-primary); }
+.risk-field input:disabled, .risk-field select:disabled, .risk-field textarea:disabled { background: var(--color-surface-muted); color: var(--color-text-sub); }
+.risk-field { display: flex; flex-direction: column; gap: 4px; min-width: 0; color: var(--color-text-sub); font-size: var(--text-xs); font-weight: var(--weight-bold); }
+.risk-field--wide { grid-column: 1 / -1; }
+.risk-field--inline { width: 180px; }
+.risk-req { margin-left: 2px; color: var(--color-danger); }
+
+/* 요약: 단계 + 평가일 + 등급 개수 */
+.risk-summary { padding-bottom: var(--space-3); }
+.risk-summary__steps { padding: var(--space-4) var(--space-4) 0; }
+.risk-summary__row { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--space-4); padding: var(--space-4) var(--space-4) 0; }
+.risk-summary__rule { padding: var(--space-3) var(--space-4) 0; }
+.risk-counts { display: flex; gap: var(--space-2); margin: 0 0 0 auto; padding: 0; list-style: none; }
+.risk-counts li { display: flex; flex-direction: column; align-items: center; min-width: 64px; padding: 6px var(--space-2); border-radius: var(--radius-md); background: var(--color-surface-muted); }
+.risk-counts span { color: var(--color-text-muted); font-size: var(--text-xs); }
+.risk-counts strong { color: var(--color-text-strong); font-size: var(--text-lg); font-variant-numeric: tabular-nums; }
+.risk-counts .is-block strong { color: var(--color-danger-text); }
+.risk-counts .is-warn strong { color: var(--color-warning-text); }
+.risk-counts .is-done strong { color: var(--color-success-text); }
+.risk-formdata { margin: var(--space-3) var(--space-4) 0; font-size: var(--text-xs); color: var(--color-text-muted); }
+.risk-formdata summary { width: fit-content; color: var(--color-primary); font-weight: var(--weight-bold); cursor: pointer; }
+.risk-formdata pre { max-height: 220px; margin: var(--space-2) 0 0; padding: var(--space-3); overflow: auto; border-radius: var(--radius-sm); background: var(--color-surface-muted); white-space: pre-wrap; word-break: break-all; }
+
+/* 위험요인 카드 */
+.risk-items { display: flex; flex-direction: column; gap: var(--space-3); }
+.risk-items__fields { display: flex; flex-direction: column; gap: var(--space-3); margin: 0; padding: 0; border: 0; min-width: 0; }
+.risk-item { margin: 0; padding: 0; border: 1px solid var(--color-border); border-left: 4px solid var(--color-border-input); border-radius: var(--radius-lg); background: var(--color-surface); box-shadow: var(--shadow-sm); min-width: 0; }
+.risk-item--block { border-left-color: var(--color-danger); }
+.risk-item--warn { border-left-color: var(--color-warning); }
+.risk-item--done { border-left-color: var(--color-success); }
+.risk-item__head { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--color-border-soft); }
+.risk-item__no { display: grid; flex: 0 0 auto; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--color-neutral-soft); color: var(--color-text-sub); font-size: var(--text-xs); font-weight: var(--weight-bold); }
+.risk-item__title { flex: 1 1 auto; min-width: 0; overflow: hidden; color: var(--color-text-strong); font-size: var(--text-md); font-weight: var(--weight-bold); text-overflow: ellipsis; white-space: nowrap; }
+.risk-item__score { display: flex; flex: 0 0 auto; align-items: center; gap: var(--space-2); color: var(--color-text-muted); font-size: var(--text-xs); }
+.risk-item__score strong { color: var(--color-text-strong); font-size: var(--text-md); font-variant-numeric: tabular-nums; }
+.risk-item__after { padding-left: var(--space-2); border-left: 1px solid var(--color-border); }
+.risk-item button.ui-icon-btn.risk-item__remove { width: 32px; height: 32px; min-height: 32px; }
+.risk-item__grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-3) var(--space-4); padding: var(--space-4); }
+.risk-item__scales { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); }
+.risk-item__scales--after { padding-top: var(--space-3); border-top: 1px dashed var(--color-border); }
+.risk-item__raised { grid-column: 1 / -1; display: flex; align-items: center; gap: 6px; margin: 0; padding: 6px var(--space-3); border-radius: var(--radius-sm); background: var(--color-warning-soft); color: var(--color-warning-text); font-size: var(--text-xs); }
+.risk-item__raised.is-up { background: var(--color-primary-soft); color: var(--color-primary-hover); }
+
+/* 1~5 고르기 */
+.risk-scale { display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto; gap: 4px var(--space-3); align-items: center; }
+.risk-scale__label { color: var(--color-text-sub); font-size: var(--text-xs); font-weight: var(--weight-bold); }
+.risk-scale__hint { grid-column: 2; color: var(--color-text-muted); font-size: var(--text-xs); }
+.risk-scale__options { display: inline-flex; gap: 4px; }
+button.risk-scale__btn { width: 40px; min-height: 36px; padding: 0; border: 1px solid var(--color-border-input); border-radius: var(--radius-sm); background: var(--color-surface); color: var(--color-text-sub); font-size: var(--text-md); font-weight: var(--weight-bold); font-variant-numeric: tabular-nums; cursor: pointer; }
+button.risk-scale__btn:hover:not(:disabled) { border-color: var(--color-primary); background: var(--color-primary-soft); color: var(--color-primary); transform: none; }
+button.risk-scale__btn[aria-pressed="true"] { border-color: var(--color-primary); background: var(--color-primary); color: var(--color-text-on-primary); }
+button.risk-scale__btn:disabled { opacity: 0.55; cursor: not-allowed; }
+.risk-scale__btn:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 1px; }
+
+button.risk-add { display: flex; align-items: center; justify-content: center; gap: var(--space-2); min-height: 52px; border: 1px dashed var(--color-border-accent); border-radius: var(--radius-lg); background: var(--color-surface-accent); color: var(--color-primary); font-size: var(--text-md); font-weight: var(--weight-bold); cursor: pointer; }
+button.risk-add:hover:not(:disabled) { background: var(--color-primary-soft); transform: none; }
+
+/* 아래 고정 버튼 줄 */
+.risk-bar { position: sticky; bottom: 0; z-index: 5; display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--space-2); padding: var(--space-3) var(--space-4); border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface); box-shadow: 0 -4px 16px rgba(16, 42, 67, 0.08); }
+.risk-bar__state { margin-right: auto; color: var(--color-text-muted); font-size: var(--text-sm); }
+.risk-bar__state.is-dirty { color: var(--color-warning-text); font-weight: var(--weight-bold); }
+
+@media (max-width: 1024px) {
+  .risk-item__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .risk-counts { margin-left: 0; }
+}
+@media (max-width: 640px) {
+  .risk-lookup { width: 100%; margin-left: 0; }
+  .risk-lookup label { flex: 1 1 auto; }
+  .risk-lookup input { width: 100%; }
+  .risk-field--inline { width: 100%; }
+  .risk-counts { width: 100%; }
+  .risk-counts li { flex: 1 1 0; min-width: 0; }
+  .risk-item__head { flex-wrap: wrap; }
+  .risk-item__title { flex-basis: calc(100% - 80px); }
+  .risk-item__score { width: 100%; }
+  .risk-item__grid { grid-template-columns: minmax(0, 1fr); }
+  .risk-item__scales { grid-template-columns: minmax(0, 1fr); gap: var(--space-3); }
+  /* 모바일은 화면이 좁아 고정하면 입력칸을 가린다: 내용 끝에 둔다 */
+  .risk-bar { position: static; box-shadow: none; }
+  .risk-bar .ui-btn { flex: 1 1 0; }
+  .risk-bar__state { width: 100%; }
+}
+.risk-field__label { display: inline-flex; align-items: baseline; gap: 2px; }
