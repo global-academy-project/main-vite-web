@@ -1,0 +1,41 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import { filterWorks, hubDocs, parseDocParam, sortWorks, workStats } from './work-list-model.js';
+
+const w = (patch) => ({ workId: 1, workDate: '2026-11-05', title: '탱크 청소', workType: 'CONFINED', status: 'DRAFT', permits: [], riskAssessment: null, tbm: null, ...patch });
+const list = [
+  w({ workId: 1 }),
+  w({ workId: 2, title: '배관 용접', workType: 'HOT', status: 'BLOCKED' }),
+  w({ workId: 3, title: '정비', workType: 'GENERAL', status: 'DONE', riskAssessment: { riskAssessmentId: 9, status: 'APPROVED' }, tbm: { tbmId: 4, status: 'APPROVED' } }),
+];
+
+test('거르기: 종류·상태·검색·할 일 있음', () => {
+  assert.deepEqual(filterWorks(list, { types: ['HOT', 'GENERAL'] }).map((x) => x.workId), [2, 3]);
+  assert.deepEqual(filterWorks(list, { status: 'BLOCKED' }).map((x) => x.workId), [2]);
+  assert.deepEqual(filterWorks(list, { query: '용접' }).map((x) => x.workId), [2]);
+  assert.deepEqual(filterWorks(list, { actionOnly: true }).map((x) => x.workId), [1, 2]);
+});
+
+test('숫자 카드: 허가가 차단돼도 차단으로 센다', () => {
+  const stats = workStats([...list, w({ workId: 4, permits: [{ permitId: 7, status: 'BLOCKED' }] })]);
+  assert.equal(stats.find((s) => s.key === 'ALL').value, 4);
+  assert.equal(stats.find((s) => s.key === 'BLOCKED').value, 2);
+});
+
+test('정렬: 최근 날짜 먼저, 같은 날은 시작 시각순', () => {
+  const sorted = sortWorks([w({ workId: 1, workDate: '2026-11-04' }), w({ workId: 2, startAt: '2026-11-05T14:00' }), w({ workId: 3, startAt: '2026-11-05T09:00' })]);
+  assert.deepEqual(sorted.map((x) => x.workId), [3, 2, 1]);
+});
+
+test('허브 문서: 없는 문서는 작성 링크, 일반 작업은 허가 칸 없음', () => {
+  assert.deepEqual(hubDocs(list[0]).map((d) => d.key), ['RISK-new', 'PERMIT-new', 'TBM-new']);
+  assert.deepEqual(hubDocs(list[2]).map((d) => d.key), ['RISK-9', 'TBM-4']);
+  assert.equal(hubDocs(list[0])[1].createPath, '/job/permits?workId=1');
+});
+
+test('주소의 문서 값: 올바른 것만 받는다', () => {
+  assert.deepEqual(parseDocParam('PERMIT-31'), { type: 'PERMIT', id: 31, key: 'PERMIT-31' });
+  assert.equal(parseDocParam('PERMIT-0'), null);
+  assert.equal(parseDocParam('X-3'), null);
+  assert.equal(parseDocParam(null), null);
+});
