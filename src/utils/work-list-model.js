@@ -45,7 +45,7 @@ export function hubDocs(work) {
   if (work.workType !== 'GENERAL' && !permits.length) docs.push({ key: 'PERMIT-new', type: 'PERMIT', id: null, label: '작업허가', createPath: `/job/permits?workId=${work.workId}` });
   docs.push(work.tbm
     ? { key: `TBM-${work.tbm.tbmId}`, type: 'TBM', id: work.tbm.tbmId, label: 'TBM', status: work.tbm.status }
-    : { key: 'TBM-new', type: 'TBM', id: null, label: 'TBM', createPath: `/job/tbm?date=${encodeURIComponent(work.workDate ?? '')}` });
+    : { key: 'TBM-new', type: 'TBM', id: null, label: 'TBM', createPath: `/job/tbm?date=${encodeURIComponent(work.workDate ?? '')}&workId=${work.workId}` });
   return docs;
 }
 
