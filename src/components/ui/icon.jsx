@@ -21,6 +21,8 @@ const paths = {
   chevronDown: ['M6 9l6 6 6-6'],
   chevronUp: ['M18 15l-6-6-6 6'],
   send: ['M5 12h14', 'M13 6l6 6-6 6'],
+  bell: ['M6 17h12l-1.5-2.5V10a4.5 4.5 0 0 0-9 0v4.5z', 'M10 20.5h4'],
+  chevronLeft: ['M15 6l-6 6 6 6'],
 };
 const circled = new Set(['alert', 'info', 'clock']);
 

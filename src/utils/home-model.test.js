@@ -31,7 +31,7 @@ test('허가 차단이 있으면 단계는 문제, 지금 할 일은 차단 확�
 test('일반 작업은 허가 단계를 해당 없음(완료)으로 본다', () => {
   const general = work({ workType: 'GENERAL', highRisk: false });
   const permit = workStages(general).find((stage) => stage.key === 'permit');
-  assert.deepEqual([permit.state, permit.hint], ['done', '해당 없음']);
+  assert.deepEqual([permit.state, permit.hint], ['skip', '해당 없음']);
 });
 
 test('평가·허가 다 됐는데 TBM 없으면 TBM 작성, 모두 승인 대기면 승인 대기', () => {

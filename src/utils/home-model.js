@@ -59,7 +59,7 @@ const latestPermits = (work) => (work.permits ?? []).filter((permit) => permit.s
 /**
  * 작업 하나의 단계 (작업 → 위험성평가 → 허가 → TBM → 승인 → 종료).
  * 점검표는 작업과 직접 연결된 서버 값이 없어 작업 단계에서 빼고 현장 할 일(점검 미제출)로 보인다.
- * state: done | current | problem | todo
+ * state: done | current | problem | todo | skip(해당 없음)
  */
 export function workStages(work) {
   const risk = work.riskAssessment;
@@ -68,7 +68,8 @@ export function workStages(work) {
   const riskState = !risk ? 'todo' : risk.status === 'APPROVED' ? 'done' : risk.status === 'REJECTED' ? 'problem' : 'current';
   let permitState = 'todo';
   let permitHint = needsPermit ? '작성 전' : '해당 없음';
-  if (!needsPermit && !permits.length) permitState = 'done';
+  // 일반 작업은 허가가 필요 없다: 완료가 아니라 "해당 없음"(skip)으로 따로 보인다
+  if (!needsPermit && !permits.length) permitState = 'skip';
   if (permits.length) {
     if (permits.every((permit) => ['APPROVED', 'CLOSED'].includes(permit.status))) permitState = 'done';
     else if (permits.some((permit) => ['BLOCKED', 'REJECTED', 'SUSPENDED'].includes(permit.status))) permitState = 'problem';

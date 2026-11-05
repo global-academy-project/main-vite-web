@@ -56,3 +56,17 @@ export function parseDocParam(value) {
   const id = Number(match[2]);
   return Number.isSafeInteger(id) && id > 0 ? { type: match[1], id, key: `${match[1]}-${id}` } : null;
 }
+
+/**
+ * 작업 허브에서 다른 화면(위험성평가·허가·TBM)으로 갈 때 back=작업번호 를 붙인다.
+ * 그 화면 머리에 "작업 허브로" 버튼이 생겨 바로 돌아올 수 있다. 경로가 없으면 그대로 둔다.
+ */
+export function withBack(path, workId) {
+  if (!path || !/^\d+$/.test(String(workId ?? ''))) return path;
+  return `${path}${path.includes('?') ? '&' : '?'}back=${workId}`;
+}
+
+/** 주소의 back 값 → 돌아갈 작업 허브 경로 (숫자가 아니면 null) */
+export function backToHubPath(value) {
+  return /^\d{1,12}$/.test(value ?? '') ? `/job/workspace?workId=${value}` : null;
+}

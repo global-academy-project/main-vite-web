@@ -121,6 +121,8 @@ button.work-chip[aria-pressed='true'] { border-color: var(--color-primary); back
 .work-form__fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3) var(--space-4); margin: 0; padding: 0; border: 0; min-width: 0; }
 .work-form__fields label { display: flex; flex-direction: column; gap: var(--space-1); font-size: var(--text-sm); font-weight: var(--weight-medium); color: var(--color-text-sub); }
 .work-form__fields label span[aria-hidden='true'] { color: var(--color-danger); }
+/* 칸 이름과 필수 표시는 한 줄 (필수 표시가 따로 줄을 차지해 칸이 밀리던 문제) */
+.work-form__label { display: inline-flex; align-items: baseline; gap: 2px; }
 .work-form__fields input, .work-form__fields select, .work-form__fields textarea {
   min-height: var(--touch-field);
   padding: 0 var(--space-3);

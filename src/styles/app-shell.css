@@ -31,6 +31,10 @@
   font-weight: var(--weight-bold);
 }
 .dark-mode .app-nav__role { color: var(--color-primary); }
+/* 사용자 이름 + 역할 배지 한 줄 */
+.app-nav__who { display: flex; align-items: center; gap: var(--space-2); max-width: 100%; margin-top: var(--space-1); }
+.app-nav__who .app-nav__role { margin-top: 0; flex: 0 0 auto; }
+.app-nav__user { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--text-sm); font-weight: var(--weight-medium); color: var(--color-text-sub); }
 
 .app-nav__list { display: flex; flex-direction: column; gap: 2px; }
 .app-nav__group { display: flex; flex-direction: column; }
@@ -145,3 +149,13 @@ button.app-nav__close { display: none; }
 .dashboard-main .dashboard-content { max-width: 1400px; padding: var(--space-6) var(--space-8) var(--space-8); }
 @media (max-width: 1024px) { .dashboard-main .dashboard-content { padding: var(--space-5) var(--space-6) var(--space-8); } }
 @media (max-width: 640px) { .dashboard-main .dashboard-content { padding: var(--space-4) var(--space-4) var(--space-6); } }
+
+/* 머리말 버튼(테마·알림·로그아웃): index.css 의 전역 button:hover(짙은 남색 배경)가 덮어써 글자가 안 보이던 문제 */
+.dashboard-header button.theme-toggle:hover:not(:disabled),
+.dashboard-header button.notification:hover:not(:disabled) { border-color: var(--color-border-accent); background: var(--color-primary-soft); color: var(--color-primary); transform: none; }
+.dashboard-header button.logout { border-color: var(--color-border); background: var(--color-surface); color: var(--color-text-sub); }
+.dashboard-header button.logout:hover:not(:disabled) { border-color: var(--color-danger-border); background: var(--color-danger-soft); color: var(--color-danger-text); transform: none; }
+.dark-mode .dashboard-header button.theme-toggle:hover:not(:disabled),
+.dark-mode .dashboard-header button.notification:hover:not(:disabled) { border-color: var(--color-border-accent); background: var(--color-primary-soft); color: var(--color-primary-hover); }
+.dark-mode .dashboard-header button.logout { border-color: #4b5563; background: #1f2937; color: #d1d5db; }
+.dark-mode .dashboard-header button.logout:hover:not(:disabled) { border-color: var(--color-danger-border); background: var(--color-danger-soft); color: var(--color-danger-text); }

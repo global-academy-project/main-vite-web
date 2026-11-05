@@ -20,7 +20,7 @@ import {
   localDate, nextAction, PERMIT_STATUS_LABELS, RISK_STATUS_LABELS, TBM_STATUS_LABELS, timeRange, toneOf, WORK_STATUS_LABELS, WORK_TYPE_LABELS, workStages,
 } from '../../utils/home-model.js';
 import { jobRecordPath } from '../../utils/job-forms.js';
-import { filterWorks, hubDocs, parseDocParam, sortWorks, workStats } from '../../utils/work-list-model.js';
+import { filterWorks, hubDocs, parseDocParam, sortWorks, withBack, workStats } from '../../utils/work-list-model.js';
 import '../../styles/home.css';
 import '../../styles/work.css';
 
@@ -267,7 +267,7 @@ function WorkHub({ site, context, workId, params, setParams }) {
         <div className={`work-next work-next--${next.tone}`}>
           <span className="work-next__text"><span className="work-next__eyebrow">지금 할 일</span><strong>{next.label}</strong></span>
           {nextDoc ? <button type="button" className="ui-btn ui-btn--primary ui-btn--lg" onClick={() => open(nextDoc)}>지금 하기</button>
-            : next.path ? <Link className="ui-btn ui-btn--primary ui-btn--lg" to={next.path}>지금 하기</Link> : null}
+            : next.path ? <Link className="ui-btn ui-btn--primary ui-btn--lg" to={withBack(next.path, work.workId)}>지금 하기</Link> : null}
         </div>
       </section>
 
@@ -285,8 +285,8 @@ function WorkHub({ site, context, workId, params, setParams }) {
                 <div className="work-doc__actions">
                   {doc.id ? <>
                     <button type="button" className="ui-btn ui-btn--secondary" onClick={() => open(doc)}>열기</button>
-                    <Link className="ui-btn ui-btn--ghost" to={jobRecordPath(doc.type, doc.id)}>전체 화면</Link>
-                  </> : <Link className="ui-btn ui-btn--secondary" to={doc.createPath}>작성하기</Link>}
+                    <Link className="ui-btn ui-btn--ghost" to={withBack(jobRecordPath(doc.type, doc.id), work.workId)}>전체 화면</Link>
+                  </> : <Link className="ui-btn ui-btn--secondary" to={withBack(doc.createPath, work.workId)}>작성하기</Link>}
                 </div>
               </li>
             ))}
@@ -300,9 +300,9 @@ function WorkHub({ site, context, workId, params, setParams }) {
       </div>
 
       <Sheet open={Boolean(openDoc)} onClose={close} title={openDoc?.label ?? ''} subtitle={openDoc?.id ? jobRecordPath(openDoc.type, openDoc.id) : ''}
-        actions={openDoc?.id && <Link className="ui-icon-btn" to={jobRecordPath(openDoc.type, openDoc.id)} aria-label="전체 화면으로 열기"><Icon name="external" size={18} /></Link>}>
+        actions={openDoc?.id && <Link className="ui-icon-btn" to={withBack(jobRecordPath(openDoc.type, openDoc.id), work.workId)} aria-label="전체 화면으로 열기"><Icon name="external" size={18} /></Link>}>
         {openDoc && (
-          <DocPanel doc={openDoc} entry={entry?.key === openDoc.key ? entry : null} siteId={site.siteId} zones={hub.zones} showFull
+          <DocPanel doc={openDoc} entry={entry?.key === openDoc.key ? entry : null} siteId={site.siteId} zones={hub.zones} backWorkId={work.workId} showFull
             onReload={reloadDoc} onDone={() => { reloadDoc(); hub.reload(); }} />
         )}
       </Sheet>

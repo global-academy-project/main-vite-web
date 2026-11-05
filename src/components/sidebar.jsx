@@ -23,6 +23,7 @@ export default function Sidebar({ isOpen = false, onClose, onOpen, site = undefi
   const accountRole = work.account?.user?.role ?? null;
   const siteRole = current?.role ?? current?.siteRole ?? null;
   const role = effectiveRole(accountRole, siteRole);
+  const userName = work.account?.user?.name ?? '';
   const items = navFor(accountRole, siteRole);
   const { pathname } = useLocation();
   const breakpoint = useBreakpoint();
@@ -68,7 +69,12 @@ export default function Sidebar({ isOpen = false, onClose, onOpen, site = undefi
           <div className="app-nav__site" title={current?.name ?? ''}>
             <span className="app-nav__site-label app-nav__text">현재 현장</span>
             <span className="app-nav__site-name app-nav__text">{current?.name ?? (work.loading ? '불러오는 중' : '현장 없음')}</span>
-            {role && <span className="app-nav__role">{rail ? ROLE_LABELS[role].slice(0, 2) : ROLE_LABELS[role]}</span>}
+            {(role || userName) && (
+              <span className="app-nav__who">
+                {userName && <span className="app-nav__user app-nav__text">{userName}</span>}
+                {role && <span className="app-nav__role">{rail ? ROLE_LABELS[role].slice(0, 2) : ROLE_LABELS[role]}</span>}
+              </span>
+            )}
           </div>
 
           <nav className="app-nav__list">

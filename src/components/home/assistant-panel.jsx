@@ -116,14 +116,37 @@ function Composer({ conversation, placeholder, siteName }) {
   const [text, setText] = useState('');
   const length = text.trim().length;
   const tooLong = length > 2000;
+    // 입력칸 높이: 위쪽 손잡이를 위로 끌면 커진다 (키보드 ↑↓, 두 번 누르면 원래대로)
+  const [height, setHeight] = useState(null);
+  const areaRef = useRef(null);
+  const clamp = (value) => Math.max(48, Math.min(Math.min(window.innerHeight * 0.5, 360), value));
+  const startDrag = (event) => {
+    const area = areaRef.current;
+    if (!area) return;
+    event.preventDefault();
+    const startY = event.clientY;
+    const startHeight = area.offsetHeight;
+    const move = (moveEvent) => setHeight(clamp(startHeight + (startY - moveEvent.clientY)));
+    const up = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+  };
+  const nudge = (event) => {
+    if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') return;
+    event.preventDefault();
+    setHeight(clamp((areaRef.current?.offsetHeight ?? 48) + (event.key === 'ArrowUp' ? 24 : -24)));
+  };
   const submit = async (event) => {
     event.preventDefault();
-    if (await conversation.send(text)) setText('');
+      if (await conversation.send(text)) { setText(''); setHeight(null); }
   };
   return (
     <form className="home-composer" onSubmit={submit}>
       <label htmlFor="home-composer" className="sr-only">메시지</label>
+      <button type="button" className="home-composer__grip" aria-label="입력칸 높이 조절 (위·아래 화살표, 두 번 누르면 원래대로)"
+        onPointerDown={startDrag} onKeyDown={nudge} onDoubleClick={() => setHeight(null)} />
       <textarea
+        ref={areaRef} style={height ? { height } : undefined}
         id="home-composer" rows={1} value={text} placeholder={placeholder} maxLength={2100} disabled={conversation.locked}
         aria-describedby="home-composer-help" aria-invalid={tooLong || undefined}
         onChange={(event) => setText(event.target.value)}
