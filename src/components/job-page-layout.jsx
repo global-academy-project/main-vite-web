@@ -47,7 +47,7 @@ export default function JobPageLayout({
 
   return (
     <div className="dashboard-shell job-pages">
-      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} onOpen={() => setSidebarOpen(true)} />
       <div className="dashboard-main">
         <DashboardHeader
           userInitial={userInitial}

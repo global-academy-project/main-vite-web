@@ -8,7 +8,7 @@ import Sidebar from './sidebar';
 import { useTheme } from '../contexts/theme-context';
 import '../style/job/job-dashboard.css';
 
-export default function SafetyPageLayout({ title, children }) {
+export default function SafetyPageLayout({ title, children, fixed = false }) {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { darkMode, setDarkMode } = useTheme();
@@ -23,8 +23,8 @@ export default function SafetyPageLayout({ title, children }) {
   };
 
   return (
-    <div className="dashboard-shell">
-      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} site={site.currentSite} />
+    <div className={`dashboard-shell${fixed ? ' dashboard-shell--fixed' : ''}`}>
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} onOpen={() => setSidebarOpen(true)} site={site.currentSite} />
       <div className="dashboard-main">
         <DashboardHeader
           userInitial={Array.from(userName)[0] || '사'}
@@ -35,7 +35,7 @@ export default function SafetyPageLayout({ title, children }) {
           setSidebarOpen={setSidebarOpen}
           title={title}
         />
-        <main className="dashboard-content">
+        <main className={`dashboard-content${fixed ? ' dashboard-content--fixed' : ''}`}>
           {site.error && <p className="dashboard-error" role="alert">{site.error}</p>}
           {children(site)}
         </main>
