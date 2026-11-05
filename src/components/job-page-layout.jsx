@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { logout } from '../api/auth';
 import { clearToken } from '../api/client';
 import DashboardHeader from './dashboard-header';
+import PageHeader from './ui/page-header.jsx';
 import Sidebar from './sidebar';
 import { useTheme } from '../contexts/theme-context';
 import '../style/job/job-dashboard.css';
@@ -10,17 +11,15 @@ import '../style/job/job-search.css';
 import '../style/job/job-management.css';
 import '../style/job/job-pages.css';
 
-export function JobPageHeading({ title, description, eyebrow, actions, children, className = '' }) {
+/**
+ * 예전 화면들이 쓰는 머리. 이제 공통 페이지 머리(PageHeader)를 그대로 그려 모든 화면이 같은 자리·같은 모양이 된다.
+ * context(useWorkSite 결과)를 넘기면 오른쪽 맨 앞에 현장 선택이 붙는다. eyebrow 는 더 이상 표시하지 않는다.
+ */
+export function JobPageHeading({ title, description, actions, children, className = '', context, onBeforeSelect, badges }) {
   return (
-    <header className={`page-heading job-page-heading ${className}`.trim()}>
-      <div>
-        {eyebrow ?? <span className="job-eyebrow">SITE OPERATIONS</span>}
-        <h1>{title}</h1>
-        {description && <p>{description}</p>}
-        {children}
-      </div>
-      {actions && <div className="job-page-heading-actions">{actions}</div>}
-    </header>
+    <div className={`job-page-heading ${className}`.trim()}>
+      <PageHeader title={title} description={description} actions={actions} context={context} onBeforeSelect={onBeforeSelect} badges={badges}>{children}</PageHeader>
+    </div>
   );
 }
 

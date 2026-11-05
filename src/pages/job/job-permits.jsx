@@ -7,7 +7,6 @@ import {
   submitPermit, updatePermit, validatePeriod,
 } from '../../api/jobs';
 import JobPageLayout, { JobPageHeading } from '../../components/job-page-layout';
-import { JobSiteSelector } from './job-work-form';
 import WorkIncidentWarnings from '../../components/work-incident-warnings';
 import '../../style/job/job-permit-steps.css';
 
@@ -455,8 +454,7 @@ export default function JobPermits() {
   const [params] = useSearchParams();
   return (
     <JobPageLayout title="작업허가" user={context.account?.user} contentClassName="job-management">
-      <JobPageHeading title="작업허가" description="허가서 작성 → 측정값 → 규칙 판정 → 승인 요청을 한 단계씩 진행합니다." />
-      <JobSiteSelector context={context} />
+      <JobPageHeading title="작업허가" description="허가서 작성 → 측정값 → 규칙 판정 → 승인 요청을 한 단계씩 진행합니다." context={context} />
       {context.currentSite && <PermitWorkspace key={`${context.currentSite.siteId}:${params}`} siteId={context.currentSite.siteId}
         disabled={context.selecting} initialWorkId={params.get('workId')} initialPermitId={params.get('permitId')} />}
     </JobPageLayout>

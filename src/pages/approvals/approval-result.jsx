@@ -1,84 +1,73 @@
 import { useEffect, useState } from 'react';
-import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { Link, useLocation, useParams } from 'react-router-dom';
 import { getApproval } from '../../api/approvals';
 import SafetyPageLayout from '../../components/safety-page-layout';
-import '../../style/records.css';
+import Icon from '../../components/ui/icon.jsx';
+import PageHeader from '../../components/ui/page-header.jsx';
+import StatusView from '../../components/ui/status-view.jsx';
+import { APPROVER_ROLE_LABELS, nextStep } from '../../utils/approval-model.js';
+import { APPROVAL_TARGET_LABELS } from '../../utils/home-model.js';
+import { jobRecordPath } from '../../utils/job-forms.js';
+import '../../styles/home.css';
+import '../../styles/work.css';
+import '../../styles/approvals.css';
 
 const resultCopy = {
-  APPROVED: {
-    title: '승인 완료',
-    description: '현재 결재 단계가 승인되었습니다.',
-    tone: 'approved',
-  },
-  PENDING: {
-    title: '다음 단계 승인 대기',
-    description: '현재 단계가 승인되었으며 다음 승인자의 처리를 기다리고 있습니다.',
-    tone: 'waiting',
-  },
-  REJECTED: {
-    title: '반려 완료',
-    description: '문서가 반려되었습니다. 반려 사유를 확인한 뒤 다시 작성해 주세요.',
-    tone: 'rejected',
-  },
+  APPROVED: { title: '승인 완료', description: '최종 승인되었습니다. 요청자에게 알림이 갑니다.', tone: 'done', icon: 'check' },
+  PENDING: { title: '다음 단계 승인 대기', description: '이 단계는 승인되었고 다음 승인자의 처리를 기다리고 있습니다.', tone: 'wait', icon: 'check' },
+  REJECTED: { title: '반려 완료', description: '문서가 반려되었습니다. 요청자는 사유를 확인한 뒤 새 판으로 다시 작성합니다.', tone: 'block', icon: 'alert' },
+  CANCELED: { title: '회수됨', description: '요청자가 승인 요청을 회수했습니다.', tone: 'neutral', icon: 'info' },
 };
 
+/** 결재 처리 결과. 이전 화면에서 넘겨받은 결과가 없으면(새로고침·링크) 서버에서 다시 읽는다 */
 function ApprovalResultContent() {
   const { approvalId } = useParams();
   const location = useLocation();
-  const navigate = useNavigate();
-  const [approval, setApproval] = useState(location.state?.approval || null);
+  const passed = location.state?.approval ?? null;
+  const [loaded, setLoaded] = useState(null);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (approval) return undefined;
+    if (passed) return undefined;
     let cancelled = false;
-    getApproval(approvalId).then((data) => {
-      if (!cancelled) setApproval(data);
-    }).catch((requestError) => {
-      if (!cancelled) setError(requestError.message);
-    });
+    getApproval(approvalId)
+      .then((data) => { if (!cancelled) setLoaded(data); })
+      .catch((requestError) => { if (!cancelled) setError(requestError.message); });
     return () => { cancelled = true; };
-  }, [approval, approvalId]);
+  }, [passed, approvalId]);
 
-  if (error) return <p className="dashboard-error" role="alert">{error}</p>;
-  if (!approval) return <p role="status">처리 결과를 불러오는 중입니다...</p>;
+  const approval = passed ?? loaded;
+  if (error) return <StatusView kind="error" message={error} onRetry={() => window.location.reload()} />;
+  if (!approval) return <StatusView kind="loading" title="처리 결과를 불러오는 중입니다" />;
 
-  const decisionType = location.state?.decisionType;
   const summary = approval.summary || approval;
-  const status = decisionType || approval.decisionType || summary.status;
+  const status = location.state?.decisionType || summary.status;
   const copy = resultCopy[status] || resultCopy.PENDING;
-  const currentStep = approval.steps?.find((step) => step.status === 'PENDING');
+  const next = nextStep(approval);
+  const docPath = jobRecordPath(summary.targetType, summary.targetId);
 
   return (
-    <section className={`panel approval-result approval-result-${copy.tone}`}>
-      <div className="approval-result-icon" aria-hidden="true">{copy.tone === 'approved' || copy.tone === 'waiting' ? '✓' : '!'}</div>
-      <p className="approval-result-eyebrow">{summary.targetType} #{summary.targetId}</p>
-      <h1>{copy.title}</h1>
-      <p className="approval-result-description">{copy.description}</p>
-      {approval.title && <p className="approval-result-document">{approval.title}</p>}
-      {currentStep && (
-        <div className="approval-next-step">
-          <span>다음 승인 단계</span>
-          <strong>{currentStep.label}</strong>
-          <small>{currentStep.requiredRole}의 처리를 기다리고 있습니다.</small>
-        </div>
+    <>
+      <PageHeader title="처리 결과" description={`결재 #${approvalId}`} actions={<Link className="ui-btn ui-btn--ghost" to="/approvals">승인함 목록</Link>} />
+    <section className={`home-panel appr-done appr-done--${copy.tone}`} aria-labelledby="appr-done-title">
+      <span className="appr-done__icon" aria-hidden="true"><Icon name={copy.icon} size={28} strokeWidth={2.4} /></span>
+      <p className="appr-done__eyebrow">{APPROVAL_TARGET_LABELS[summary.targetType] ?? summary.targetType} #{summary.targetId}</p>
+      <h1 id="appr-done-title" className="appr-done__title">{copy.title}</h1>
+      <p className="appr-done__desc">{copy.description}</p>
+      {summary.title && <p className="appr-done__doc">{summary.title}</p>}
+      {next && status === 'PENDING' && (
+        <div className="appr-done__box"><span>다음 승인 단계</span><strong>{next.label}</strong><small>{APPROVER_ROLE_LABELS[next.requiredRole] ?? next.requiredRole}의 처리를 기다리고 있습니다.</small></div>
       )}
       {summary.comment && (
-        <div className="approval-result-comment">
-          <span>{status === 'REJECTED' ? '반려 사유' : '처리 의견'}</span>
-          <p>{summary.comment}</p>
-        </div>
+        <div className="appr-done__box"><span>{status === 'REJECTED' ? '반려 사유' : '처리 의견'}</span><p>{summary.comment}</p></div>
       )}
-      <div className="approval-result-actions">
-        {status === 'REJECTED' && (
-          <button type="button" onClick={() => navigate(`/approvals/${approvalId}/revision`, { state: { approval, mode: status } })}>
-            새 revision 작성
-          </button>
-        )}
-        <Link className="secondary-button" to="/approvals">승인함으로 이동</Link>
-        <Link className="secondary-button" to={`/records/${summary.targetType}/${summary.targetId}`}>기록 상세 보기</Link>
+      <div className="appr-done__actions">
+        {status === 'REJECTED' && <Link className="ui-btn ui-btn--primary ui-btn--lg" to={`/approvals/${approvalId}/revision`} state={{ approval }}>새 판으로 다시 작성</Link>}
+        <Link className="ui-btn ui-btn--secondary ui-btn--lg" to="/approvals">승인함으로</Link>
+        {docPath && <Link className="ui-btn ui-btn--ghost ui-btn--lg" to={docPath}>문서 화면 열기</Link>}
       </div>
     </section>
+    </>
   );
 }
 

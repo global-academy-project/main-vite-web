@@ -47,8 +47,7 @@ export default function JobWorkForm({ title, description, children }) {
   const context = useWorkSite();
   return (
     <JobPageLayout title={title} user={context.account?.user} contentClassName="job-management">
-      <JobPageHeading title={title} description={description} />
-      <JobSiteSelector context={context} />
+      <JobPageHeading title={title} description={description} context={context} />
       <p className="job-demo-notice">현재 서버에는 이 업무의 저장·제출 API가 없습니다. 현장 선택만 서버에 저장되며 아래 입력은 화면을 벗어나면 사라집니다. 입력 확인은 승인이나 작업 허가가 아닙니다.</p>
       <WorkFormFields key={context.currentSite?.siteId ?? 'no-site'} context={context} title={title}>{children}</WorkFormFields>
     </JobPageLayout>

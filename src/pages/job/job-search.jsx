@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { siteRoles, useWorkSite } from '../../api/workers';
 import JobPageLayout, { JobPageHeading } from '../../components/job-page-layout';
-import { JobSiteSelector } from './job-work-form';
 import JobReferenceData from './job-reference-data';
 import '../../style/job/job-search.css';
 
@@ -13,8 +12,7 @@ export default function JobSearch() {
   const filteredSites = sites.filter((site) => `${site.name} ${site.siteId}`.toLocaleLowerCase('ko-KR').includes(query));
   return (
     <JobPageLayout title="현장목록" user={context.account?.user}>
-      <JobPageHeading title="현장목록" description="로그인한 계정에 접근 권한이 있는 현장을 조회하고 현재 현장을 선택합니다." />
-      <JobSiteSelector context={context} />
+      <JobPageHeading title="현장목록" description="로그인한 계정에 접근 권한이 있는 현장을 조회하고 현재 현장을 선택합니다." context={context} />
       <section className="panel site-list-panel" aria-label="등록된 현장 목록">
         <div className="site-list-toolbar">
           <h2>등록된 현장 <small>{sites.length}곳</small></h2>

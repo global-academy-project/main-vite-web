@@ -9,7 +9,6 @@ import JobPageLayout, { JobPageHeading } from '../../components/job-page-layout'
 import { RelatedEvidenceList, TagEditor } from '../../components/incident-tags';
 import WorkIncidentWarnings from '../../components/work-incident-warnings';
 import { toIncidentFilters } from '../../utils/agentic-rag-tags';
-import { JobSiteSelector } from './job-work-form';
 import '../../style/job/job-incidents.css';
 
 function IncidentWorkspace({ site, reporter, disabled, initialId }) {
@@ -216,8 +215,7 @@ export default function JobIncidents() {
   const [params] = useSearchParams();
   return (
     <JobPageLayout title="위험·근접 사고" user={context.account?.user} contentClassName="job-management">
-      <JobPageHeading title="위험·근접 사고" description="보고 저장 → 태그 검토 → 관련 사고 검색 → 작업 경고 확인" />
-      <JobSiteSelector context={context} />
+      <JobPageHeading title="위험·근접 사고" description="보고 저장 → 태그 검토 → 관련 사고 검색 → 작업 경고 확인" context={context} />
       {context.currentSite && <IncidentWorkspace key={context.currentSite.siteId} site={context.currentSite}
         reporter={context.account?.user} disabled={context.selecting} initialId={params.get('incidentId')} />}
     </JobPageLayout>
