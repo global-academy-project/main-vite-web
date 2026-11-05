@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAgentConversation } from '../../hooks/use-agent-conversation.js';
 import { jobRecordPath } from '../../utils/job-forms.js';
+import { RECORD_TYPE_LABELS } from '../../utils/record-query-model.js';
 import Icon from '../ui/icon.jsx';
 import DraftCard from './draft-card.jsx';
 
@@ -50,7 +51,7 @@ export default function AssistantPanel({ siteId, siteName, zones, onDraftSaved, 
   );
 }
 
-function Thread({ id, conversation, records, siteId, zones, hint, suggestions, siteName, onDraftChanged }) {
+export function Thread({ id, conversation, records, siteId, zones, hint, suggestions, siteName, onDraftChanged }) {
   const end = useRef(null);
   const { messages, pendingText, processing, run, error, uncertain } = conversation;
   useEffect(() => { end.current?.scrollIntoView?.({ block: 'end' }); }, [messages.length, pendingText, processing, run?.status]);
@@ -107,12 +108,12 @@ function RecordAnswer({ result }) {
           })}
         </ul>
       )}
-      {result.queries?.length > 0 && <p className="draft-muted">조회 {result.queries.map((query) => `${query.queryType} ${query.total ?? ''}건`).join(' · ')}</p>}
+      {result.queries?.length > 0 && <p className="draft-muted">조회 {result.queries.map((query) => `${RECORD_TYPE_LABELS[query.queryType] ?? query.queryType} ${query.total ?? ''}건`).join(' · ')}</p>}
     </article>
   );
 }
 
-function Composer({ conversation, placeholder, siteName }) {
+export function Composer({ conversation, placeholder, siteName }) {
   const [text, setText] = useState('');
   const length = text.trim().length;
   const tooLong = length > 2000;

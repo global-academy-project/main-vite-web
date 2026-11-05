@@ -25,6 +25,9 @@ export function useAgentConversation({ siteId, taskType = 'WORK_REGISTER' }) {
   const sending = useRef(false);
   const mounted = useRef(true);
   const [site, setSite] = useState(siteId);
+  // 지난 대화를 다시 열었을 때 이어 보낼 대화 번호 (마지막 실행을 못 받아도 이어서 보낼 수 있게)
+  const [resumed, setResumed] = useState(null);
+  const [resuming, setResuming] = useState(false);
 
   useEffect(() => {
     // StrictMode 는 개발 중 effect 를 두 번 돌리므로 마운트할 때마다 다시 true 로 둔다
@@ -35,7 +38,7 @@ export function useAgentConversation({ siteId, taskType = 'WORK_REGISTER' }) {
   // 현장이 바뀌면 새 대화 (렌더 중에 비교해서 바로 비운다)
   if (site !== siteId) {
     setSite(siteId);
-    setExecution(null); setRun(null); setMessages([]); setPendingText(''); setPolling(false); setError(''); setUncertain(false);
+    setExecution(null); setRun(null); setMessages([]); setPendingText(''); setPolling(false); setError(''); setUncertain(false); setResumed(null);
   }
 
   useEffect(() => {
@@ -70,9 +73,9 @@ export function useAgentConversation({ siteId, taskType = 'WORK_REGISTER' }) {
   }, [execution, polling, siteId, taskType]);
 
   const processing = polling || run?.status === 'PROCESSING' || Boolean(execution && !run && !error);
-  const locked = !siteId || busy || processing || uncertain;
+  const locked = !siteId || busy || processing || uncertain || resuming;
   // 이어 보낼 대화 번호 (React Compiler 가 의존값을 정확히 추적하도록 변수로 꺼낸다)
-  const conversationId = run?.conversationId;
+  const conversationId = run?.conversationId ?? resumed;
 
   const send = useCallback(async (rawText, { permitId } = {}) => {
     const text = String(rawText ?? '').trim();
@@ -107,8 +110,34 @@ export function useAgentConversation({ siteId, taskType = 'WORK_REGISTER' }) {
 
   const reset = useCallback(() => {
     if (processing) return;
-    setExecution(null); setRun(null); setMessages([]); setPendingText(''); setError(''); setUncertain(false);
+    setExecution(null); setRun(null); setMessages([]); setPendingText(''); setError(''); setUncertain(false); setResumed(null);
   }, [processing]);
+
+  /**
+   * 지난 대화 다시 열기: 메시지 기록을 받고, 마지막 실행이 있으면 그 결과(근거 기록)도 받는다.
+   * 이어서 보내면 같은 대화 번호로 간다. 마지막 실행이 아직 처리 중이면 자동 조회를 이어 간다.
+   */
+  const resume = useCallback(async ({ conversationId: target, lastRunId }) => {
+    if (processing || sending.current || !target) return false;
+    setResuming(true); setError(''); setUncertain(false); setPendingText('');
+    try {
+      const history = await getAgentMessages(target);
+      let last = null;
+      if (lastRunId) {
+        try { last = await getAgentRun(lastRunId, { conversationId: target, siteId, taskType }); } catch { last = null; }
+      }
+      if (!mounted.current) return false;
+      setMessages(history); setResumed(target); setRun(last);
+      setExecution(last ? { runId: last.runId, conversationId: target } : null);
+      setPolling(last?.status === 'PROCESSING');
+      return true;
+    } catch (requestError) {
+      if (mounted.current) setError(requestError.message || '지난 대화를 불러오지 못했습니다.');
+      return false;
+    } finally {
+      if (mounted.current) setResuming(false);
+    }
+  }, [processing, siteId, taskType]);
 
   /** 서버에 실행이 생겼는지 확인한 뒤 잠금을 푼다 (중복 실행 주의) */
   const unlock = useCallback(() => { setUncertain(false); setError(''); }, []);
@@ -119,5 +148,5 @@ export function useAgentConversation({ siteId, taskType = 'WORK_REGISTER' }) {
     setError(''); setPolling(true);
   }, [execution]);
 
-  return { run, messages, pendingText, processing, busy, error, uncertain, locked, send, reset, unlock, retry, execution };
+  return { run, messages, pendingText, processing, busy, error, uncertain, locked, send, reset, unlock, retry, execution, resume, resuming, conversationId };
 }

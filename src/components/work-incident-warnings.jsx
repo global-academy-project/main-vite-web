@@ -64,9 +64,14 @@ export default function WorkIncidentWarnings({ siteId, initialWorkId, disabled =
     return getWorkWarnings(work.workId);
   });
   return (
-    <section className="panel job-example" aria-label="작업별 아차사고 경고">
-      <h2>작업별 아차사고 경고</h2>
-      <p className="job-help">아차사고 보고 또는 작업 등록 시 서버가 자동으로 생성한 경고를 조회합니다. 경고 확인은 안전 승인이나 작업 허가가 아닙니다.</p>
+    <section className="panel job-example incident-warnings" aria-label="작업별 아차사고 경고">
+      <div className="incident-warnings__head">
+        <div className="incident-warnings__titles">
+          <h2>작업별 아차사고 경고</h2>
+          <p className="job-help">서버가 자동으로 붙인 경고입니다. 경고 확인은 승인·허가가 아닙니다.</p>
+        </div>
+        <button type="button" className="job-history-refresh incident-warnings__reload" disabled={disabled || busy || writeUncertain || !selectedWorkId} onClick={() => load()}>경고 다시 조회</button>
+      </div>
       <fieldset disabled={disabled || busy || writeUncertain}>
         {initialWorkId != null ? <p>작업 ID: #{initialWorkId}</p> : <label className="incident-cas-input">작업 ID
           <input value={workId} inputMode="numeric" onChange={(event) => {
@@ -76,28 +81,30 @@ export default function WorkIncidentWarnings({ siteId, initialWorkId, disabled =
             setError('');
           }} />
         </label>}
-        <button type="button" className="job-history-refresh" disabled={!selectedWorkId} onClick={() => load()}>경고 다시 조회</button>
-        {warnings?.length === 0 && <p>연결된 경고가 없습니다.</p>}
+        {warnings?.length === 0 && <p className="incident-warnings__empty">연결된 경고가 없습니다.</p>}
         {warnings?.map((warning) => (
           <article className={`incident-evidence${warning.severity === 'CRITICAL' ? ' incident-warning-critical' : ''}`} key={warning.warningId}>
-            <strong>{warning.severity} · {warning.message}</strong>
+            <p className="incident-warning__top">
+              <span className="incident-warning__sev">{warning.severity === 'CRITICAL' ? '긴급' : '주의'}</span>
+              <strong>{warning.message}</strong>
+            </p>
             {warning.nearMissId && <p><a href={`/job/incidents?incidentId=${warning.nearMissId}`}>원본 아차사고 #{warning.nearMissId}</a></p>}
             {warning.acknowledgedAt ? (
-              <p>확인자 {warning.acknowledgedByName || `#${warning.acknowledgedBy}`} · {warning.acknowledgedAt} · {warning.ackNote}</p>
+              <p className="incident-warning__done">확인자 {warning.acknowledgedByName || `#${warning.acknowledgedBy}`} · {warning.acknowledgedAt} · {warning.ackNote}</p>
             ) : (
-              <>
+              <div className="incident-warning__ack">
                 <label className="incident-cas-input">확인 및 조치 내용{warning.severity === 'CRITICAL' ? ' (필수)' : ' (선택)'}
                   <input maxLength={300} value={notes[warning.warningId] ?? ''}
                     onChange={(event) => setNotes((current) => ({ ...current, [warning.warningId]: event.target.value }))} />
                 </label>
-                <button type="button" className="job-history-refresh"
+                <button type="button" className="job-history-refresh incident-warning__confirm"
                   disabled={warning.severity === 'CRITICAL' && !notes[warning.warningId]?.trim()}
                   onClick={() => run(async () => {
                     await acknowledgeWarning(warning.warningId, notes[warning.warningId]?.trim() || undefined);
                     setNotes((current) => ({ ...current, [warning.warningId]: '' }));
                     return getWorkWarnings(selectedWorkId);
                   })}>경고 확인</button>
-              </>
+              </div>
             )}
           </article>
         ))}
