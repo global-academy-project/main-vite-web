@@ -231,6 +231,14 @@ function WorkConversation({ item, siteId }) {
           <Link className="ui-btn ui-btn--primary" to={`/job/workspace?workId=${workId}`}>작업 허브 열기</Link>
         </div>
       )}
+      {!workId && (
+        <p className={`rec-note${state.run?.status === 'FAILED' ? ' rec-note--block' : ''}`}>
+          <Icon name={state.run?.status === 'FAILED' ? 'alert' : 'info'} size={16} />
+          {state.run?.status === 'FAILED' ? `처리에 실패해 작업이 만들어지지 않았습니다.${state.run.errorMessage ? ` (${state.run.errorMessage})` : ''}`
+            : state.run?.status === 'WAITING_INPUT' ? 'AI가 추가 정보를 기다리다 멈춘 대화입니다. 작업은 아직 만들어지지 않았습니다.'
+              : '이 대화로 만든 작업이 없습니다.'}
+        </p>
+      )}
       {!state.messages.length && <p className="rec-help">메시지가 없습니다.</p>}
       <div className="home-thread rec-transcript__thread">
         {state.messages.map((message) => (
