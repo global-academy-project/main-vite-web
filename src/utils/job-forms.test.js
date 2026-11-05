@@ -14,9 +14,10 @@ test('agent record links match existing document routes without inventing unsupp
   const expected = {
     WORK: '/job/workspace?workId=31', PERMIT: '/job/permits?permitId=31',
     RISK: '/job/risk-assessment?riskId=31', TBM: '/job/tbm?tbmId=31', APPROVAL: '/approvals/31',
+    INSPECTION: '/job/dailey-checklist?inspectionId=31',
   };
   for (const [type, path] of Object.entries(expected)) assert.equal(jobRecordPath(type, 31), path);
-  for (const type of ['INSPECTION', 'DAILY_LOG', 'NEAR_MISS', 'CORRECTIVE_ACTION', undefined]) {
+  for (const type of ['DAILY_LOG', 'NEAR_MISS', 'CORRECTIVE_ACTION', undefined]) {
     assert.equal(jobRecordPath(type, 31), null);
   }
   for (const id of [0, -1, '31', 1.5, NaN, Number.MAX_SAFE_INTEGER + 1]) {

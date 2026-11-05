@@ -1,0 +1,44 @@
+/* 점검표. 목록·카드 틀은 tbm.css, 값은 tokens.css 변수만 */
+
+.insp-list__side { display: flex; flex: 0 0 auto; flex-direction: column; align-items: flex-end; gap: 4px; }
+.insp-list__progress { display: block; height: 4px; margin-top: 6px; overflow: hidden; border-radius: var(--radius-pill); background: var(--color-neutral-soft); }
+.insp-list__progress span { display: block; height: 100%; border-radius: inherit; background: var(--color-primary); }
+
+.insp-counts { margin: 0 var(--space-4); }
+.insp-target { width: 100%; }
+.insp-target .permit-check__btn { flex: 1 1 0; justify-content: center; }
+
+.insp-preview { padding: var(--space-3); border-radius: var(--radius-md); background: var(--color-surface-muted); }
+.insp-preview ul { display: flex; flex-direction: column; gap: 4px; margin: var(--space-2) 0 0; padding: 0; list-style: none; }
+.insp-preview li { display: flex; justify-content: space-between; gap: var(--space-2); color: var(--color-text-sub); font-size: var(--text-sm); }
+
+.insp-section .tbm-card__head h2 { font-size: var(--text-md); }
+.insp-section__count { padding: 2px 10px; border-radius: var(--radius-pill); background: var(--color-neutral-soft); color: var(--color-text-sub); font-size: var(--text-xs); font-weight: var(--weight-bold); font-variant-numeric: tabular-nums; }
+.insp-section__count.is-done { background: var(--color-success-soft); color: var(--color-success-text); }
+
+.insp-items { display: flex; flex-direction: column; margin: 0; padding: 0 var(--space-4); list-style: none; }
+.insp-item { display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-3) 0 var(--space-3) var(--space-3); border-left: 3px solid var(--color-border); }
+.insp-item + .insp-item { border-top: 1px solid var(--color-border-soft); }
+.insp-item.is-ok { border-left-color: var(--color-success); }
+.insp-item.is-ng { border-left-color: var(--color-danger); background: var(--color-danger-soft); }
+.insp-item.is-na { border-left-color: var(--color-border-input); }
+.insp-item__main { display: flex; align-items: center; gap: var(--space-4); }
+.insp-item__text { display: flex; flex: 1 1 auto; flex-direction: column; gap: 2px; min-width: 0; }
+.insp-item__text strong { color: var(--color-text-strong); font-size: var(--text-md); line-height: 1.5; }
+.insp-item__options { flex: 0 0 auto; }
+.insp-item__note { padding-right: var(--space-3); }
+.insp-item__note textarea[aria-invalid="true"] { border-color: var(--color-danger); }
+.insp-item__warn { color: var(--color-danger-text); font-weight: var(--weight-bold); }
+.insp-bar__error { color: var(--color-danger-text); font-size: var(--text-sm); }
+
+@media (max-width: 1024px) {
+  .insp-item__main { flex-direction: column; align-items: stretch; gap: var(--space-2); }
+}
+@media (max-width: 640px) {
+  .insp-items { padding: 0 var(--space-3); }
+  .insp-item__options { width: 100%; }
+  .insp-item__options .permit-check__btn { flex: 1 1 0; justify-content: center; }
+  .insp-counts { margin: 0 var(--space-3); }
+}
+.insp-section .tbm-card__head { flex-wrap: nowrap; align-items: center; }
+.insp-section .tbm-card__head > div:first-child { flex: 1 1 auto; }

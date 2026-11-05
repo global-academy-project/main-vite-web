@@ -1,257 +1,272 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useWorkSite } from '../../api/workers';
-import JobPageLayout, { JobPageHeading } from '../../components/job-page-layout';
-import '../../style/job/job-dailey-checklist.css';
+import JobPageLayout from '../../components/job-page-layout';
+import PageHeader from '../../components/ui/page-header.jsx';
+import { Badge } from '../../components/home/panel.jsx';
+import Icon from '../../components/ui/icon.jsx';
+import Sheet from '../../components/ui/sheet.jsx';
+import StatusView, { Skeleton } from '../../components/ui/status-view.jsx';
+import StepIndicator from '../../components/ui/step-indicator.jsx';
+import { useInspection } from '../../hooks/use-inspection.js';
+import { localDate } from '../../utils/job-forms';
+import { shiftDate } from '../../utils/daily-log-model.js';
+import {
+  groupItems, INSPECTION_RESULT_LABELS, INSPECTION_RESULT_TONES, INSPECTION_STATUS_LABELS, INSPECTION_STATUS_TONES,
+  inspectionSteps, ITEM_RESULT_OPTIONS, NOTE_MAX, TARGET_LABELS, targetName,
+} from '../../utils/inspection-model.js';
+import '../../styles/home.css';
+import '../../styles/work.css';
+import '../../styles/records.css';
+import '../../styles/risk.css';
+import '../../styles/permit.css';
+import '../../styles/tbm.css';
+import '../../styles/inspection.css';
 
-const checklistSections = [
-  {
-    id: 'work',
-    title: '탱크 구역 기본 안전',
-    description: '탱크 구역의 기본 안전 상태를 확인하는 예시 양식입니다.',
-    items: [
-      { itemCode: 'TANK_ACCESS', question: '저장탱크 구역의 출입 통제와 안전 표지가 적절한가?', detail: '출입 통제와 작업구역 표지 상태를 확인합니다.' },
-      { itemCode: 'TANK_WALKWAY', question: '탱크 주변 통로와 작업 발판에 걸림·미끄럼 위험이 없는가?', detail: '맨홀 주변을 포함해 유출·누출 흔적과 통행로를 확인합니다.' },
-      { itemCode: 'TANK_LEAK', question: '탱크·배관·밸브에서 누출 또는 이상 흔적이 없는가?', detail: '이상 발견 시 설비를 안전하게 격리하고 보고합니다.' },
-    ],
-  },
-  {
-    id: 'area',
-    title: '화학물질 및 작업환경',
-    description: '현장 취급 물질과 작업환경 상태를 확인합니다.',
-    items: [
-      { itemCode: 'CHEMICAL_LABEL', question: '취급 물질의 용기 표시와 보관 상태가 적절한가?', detail: '톨루엔(CAS 108-88-3) 취급 위치와 보관 한도를 확인합니다.' },
-      { itemCode: 'CHEMICAL_MSDS', question: '취급 물질의 최신 MSDS를 현장에서 확인할 수 있는가?', detail: '비치된 MSDS 개정일과 비상조치 정보를 확인합니다.' },
-      { itemCode: 'SPILL_RESPONSE', question: '유출 대응 자재가 준비되어 있고 즉시 사용할 수 있는가?', detail: '흡착포와 유출 확산 방지 수단의 위치·상태를 확인합니다.' },
-      { itemCode: 'VENTILATION', question: '작업구역의 환기 및 필요한 가스 측정 상태가 적절한가?', detail: '실제 작업과 허가 조건에 맞는 측정 기준을 확인합니다.' },
-    ],
-  },
-  {
-    id: 'equipment',
-    title: '비상·보호 장비',
-    description: '점검 대상 구역에서 필요한 안전 장비를 확인합니다.',
-    items: [
-      { itemCode: 'EMERGENCY_EYEWASH', question: '비상 세안·세척 설비에 접근할 수 있고 정상 작동하는가?', detail: '접근 경로가 막히지 않았는지와 설비 상태를 확인합니다.' },
-      { itemCode: 'FIRE_EQUIPMENT', question: '소화기 등 초기 화재 대응 장비를 즉시 사용할 수 있는가?', detail: '장비 위치, 접근성, 외관상 이상을 확인합니다.' },
-      { itemCode: 'PPE_READY', question: '해당 작업에 필요한 개인보호구를 준비하고 사용할 수 있는가?', detail: '실제 작업 종류와 현장 위험에 맞는 보호구를 확인합니다.' },
-    ],
-  },
-];
-
-const statusOptions = [
-  { value: 'OK', label: '양호' },
-  { value: 'NG', label: '미흡' },
-  { value: 'NA', label: '해당 없음' },
-];
-
-const allItems = checklistSections.flatMap((section) => section.items);
-function getInspectionResult(checklist) {
-  const results = allItems.map((item) => checklist[item.itemCode]?.result).filter(Boolean);
-  if (results.length !== allItems.length) return null;
-  if (results.includes('NG')) return 'FAIL';
-  if (results.includes('NA')) return 'PARTIAL';
-  return 'PASS';
-}
-
-function getToday() {
-  const date = new Date();
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-}
-
-function ChecklistWorkspace({ context }) {
-  const navigate = useNavigate();
-  const { account, currentSite, selecting, loading } = context;
-  const [checklist, setChecklist] = useState({});
-  const [message, setMessage] = useState('');
-  const [messageType, setMessageType] = useState('info');
-  const [submitted, setSubmitted] = useState(false);
-  const [inspectionDate, setInspectionDate] = useState(getToday);
-
-  const completedCount = allItems.filter((item) => checklist[item.itemCode]?.result).length;
-  const issueCount = allItems.filter((item) => checklist[item.itemCode]?.result === 'NG').length;
-  const progress = Math.round((completedCount / allItems.length) * 100);
-  const userName = account?.user?.name || account?.user?.email || '사용자';
-  const summaryText = `${inspectionDate} ${currentSite?.name ?? '현장 미선택'} 일일 안전 점검 ${completedCount}/${allItems.length} 항목 확인`;
-  const inspectionResult = getInspectionResult(checklist);
-
-  function setItemResult(itemCode, result) {
-    setChecklist((current) => ({
-      ...current,
-      [itemCode]: { ...current[itemCode], result },
-    }));
-    setMessage('');
-    setSubmitted(false);
-  }
-
-  function setItemNote(itemCode, note) {
-    setChecklist((current) => ({
-      ...current,
-      [itemCode]: { ...current[itemCode], note },
-    }));
-    setSubmitted(false);
-  }
-
-  function saveDraft() {
-    setMessageType('info');
-    setMessage('작성 내용은 현재 화면에만 임시 보관되어 있습니다. 서버 저장은 아직 연결되지 않았습니다.');
-  }
-
-  function submitChecklist() {
-    const unanswered = allItems.filter((item) => !checklist[item.itemCode]?.result);
-    const issuesWithoutNotes = allItems.filter(
-      (item) => checklist[item.itemCode]?.result === 'NG' && !checklist[item.itemCode]?.note?.trim(),
-    );
-
-    if (unanswered.length || issuesWithoutNotes.length) {
-      const reasons = [];
-      if (unanswered.length) reasons.push(`미확인 ${unanswered.length}개 항목`);
-      if (issuesWithoutNotes.length) reasons.push(`note가 비어 있는 NG 항목 ${issuesWithoutNotes.length}개`);
-      setMessageType('error');
-      setMessage(`${reasons.join(', ')}을 확인해 주세요.`);
-      return;
-    }
-
-    setSubmitted(true);
-    setMessageType('info');
-    setMessage('점검표를 확인했습니다. 현재 결과는 시연용 화면 상태이며 승인 요청이나 서버 저장은 되지 않았습니다.');
-  }
-
+/**
+ * 점검표 (구역·설비). 날짜 하나에 점검표 여러 건 — 왼쪽 목록, 오른쪽 고른 점검표의 항목 점검 · 저장 · 제출.
+ * 주소: ?date=YYYY-MM-DD&inspectionId=번호 (승인함·알림에서 오면 그 점검표 날짜로 옮겨 연다), workId 가 있으면 새 점검표에 연결
+ */
+export default function DailyChecklist() {
+  const context = useWorkSite();
+  const [params] = useSearchParams();
+  const site = context.currentSite;
+  const date = /^\d{4}-\d{2}-\d{2}$/.test(params.get('date') ?? '') ? params.get('date') : localDate();
+  const inspectionId = /^\d+$/.test(params.get('inspectionId') ?? '') ? params.get('inspectionId') : null;
   return (
-    <JobPageLayout title="작업구역 점검" user={account?.user} contentClassName="checklist-page">
-      <JobPageHeading
-        title="작업구역 점검"
-        className="checklist-heading"
-        context={context}
-        actions={<button type="button" className="checklist-back" onClick={() => navigate('/dashboard')}>대시보드로 돌아가기</button>}
-      >
-        <label>점검일<input type="date" max="9999-12-31" value={inspectionDate} onChange={(event) => {
-          setInspectionDate(event.target.value); setSubmitted(false); setMessage('');
-        }} /></label>
-      </JobPageHeading>
-
-          <p className="job-demo-notice">서버의 현장 정보만 연결되어 있습니다. 구역·점검 양식 조회 및 점검 저장·제출 API가 없어 아래는 입력 연습용입니다.</p>
-
-          <section className="inspection-metadata" aria-label="점검 기록 정보">
-            <div><span>점검 대상</span><strong>구역 미연결</strong></div>
-            <div><span>대상 유형</span><strong>ZONE (예시 양식)</strong></div>
-            <div><span>공장</span><strong>{currentSite?.name ?? '현장 미선택'}</strong></div>
-            <div><span>점검일</span><strong>{inspectionDate}</strong></div>
-            <div><span>점검자</span><strong>{userName}</strong></div>
-            <div><span>화면 상태</span><strong>{submitted ? '입력 확인 (미저장)' : '입력 중 (미저장)'}</strong></div>
-          </section>
-
-          <section className="checklist-summary" aria-label="점검 진행 현황">
-            <div className="checklist-progress-copy">
-              <span>오늘의 점검 진행률</span>
-              <strong>{completedCount}<small> / {allItems.length} 항목</small></strong>
-            </div>
-            <div
-              className="checklist-progress-track"
-              role="progressbar"
-              aria-label="점검 완료율"
-              aria-valuemin={0}
-              aria-valuemax={100}
-              aria-valuenow={progress}
-            >
-              <span style={{ width: `${progress}%` }} />
-            </div>
-            <div className="checklist-summary-stats">
-              <span><i className="summary-dot summary-good" />OK <strong>{allItems.filter((item) => checklist[item.itemCode]?.result === 'OK').length}</strong></span>
-              <span><i className="summary-dot summary-issue" />NG <strong>{issueCount}</strong></span>
-              <span><i className="summary-dot summary-na" />NA <strong>{allItems.filter((item) => checklist[item.itemCode]?.result === 'NA').length}</strong></span>
-            </div>
-          </section>
-
-          <section className="checklist-context">
-            <span className="context-icon" aria-hidden="true">!</span>
-            <div>
-              <strong>작업 경고 미연결</strong>
-              <p>현재 서버에는 구역 경고 조회 API가 없습니다. 경고가 없거나 안전하다는 의미가 아닙니다.</p>
-            </div>
-            <span className="pill status-waiting">API 미지원</span>
-          </section>
-
-          <div className="checklist-sections">
-            {checklistSections.map((section, sectionIndex) => {
-              const sectionComplete = section.items.filter((item) => checklist[item.itemCode]?.result).length;
-              return (
-                <section className="checklist-section panel" key={section.id}>
-                  <div className="checklist-section-heading">
-                    <span className="section-number">0{sectionIndex + 1}</span>
-                    <div>
-                      <h2>{section.title}</h2>
-                      <p>{section.description}</p>
-                    </div>
-                    <span className="section-count">{sectionComplete}/{section.items.length}</span>
-                  </div>
-                  <div className="checklist-items">
-                    {section.items.map((item) => {
-                      const result = checklist[item.itemCode]?.result ?? '';
-                      const note = checklist[item.itemCode]?.note ?? '';
-                      return (
-                        <article className={`checklist-item ${result === 'NG' ? 'has-issue' : ''}`} key={item.itemCode}>
-                          <div className="checklist-item-main">
-                            <div className="checklist-item-copy">
-                              <strong>{item.question}</strong>
-                              <p>{item.detail}</p>
-                            </div>
-                            <div className="checklist-options" role="group" aria-label={`${item.question} 점검 결과`}>
-                              {statusOptions.map((option) => (
-                                <button
-                                  type="button"
-                                  key={option.value}
-                                  className={`checklist-option ${result === option.value ? `selected ${option.value.toLowerCase()}` : ''}`}
-                                  aria-pressed={result === option.value}
-                                  disabled={loading || selecting || !currentSite}
-                                  onClick={() => setItemResult(item.itemCode, option.value)}
-                                >
-                                  {option.label}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                          {result === 'NG' && (
-                            <label className="checklist-note">
-                              <span>note · 미흡 내용 및 조치 <b>*</b></span>
-                              <textarea
-                                value={note}
-                                maxLength={300}
-                                onChange={(event) => setItemNote(item.itemCode, event.target.value)}
-                                placeholder="확인된 문제와 작업 전 조치 내용을 입력하세요."
-                                rows={2}
-                              />
-                              <small>{note.length}/300자</small>
-                            </label>
-                          )}
-                        </article>
-                      );
-                    })}
-                  </div>
-                </section>
-              );
-            })}
-          </div>
-
-          <footer className="checklist-footer">
-            <span>
-              {summaryText}
-              {inspectionResult && <> · 화면 계산 결과: <strong>{inspectionResult}</strong></>}
-              {submitted && <> · <strong>입력 확인 (미저장)</strong></>}
-            </span>
-            <div>
-              <button type="button" className="checklist-save" disabled>서버 저장 (API 미지원)</button>
-              <button type="button" className="checklist-save" onClick={saveDraft}>임시 상태 안내</button>
-              <button type="button" className="checklist-submit" disabled={loading || selecting || !currentSite} onClick={submitChecklist}>입력 내용 확인 (미제출)</button>
-            </div>
-          </footer>
-
-          {message && <div className={`checklist-message ${messageType}`} role={messageType === 'error' ? 'alert' : 'status'}>{message}</div>}
-          <p className="scenario-notice">DB 매핑: inspections(target_type, inspect_date, template_code, result, status) · inspection_items(item_code, question, result, note). 화면 시연 데이터이며 서버 저장은 연결되지 않았습니다.</p>
+    <JobPageLayout title="점검표" user={context.account?.user} contentClassName="work-page">
+      {site
+        ? <ChecklistPage key={`${site.siteId}:${inspectionId}:${date}`} site={site} context={context} initialDate={date} initialId={inspectionId}
+          workId={/^\d+$/.test(params.get('workId') ?? '') ? params.get('workId') : null} />
+        : <PageHeader title="점검표" context={context} />}
     </JobPageLayout>
   );
 }
 
-export default function DailyChecklist() {
-  const context = useWorkSite();
-  return <ChecklistWorkspace key={context.currentSite?.siteId ?? 'no-site'} context={context} />;
+function ChecklistPage({ site, context, initialDate, initialId, workId }) {
+  const data = useInspection({ siteId: site.siteId, disabled: context.selecting || context.loading, initialId, initialDate });
+  const [creating, setCreatingState] = useState(false);
+  const setCreating = (open) => { if (open) data.clearError(); setCreatingState(open); };
+  const item = data.selected;
+
+  return (
+    <div className="work-list rec-page tbm-page insp-page">
+      <PageHeader title="점검표" description="작업구역·설비 점검. 항목별로 양호·불량·해당 없음을 적고 저장한 뒤 제출합니다." context={context}
+        actions={<>
+          {workId && <Link className="ui-btn ui-btn--ghost" to={`/job/workspace?workId=${workId}`}><Icon name="chevronLeft" size={16} />작업 허브로</Link>}
+          <button type="button" className="ui-btn ui-btn--ghost" disabled={data.busy || data.loading} onClick={data.reload}><Icon name="refresh" size={16} />새로고침</button>
+          <button type="button" className="ui-btn ui-btn--primary" disabled={data.locked} onClick={() => setCreating(true)}>새 점검표</button>
+        </>} />
+
+      <section className="work-filters rec-datebar" aria-label="점검일">
+        <div className="rec-datebar__nav">
+          <button type="button" className="ui-icon-btn" aria-label="전날" disabled={data.busy} onClick={() => data.changeDate(shiftDate(data.date, -1))}><Icon name="chevronLeft" size={18} /></button>
+          <label><span className="sr-only">점검일</span><input type="date" max="9999-12-31" value={data.date} disabled={data.busy} onChange={(event) => data.changeDate(event.target.value)} /></label>
+          <button type="button" className="ui-icon-btn rec-datebar__next" aria-label="다음 날" disabled={data.busy} onClick={() => data.changeDate(shiftDate(data.date, 1))}><Icon name="chevronLeft" size={18} /></button>
+          {data.date !== localDate() && <button type="button" className="ui-btn ui-btn--ghost" onClick={() => data.changeDate(localDate())}>오늘</button>}
+        </div>
+        <span className="rec-help">같은 날짜·대상·양식의 점검표는 하나만 만들 수 있습니다.</span>
+      </section>
+
+      {data.needsReload && (
+        <div className="work-form__error" role="alert"><Icon name="warning" size={16} /><span>저장 결과나 최신 판을 확인해야 합니다. 새로고침으로 서버 반영 여부를 확인한 뒤 계속하세요.</span>
+          <button type="button" className="ui-btn ui-btn--ghost" disabled={data.busy} onClick={data.reload}>새로고침</button></div>
+      )}
+
+      <div className="tbm-layout">
+        <section className="home-panel tbm-list" aria-label={`${data.date} 점검표 목록`}>
+          <header className="home-panel__head"><h2 className="home-panel__title">이날 점검표{!data.loading && <span className="home-panel__count">{data.records.length}</span>}</h2></header>
+          <div className="home-panel__body">
+            {data.loading && <div className="home-panel__pad"><Skeleton lines={4} /></div>}
+            {!data.loading && data.listError && <StatusView kind="error" compact message={data.listError} onRetry={data.reload} />}
+            {!data.loading && !data.listError && !data.records.length && <StatusView kind="empty" compact title="이 날짜의 점검표가 없습니다" action={{ label: '새 점검표 만들기', onClick: () => setCreating(true) }} />}
+            {!data.loading && data.records.length > 0 && (
+              <ul className="home-list">
+                {data.records.map((record) => {
+                  const active = String(record.inspectionId) === String(item?.inspectionId);
+                  return (
+                    <li key={record.inspectionId}>
+                      <button type="button" className={`home-list__item tbm-list__item${active ? ' is-active' : ''}`} aria-pressed={active} onClick={() => data.select(record)}>
+                        <span className="home-list__main">
+                          <span className="home-list__kind">{TARGET_LABELS[record.targetType]} · {targetName(record)}</span>
+                          <span className="home-list__title">{record.templateName ?? record.templateCode}</span>
+                          <span className="insp-list__progress"><span style={{ width: `${record.total ? Math.round((record.answered / record.total) * 100) : 0}%` }} /></span>
+                        </span>
+                        <span className="insp-list__side">
+                          <Badge tone={INSPECTION_STATUS_TONES[record.status]}>{INSPECTION_STATUS_LABELS[record.status]}</Badge>
+                          <span className="rec-help">{record.answered}/{record.total}</span>
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+        </section>
+
+        <div className="tbm-detail">
+          {!item && !data.loading && <section className="home-panel"><StatusView kind="empty" title="점검표를 고르거나 새로 만드세요" message="구역 또는 설비와 양식을 고르면 양식의 항목이 그대로 복사됩니다." /></section>}
+          {item && <InspectionDetail data={data} item={item} />}
+        </div>
+      </div>
+
+      <Sheet open={creating} onClose={() => setCreating(false)} title="새 점검표" subtitle={site.name}
+        footer={<><button type="button" className="ui-btn ui-btn--ghost" onClick={() => setCreating(false)}>취소</button><button type="submit" form="insp-create-form" className="ui-btn ui-btn--primary ui-btn--lg" disabled={data.locked || Boolean(data.refs.loading)}>점검표 만들기</button></>}>
+        {creating && <CreateForm data={data} workId={workId} onDone={() => setCreating(false)} />}
+      </Sheet>
+    </div>
+  );
+}
+
+function CreateForm({ data, workId, onDone }) {
+  const { templates, zones, equipment, error, loading } = data.refs;
+  const [form, setForm] = useState({ targetType: 'ZONE', templateCode: '', zoneId: '', equipmentId: '', inspectDate: data.date });
+  const set = (field, value) => setForm((current) => ({ ...current, [field]: value }));
+  const choices = templates.filter((template) => template.targetType === form.targetType);
+  const templateCode = choices.some((template) => template.code === form.templateCode) ? form.templateCode : choices[0]?.code ?? '';
+  const template = choices.find((entry) => entry.code === templateCode);
+  const itemCount = template?.sections.reduce((sum, section) => sum + section.items.length, 0) ?? 0;
+  const ready = templateCode && (form.targetType === 'ZONE' ? form.zoneId : form.equipmentId);
+
+  return (
+    <form id="insp-create-form" className="tbm-form" onSubmit={async (event) => {
+      event.preventDefault();
+      if (!ready) return;
+      if (await data.create({ ...form, templateCode, workId })) onDone();
+    }}>
+      {loading && <Skeleton lines={3} />}
+      {error && <p className="work-form__error" role="alert"><Icon name="alert" size={16} />{error}</p>}
+      {data.error && <p className="work-form__error" role="alert"><Icon name="alert" size={16} />{data.error}</p>}
+      <fieldset className="tbm-form__fields" disabled={data.busy || data.needsReload || loading}>
+        <legend className="sr-only">점검 대상과 양식</legend>
+        <div className="tbm-form__wide">
+          <span className="risk-field">점검 대상</span>
+          <div className="permit-check__options insp-target" role="group" aria-label="점검 대상 종류">
+            {['ZONE', 'EQUIPMENT'].map((type) => (
+              <button key={type} type="button" className="permit-check__btn is-unknown" aria-pressed={form.targetType === type} onClick={() => set('targetType', type)}>{TARGET_LABELS[type]} 점검</button>
+            ))}
+          </div>
+        </div>
+        {form.targetType === 'ZONE' ? (
+          <label className="risk-field"><span className="risk-field__label">구역<span className="risk-req" aria-hidden="true">*</span></span>
+            <select required value={form.zoneId} onChange={(event) => set('zoneId', event.target.value)}>
+              <option value="">구역을 고르세요</option>
+              {zones.map((zone) => <option key={zone.zoneId} value={zone.zoneId}>{zone.code} · {zone.name}</option>)}
+            </select></label>
+        ) : (
+          <label className="risk-field"><span className="risk-field__label">설비<span className="risk-req" aria-hidden="true">*</span></span>
+            <select required value={form.equipmentId} onChange={(event) => set('equipmentId', event.target.value)}>
+              <option value="">설비를 고르세요</option>
+              {equipment.map((entry) => <option key={entry.equipmentId} value={entry.equipmentId}>{entry.code ? `${entry.code} · ` : ''}{entry.name}{entry.inspectionOverdue ? ' (점검 기한 지남)' : ''}</option>)}
+            </select></label>
+        )}
+        <label className="risk-field"><span className="risk-field__label">점검일<span className="risk-req" aria-hidden="true">*</span></span>
+          <input required type="date" max="9999-12-31" value={form.inspectDate} onChange={(event) => set('inspectDate', event.target.value)} /></label>
+        <label className="risk-field tbm-form__wide"><span className="risk-field__label">양식<span className="risk-req" aria-hidden="true">*</span></span>
+          <select required value={templateCode} onChange={(event) => set('templateCode', event.target.value)}>
+            {!choices.length && <option value="">이 대상용 양식이 없습니다</option>}
+            {choices.map((entry) => <option key={entry.code} value={entry.code}>{entry.name}</option>)}
+          </select></label>
+        {form.targetType === 'EQUIPMENT' && !equipment.length && !loading && <p className="rec-help tbm-form__wide">이 현장에 사용 중인 설비가 없습니다. 기준 정보에서 설비를 먼저 등록하세요.</p>}
+      </fieldset>
+      {template && (
+        <div className="insp-preview">
+          <span className="rec-block__title">항목 미리보기 · {itemCount}개</span>
+          <ul>{template.sections.map((section) => <li key={section.title}><strong>{section.title}</strong><span className="rec-help">{section.items.length}개</span></li>)}</ul>
+        </div>
+      )}
+      {workId && <p className="rec-help">작업 #{workId}에 연결해 만듭니다.</p>}
+    </form>
+  );
+}
+
+function InspectionDetail({ data, item }) {
+  const { counts, answers, editable } = data;
+  const finalResult = item.result ?? (editable ? data.expected : item.expectedResult);
+  const rejected = item.status === 'DRAFT' && item.approvalStatus === 'REJECTED';
+  return (
+    <>
+      <section className="home-panel tbm-card" aria-labelledby="insp-title">
+        <header className="tbm-card__head">
+          <div>
+            <h2 id="insp-title">{item.templateName ?? item.templateCode} <Badge tone={INSPECTION_STATUS_TONES[item.status]}>{INSPECTION_STATUS_LABELS[item.status]}</Badge></h2>
+            <p className="rec-help">점검표 #{item.inspectionId} · {item.inspectDate} · 점검자 {item.inspectorName ?? '미상'}</p>
+          </div>
+          <div className="tbm-card__actions">
+            {item.approvalId && <Link className="ui-btn ui-btn--ghost" to={`/approvals/${item.approvalId}`}>결재 보기</Link>}
+            {item.workId && <Link className="ui-btn ui-btn--ghost" to={`/job/workspace?workId=${item.workId}`}>작업 #{item.workId}</Link>}
+          </div>
+        </header>
+        <div className="tbm-card__steps"><StepIndicator steps={inspectionSteps(item, { dirty: data.dirty })} label="점검표 진행 단계" /></div>
+        {item.status === 'PENDING' && <p className="rec-note"><Icon name="clock" size={16} />제출해 승인을 기다리는 중입니다. 결과를 고칠 수 없습니다.</p>}
+        {rejected && <p className="rec-note rec-note--block"><Icon name="alert" size={16} />반려되어 작성 중으로 돌아왔습니다. 결재 의견을 확인하고 고친 뒤 다시 제출하세요.</p>}
+        <dl className="rec-facts tbm-card__facts">
+          <div><dt>{TARGET_LABELS[item.targetType]}</dt><dd>{targetName(item)}</dd></div>
+          {item.targetType === 'EQUIPMENT' && <div><dt>구역</dt><dd>{item.zoneName ?? (item.zoneId ? `#${item.zoneId}` : '미지정')}</dd></div>}
+          <div><dt>점검 진행</dt><dd>{counts.answered}/{counts.total}</dd></div>
+          <div><dt>{item.result ? '종합 결과' : '예상 결과'}</dt><dd>{finalResult ? <Badge tone={INSPECTION_RESULT_TONES[finalResult]}>{INSPECTION_RESULT_LABELS[finalResult]}</Badge> : '항목을 다 적으면 계산'}</dd></div>
+        </dl>
+        <ul className="risk-counts insp-counts" aria-label="항목 결과 개수">
+          <li className="is-done"><span>양호</span><strong>{counts.OK}</strong></li>
+          <li className="is-block"><span>불량</span><strong>{counts.NG}</strong></li>
+          <li><span>해당 없음</span><strong>{counts.NA}</strong></li>
+          <li className="is-warn"><span>미점검</span><strong>{counts.total - counts.answered}</strong></li>
+        </ul>
+      </section>
+
+      {groupItems(item.items).map((group, index) => {
+        const done = group.items.filter((entry) => answers[entry.itemCode]?.result).length;
+        return (
+          <section key={group.title} className="home-panel tbm-card insp-section" aria-labelledby={`insp-sec-${index}`}>
+            <header className="tbm-card__head">
+              <div><h2 id={`insp-sec-${index}`}><span className="risk-item__no">{index + 1}</span>{group.title}</h2></div>
+              <span className={`insp-section__count${done === group.items.length ? ' is-done' : ''}`}>{done}/{group.items.length}</span>
+            </header>
+            <ol className="insp-items">
+              {group.items.map((entry) => {
+                const answer = answers[entry.itemCode] ?? {};
+                const missing = answer.result === 'NG' && !answer.note?.trim();
+                return (
+                  <li key={entry.itemCode} className={`insp-item${answer.result ? ` is-${answer.result.toLowerCase()}` : ''}`}>
+                    <div className="insp-item__main">
+                      <div className="insp-item__text">
+                        <strong>{entry.question}</strong>
+                        {entry.detail && <span className="rec-help">{entry.detail}</span>}
+                      </div>
+                      <div className="permit-check__options insp-item__options" role="group" aria-label={`${entry.question} 결과`}>
+                        {ITEM_RESULT_OPTIONS.map((option) => (
+                          <button key={option.value} type="button" disabled={!editable || data.locked}
+                            className={`permit-check__btn ${option.value === 'OK' ? 'is-yes' : option.value === 'NG' ? 'is-no' : 'is-unknown'}`}
+                            aria-pressed={answer.result === option.value} onClick={() => data.setResult(entry.itemCode, option.value)}>{option.label}</button>
+                        ))}
+                      </div>
+                    </div>
+                    {(answer.result === 'NG' || (answer.note && answer.result)) && (
+                      <label className="risk-field insp-item__note">
+                        <span className="risk-field__label">{answer.result === 'NG' ? '불량 내용과 조치' : '메모'}{answer.result === 'NG' && <span className="risk-req" aria-hidden="true">*</span>}</span>
+                        <textarea rows={2} maxLength={NOTE_MAX} value={answer.note ?? ''} readOnly={!editable} aria-invalid={missing}
+                          placeholder="확인한 문제와 작업 전 조치를 적으세요." onChange={(event) => data.setNote(entry.itemCode, event.target.value)} />
+                        <span className={`rec-help${missing ? ' insp-item__warn' : ''}`}>{missing ? '불량은 내용을 적어야 저장됩니다.' : `${(answer.note ?? '').length}/${NOTE_MAX}자`}</span>
+                      </label>
+                    )}
+                  </li>
+                );
+              })}
+            </ol>
+          </section>
+        );
+      })}
+
+      {editable && (
+        <div className="risk-bar" role="region" aria-label="점검표 저장·제출">
+          <span className={`risk-bar__state${data.dirty ? ' is-dirty' : ''}`}>{data.dirty ? '저장하지 않은 변경이 있습니다' : '서버에 저장됨'}</span>
+          {data.error && <span className="insp-bar__error" role="alert">{data.error}</span>}
+          {data.dirty && <button type="button" className="ui-btn ui-btn--ghost" disabled={data.busy} onClick={data.reset}>변경 취소</button>}
+          <button type="button" className="ui-btn ui-btn--secondary" disabled={data.locked || !data.dirty} onClick={data.save}>저장</button>
+          <button type="button" className="ui-btn ui-btn--primary" disabled={data.locked || counts.answered < counts.total || counts.missingNote > 0} onClick={data.submit}>제출</button>
+        </div>
+      )}
+    </>
+  );
 }
