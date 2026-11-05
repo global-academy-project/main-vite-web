@@ -1,0 +1,129 @@
+/*
+ * 디자인 토큰: 색·간격·글자·모서리·그림자는 여기서만 정한다. 화면 CSS 는 var(--…) 만 쓴다.
+ *
+ * 반응형 분기점 (CSS 변수는 @media 조건에 못 쓰므로 값을 여기 고정하고, 같은 값을 src/hooks/use-breakpoint.js 에서 쓴다)
+ *   모바일  ≤ 640px   → @media (max-width: 640px)
+ *   태블릿  ≤ 1024px  → @media (max-width: 1024px)
+ *   PC      > 1024px  → 기본
+ *
+ * 어두운 화면: theme-provider 가 <html class="dark-mode"> 를 켠다. 아래 .dark-mode 에서 같은 이름을 다시 정한다.
+ */
+:root {
+  /* 바탕·면 */
+  --color-bg: #f3f5f9;
+  --color-surface: #ffffff;
+  --color-surface-muted: #f7f9fc;
+  --color-surface-accent: #f4f8fe;
+
+  /* 글자 (흰 바탕 대비 4.5:1 이상) */
+  --color-text: #1f2937;
+  --color-text-strong: #102a43;
+  --color-text-sub: #374151;
+  --color-text-muted: #59657a;
+  --color-text-on-primary: #ffffff;
+
+  /* 선 */
+  --color-border: #dfe5ee;
+  --color-border-soft: #edf0f5;
+  --color-border-input: #c8d2e0;
+  --color-border-accent: #c9d8f5;
+
+  /* 강조 (파란색) */
+  --color-primary: #246be2;
+  --color-primary-hover: #1b55b8;
+  --color-primary-soft: #e8f0fd;
+  --color-primary-disabled: #c9d4e5;
+
+  /* 상태: 색만으로 구분하지 않는다 (아이콘·글자와 함께) */
+  --color-success: #2e8a57;
+  --color-success-text: #2e6b47;
+  --color-success-soft: #e6f4ec;
+  --color-warning: #c2410c;
+  --color-warning-text: #8a4b00;
+  --color-warning-soft: #fff4e5;
+  --color-warning-border: #f0c39a;
+  --color-danger: #b3261e;
+  --color-danger-text: #a3261e;
+  --color-danger-soft: #fdecea;
+  --color-danger-border: #e8a39d;
+  --color-neutral-soft: #f3f4f6;
+
+  --color-scrim: rgba(16, 42, 67, 0.32);
+  --color-focus: rgba(36, 107, 226, 0.45);
+
+  /* 간격 (4px 단위) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+
+  /* 글자 */
+  --font-sans: Inter, "Segoe UI", "Noto Sans KR", system-ui, sans-serif;
+  --text-xs: 12px;
+  --text-sm: 13px;
+  --text-md: 14px;
+  --text-lg: 16px;
+  --text-xl: 18px;
+  --text-2xl: 22px;
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-bold: 600;
+
+  /* 모서리·그림자 */
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+  --radius-sheet: 16px;
+  --radius-pill: 999px;
+  --shadow-sm: 0 1px 2px rgba(16, 42, 67, 0.06);
+  --shadow-md: 0 8px 24px rgba(16, 42, 67, 0.12);
+
+  /* 터치 대상 (장갑 낀 손 고려) */
+  --touch-min: 44px;
+  --touch-field: 48px;
+
+  /* 층 */
+  --z-sheet: 1000;
+  --z-toast: 1100;
+}
+
+.dark-mode {
+  --color-bg: #0f172a;
+  --color-surface: #172033;
+  --color-surface-muted: #1d283c;
+  --color-surface-accent: #1a2a47;
+
+  --color-text: #e5e7eb;
+  --color-text-strong: #f9fafb;
+  --color-text-sub: #d1d5db;
+  --color-text-muted: #aeb9c9;
+
+  --color-border: #344158;
+  --color-border-soft: #243149;
+  --color-border-input: #4b5a73;
+  --color-border-accent: #2f4f8a;
+
+  --color-primary: #5b93f0;
+  --color-primary-hover: #8ab3f5;
+  --color-primary-soft: #1d3157;
+  --color-primary-disabled: #344158;
+  --color-text-on-primary: #0f172a;
+
+  --color-success: #4cb782;
+  --color-success-text: #86d4a9;
+  --color-success-soft: #173a2a;
+  --color-warning: #f0883e;
+  --color-warning-text: #f6c08e;
+  --color-warning-soft: #3b2716;
+  --color-warning-border: #7a4a22;
+  --color-danger: #f07167;
+  --color-danger-text: #f6a39c;
+  --color-danger-soft: #3d1f1f;
+  --color-danger-border: #7a3530;
+  --color-neutral-soft: #243149;
+
+  --color-scrim: rgba(0, 0, 0, 0.5);
+}
