@@ -313,8 +313,8 @@ function PermitWorkspace({ siteId, disabled, initialWorkId, initialPermitId }) {
               if (!confirmReplacement()) return;
               setType(event.target.value); update('form', {}); setValues({});
             }}>{Object.entries(permitTypeLabels).map(([code, label]) => <option key={code} value={code}>{label}</option>)}</select></label>
-            <label>유효 시작<input type="datetime-local" step="any" required value={form.validFrom} onChange={(event) => update('validFrom', event.target.value)} /></label>
-            <label>유효 종료<input type="datetime-local" step="any" required value={form.validTo} onChange={(event) => update('validTo', event.target.value)} /></label>
+            <label>유효 시작<input type="datetime-local" max="9999-12-31T23:59" step="any" required value={form.validFrom} onChange={(event) => update('validFrom', event.target.value)} /></label>
+            <label>유효 종료<input type="datetime-local" max="9999-12-31T23:59" step="any" required value={form.validTo} onChange={(event) => update('validTo', event.target.value)} /></label>
             <div><label>{formFields.watcherLabel}<input maxLength={50} value={form.watcherName} onChange={(event) => update('watcherName', event.target.value)} /></label>
               {visibleChecks && <FieldRuleChecks checks={visibleChecks} target="form.watcher_name" />}
             </div>

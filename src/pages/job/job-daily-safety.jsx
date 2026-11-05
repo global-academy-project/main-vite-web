@@ -169,7 +169,7 @@ export default function JobDailySafety() {
   return <JobPageLayout title="일일 안전일지" user={context.account?.user} contentClassName="job-management job-overview">
     <JobPageHeading title="일일 안전일지" description={date} actions={<Deadline dashboard={dashboard} />} context={context}
       onBeforeSelect={() => dirty && setNotice('저장하지 않은 요약 수정 내용은 현장을 바꾸면 사라집니다. 현장을 바꾸기 전에 저장해 주세요.')} />
-    <section className="panel job-form"><label>기준 날짜<input type="date" value={date} onChange={(event) => setDate(event.target.value)} disabled={busy} /></label></section>
+    <section className="panel job-form"><label>기준 날짜<input type="date" max="9999-12-31" value={date} onChange={(event) => setDate(event.target.value)} disabled={busy} /></label></section>
     {error && <p className="dashboard-error" role="alert">{error} <button type="button" onClick={() => void load()} disabled={loading || busy}>다시 조회</button></p>}
     {notice && <p className="job-review-notice" role="status">{notice}</p>}
     {!siteId ? <p className="job-empty-state">현장을 선택해 주세요.</p> : loading ? <p role="status">안전일지를 불러오는 중입니다...</p>
