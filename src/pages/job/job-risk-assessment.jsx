@@ -9,7 +9,6 @@ import { useWorkSite } from '../../api/workers';
 import { riskAssessmentBody, riskLevelNotice } from '../../utils/job-forms';
 import { TAG_LABELS } from '../../utils/agentic-rag-tags';
 import JobPageLayout, { JobPageHeading } from '../../components/job-page-layout';
-import { JobSiteSelector } from './job-work-form';
 
 const blankItem = (seq) => ({
   seq, workStep: '', hazard: '', accidentType: '', frequency: '', severity: '',
@@ -207,8 +206,7 @@ export default function JobRiskAssessment() {
   const [params] = useSearchParams();
   return (
     <JobPageLayout title="작업 위험성평가" user={context.account?.user} contentClassName="job-management">
-      <JobPageHeading title="작업 위험성평가" description="작업 단계별 위험요인과 감소대책을 작성하고 승인 요청합니다." />
-      <JobSiteSelector context={context} />
+      <JobPageHeading title="작업 위험성평가" description="작업 단계별 위험요인과 감소대책을 작성하고 승인 요청합니다." context={context} />
       {context.currentSite && <RiskWorkspace key={`${context.currentSite.siteId}:${params}`}
         site={context.currentSite} disabled={context.selecting || context.loading}
         initialRiskId={params.get('riskId')} initialWorkId={params.get('workId')} />}

@@ -3,6 +3,7 @@ import { Link, useLocation, useParams } from 'react-router-dom';
 import { getApproval } from '../../api/approvals';
 import SafetyPageLayout from '../../components/safety-page-layout';
 import Icon from '../../components/ui/icon.jsx';
+import PageHeader from '../../components/ui/page-header.jsx';
 import StatusView from '../../components/ui/status-view.jsx';
 import { APPROVAL_TARGET_LABELS } from '../../utils/home-model.js';
 import { jobRecordPath } from '../../utils/job-forms.js';
@@ -40,6 +41,8 @@ function RevisionContent() {
   const docPath = jobRecordPath(summary.targetType, summary.targetId);
 
   return (
+    <>
+      <PageHeader title="반려 문서 다시 작성" description={`결재 #${approvalId}`} actions={<Link className="ui-btn ui-btn--ghost" to="/approvals">승인함 목록</Link>} />
     <section className="home-panel appr-done appr-done--block" aria-labelledby="revision-title">
       <span className="appr-done__icon" aria-hidden="true"><Icon name="records" size={26} /></span>
       <p className="appr-done__eyebrow">{APPROVAL_TARGET_LABELS[summary.targetType] ?? summary.targetType} #{summary.targetId}</p>
@@ -53,6 +56,7 @@ function RevisionContent() {
         <Link className="ui-btn ui-btn--ghost ui-btn--lg" to={`/approvals/${approvalId}/result`} state={{ approval, decisionType: 'REJECTED' }}>처리 결과로 돌아가기</Link>
       </div>
     </section>
+    </>
   );
 }
 

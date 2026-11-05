@@ -3,6 +3,7 @@ import { Link, useLocation, useParams } from 'react-router-dom';
 import { getApproval } from '../../api/approvals';
 import SafetyPageLayout from '../../components/safety-page-layout';
 import Icon from '../../components/ui/icon.jsx';
+import PageHeader from '../../components/ui/page-header.jsx';
 import StatusView from '../../components/ui/status-view.jsx';
 import { APPROVER_ROLE_LABELS, nextStep } from '../../utils/approval-model.js';
 import { APPROVAL_TARGET_LABELS } from '../../utils/home-model.js';
@@ -46,6 +47,8 @@ function ApprovalResultContent() {
   const docPath = jobRecordPath(summary.targetType, summary.targetId);
 
   return (
+    <>
+      <PageHeader title="처리 결과" description={`결재 #${approvalId}`} actions={<Link className="ui-btn ui-btn--ghost" to="/approvals">승인함 목록</Link>} />
     <section className={`home-panel appr-done appr-done--${copy.tone}`} aria-labelledby="appr-done-title">
       <span className="appr-done__icon" aria-hidden="true"><Icon name={copy.icon} size={28} strokeWidth={2.4} /></span>
       <p className="appr-done__eyebrow">{APPROVAL_TARGET_LABELS[summary.targetType] ?? summary.targetType} #{summary.targetId}</p>
@@ -64,6 +67,7 @@ function ApprovalResultContent() {
         {docPath && <Link className="ui-btn ui-btn--ghost ui-btn--lg" to={docPath}>문서 화면 열기</Link>}
       </div>
     </section>
+    </>
   );
 }
 

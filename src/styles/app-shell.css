@@ -140,3 +140,8 @@ button.app-nav__close { display: none; }
   /* 하단 탭에 가리지 않도록 */
   .dashboard-main { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
 }
+
+/* ── 본문 여백·너비: 모든 화면 같게 (예전 dashboard-content 27/29px 와 job-page-content 26/32px 가 달랐다) ── */
+.dashboard-main .dashboard-content { max-width: 1400px; padding: var(--space-6) var(--space-8) var(--space-8); }
+@media (max-width: 1024px) { .dashboard-main .dashboard-content { padding: var(--space-5) var(--space-6) var(--space-8); } }
+@media (max-width: 640px) { .dashboard-main .dashboard-content { padding: var(--space-4) var(--space-4) var(--space-6); } }

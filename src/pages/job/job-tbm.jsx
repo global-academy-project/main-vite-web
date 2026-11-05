@@ -5,7 +5,6 @@ import { reloadJobConflict } from '../../api/jobs';
 import { useWorkSite } from '../../api/workers';
 import { completeTbmBody, localDate, tbmHeldAt, tbmContentBody, tbmPermissions } from '../../utils/job-forms';
 import JobPageLayout, { JobPageHeading } from '../../components/job-page-layout';
-import { JobSiteSelector } from './job-work-form';
 import JobReferenceSelectors from '../../components/job-reference-selectors';
 import JobTbmRisks from '../../components/job-tbm-risks';
 
@@ -345,8 +344,7 @@ export default function JobTbm() {
   const [params] = useSearchParams();
   return (
     <JobPageLayout title="TBM" user={context.account?.user} contentClassName="job-management">
-      <JobPageHeading title="TBM" description="현장 TBM 기록을 조회하고 참석자와 실시 완료를 관리합니다." />
-      <JobSiteSelector context={context} />
+      <JobPageHeading title="TBM" description="현장 TBM 기록을 조회하고 참석자와 실시 완료를 관리합니다." context={context} />
       {context.currentSite && <TbmWorkspace key={`${context.currentSite.siteId}:${params}`} site={context.currentSite}
         disabled={context.selecting || context.loading} initialTbmId={params.get('tbmId')} initialDate={params.get('date')} />}
     </JobPageLayout>

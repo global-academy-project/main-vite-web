@@ -4,11 +4,11 @@ import { bottomTabsFor, effectiveRole, homePathFor, isActivePath, navFor, NAV } 
 
 const keys = (items) => items.map((item) => item.key);
 
-test('역할별 메뉴: 작성자는 분석·현장 설정·관리·승인함이 없다', () => {
-  assert.deepEqual(keys(navFor('MEMBER', 'WRITER')), ['home', 'work', 'records']);
+test('역할별 메뉴: 작성자도 승인함(내가 요청한 문서)이 있고, 현장 설정·관리는 없다', () => {
+  assert.deepEqual(keys(navFor('MEMBER', 'WRITER')), ['home', 'work', 'approvals', 'records']);
 });
 
-test('승인자는 승인함이 보인다', () => {
+test('승인자 메뉴는 작성자와 같다 (승인·반려 권한은 서버가 판단)', () => {
   assert.deepEqual(keys(navFor('MEMBER', 'APPROVER')), ['home', 'work', 'approvals', 'records']);
 });
 
@@ -22,7 +22,7 @@ test('계정 ADMIN 은 현장 역할과 상관없이 전부', () => {
 });
 
 test('현장 역할을 모르면 공통 메뉴만, 현장 역할로 ADMIN 이 와도 계정 ADMIN 이 아니면 인정하지 않는다', () => {
-  assert.deepEqual(keys(navFor('MEMBER', null)), ['home', 'work', 'records']);
+  assert.deepEqual(keys(navFor('MEMBER', null)), ['home', 'work', 'approvals', 'records']);
   assert.equal(effectiveRole('MEMBER', 'ADMIN'), null);
 });
 
@@ -42,7 +42,8 @@ test('현재 경로 표시: 하위 경로와 상세 경로도 그 메뉴로 본�
   assert.equal(isActivePath(work, '/dashboard'), false);
 });
 
-test('하단 탭: 작성자 3개 + 더보기, 승인자 4개 + 더보기', () => {
-  assert.deepEqual(keys(bottomTabsFor('MEMBER', 'WRITER')), ['home', 'work', 'records']);
-  assert.deepEqual(keys(bottomTabsFor('MEMBER', 'APPROVER')), ['home', 'work', 'approvals', 'records']);
+test('하단 탭: 역할과 상관없이 같은 4개 + 더보기', () => {
+  const tabs = ['home', 'work', 'approvals', 'records'];
+  ['WRITER', 'APPROVER', 'SITE_ADMIN'].forEach((role) => assert.deepEqual(keys(bottomTabsFor('MEMBER', role)), tabs));
+  assert.deepEqual(keys(bottomTabsFor('ADMIN', null)), tabs);
 });

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { refreshWorkSite } from '../../api/workers';
+import PageHeader from '../../components/ui/page-header.jsx';
 import SafetyPageLayout from '../../components/safety-page-layout';
 import ApprovalReview from '../../components/approvals/approval-review.jsx';
 import { Badge } from '../../components/home/panel.jsx';
@@ -18,14 +18,14 @@ import '../../styles/work.css';
 import '../../styles/approvals.css';
 
 const TABS = [
-  { key: 'pending', label: '내 승인 대기', empty: '지금 결재할 문서가 없습니다' },
-  { key: 'requested', label: '내가 요청한 문서', empty: '요청한 문서가 없습니다' },
+  { key: 'pending', label: '결재 대기', empty: '지금 결재할 문서가 없습니다' },
+  { key: 'requested', label: '내 요청', empty: '요청한 문서가 없습니다' },
 ];
 const STATUS_FILTERS = ['PENDING', 'APPROVED', 'REJECTED', 'CANCELED'];
 const EMPTY_FILTERS = { types: [], status: '', from: '', to: '', keyword: '' };
 
 /**
- * 승인함. 서버 목록은 "내 승인 대기"(pending)와 "내가 요청한 문서"(mine=requested) 두 가지.
+ * 승인함. 서버 목록은 "결재 대기"(내가 결재할 차례, pending)와 "내 요청"(내가 올린 문서, mine=requested) 두 가지.
  * 검토를 누르면 PC 는 오른쪽 드로어, 모바일은 바텀 시트로 열리고 주소에 open=결재번호 가 남는다.
  * /approvals/:id 전체 화면(알림·공유 링크)도 같은 검토 부품을 쓴다.
  */
@@ -37,7 +37,7 @@ function Inbox({ site }) {
   const siteId = site.currentSite?.siteId;
   const inbox = useApprovalInbox(siteId);
   const [params, setParams] = useSearchParams();
-  // 승인 권한이 없는 작성자는 "내가 요청한 문서"가 첫 탭
+  // 승인 권한이 없는 작성자는 "내 요청"이 첫 탭
   const approver = ['ADMIN', 'SITE_ADMIN', 'APPROVER'].includes(effectiveRole(site.account?.user?.role, site.currentSite?.role));
   const tab = params.get('tab') === 'requested' || params.get('tab') === 'pending' ? params.get('tab') : (approver ? 'pending' : 'requested');
   const openId = /^\d+$/.test(params.get('open') ?? '') ? params.get('open') : null;
@@ -51,27 +51,14 @@ function Inbox({ site }) {
     const merged = { tab, ...(openId ? { open: openId } : {}), ...next };
     setParams(Object.fromEntries(Object.entries(merged).filter(([, value]) => value)));
   };
-  const changeSite = async (event) => { await site.selectSite(event.target.value); refreshWorkSite(); setParams({}); };
   const update = (key, value) => setFilters((prev) => ({ ...prev, [key]: value }));
 
   if (!siteId) return site.loading ? <StatusView kind="loading" /> : <StatusView kind="empty" title="선택할 수 있는 현장이 없습니다" message="관리자에게 현장 권한을 요청하세요." />;
 
   return (
     <div className="work-list appr-inbox">
-      <header className="work-head">
-        <div>
-          <h1 className="work-head__title">승인함</h1>
-          <p className="work-head__meta">{site.currentSite?.name} · 지연된 결재가 맨 위에 옵니다.</p>
-        </div>
-        <div className="work-head__actions">
-          {site.account?.sites?.length > 1 && (
-            <label className="home-site"><span className="sr-only">현장 선택</span>
-              <select value={siteId} onChange={changeSite} disabled={site.selecting}>{site.account.sites.map((item) => <option key={item.siteId} value={item.siteId}>{item.name}</option>)}</select>
-            </label>
-          )}
-          <button type="button" className="ui-btn ui-btn--ghost" onClick={inbox.reload}><Icon name="refresh" size={16} />새로고침</button>
-        </div>
-      </header>
+      <PageHeader title="승인함" description="지연된 결재가 맨 위에 옵니다." context={site} notices={false} onBeforeSelect={() => setParams({})}
+        actions={<button type="button" className="ui-btn ui-btn--ghost" onClick={inbox.reload}><Icon name="refresh" size={16} />새로고침</button>} />
 
       <div className="home-assistant__tabs appr-tabs" role="tablist" aria-label="승인함 목록">
         {TABS.map((item) => {
@@ -87,7 +74,7 @@ function Inbox({ site }) {
 
       <ul className="work-stats appr-stats" aria-label="결재 건수">
         {[
-          { key: '', label: tab === 'pending' ? '결재할 문서' : '전체', value: stats.total, tone: 'neutral' },
+          { key: '', label: '전체', value: stats.total, tone: 'neutral' },
           { key: 'OVERDUE', label: '지연', value: stats.overdue, tone: 'block' },
           { key: 'PENDING', label: '승인 대기', value: stats.pending, tone: 'wait' },
           ...(tab === 'requested' ? [{ key: 'REJECTED', label: '반려', value: stats.rejected, tone: 'block' }, { key: 'APPROVED', label: '승인 완료', value: stats.approved, tone: 'done' }] : []),

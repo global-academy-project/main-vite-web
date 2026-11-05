@@ -1,10 +1,11 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import StatusView, { Skeleton } from '../ui/status-view.jsx';
 import Icon from '../ui/icon.jsx';
 import Panel, { Badge } from './panel.jsx';
 import {
   APPROVAL_TARGET_LABELS, nextAction, timeRange, todoTiles, todoTotal, toneOf, typeCounts, WORK_STATUS_LABELS, WORK_TYPE_LABELS, workStages,
 } from '../../utils/home-model.js';
-import { jobRecordPath } from '../../utils/job-forms.js';
 
 const hm = (value) => (typeof value === 'string' && value.length >= 16 ? value.slice(11, 16) : '');
 
@@ -21,21 +22,18 @@ export function TodoPanel({ section, onRetry }) {
         </div>
       )}
       <ul className="home-tiles">
-        {tiles.filter((tile) => tile.count > 0).map((tile) => (
+        {tiles.map((tile) => (
           <li key={tile.type}>
-            <Link to={tile.path} className={`home-tile has-count${tile.overdue ? ' is-overdue' : ''}`} title={tile.fullLabel}>
+            <Link to={tile.path} className={`home-tile${tile.count ? ' has-count' : ''}${tile.overdue ? ' is-overdue' : ''}`} title={tile.fullLabel}>
               <span className="home-tile__label">{tile.label}</span>
               <span className="home-tile__row">
-                <span className="home-tile__count">{tile.count}<small>건</small></span>
                 {tile.overdue && <span className="home-tile__due"><Icon name="clock" size={12} />지남</span>}
+                <span className="home-tile__count">{tile.count}<small>건</small></span>
               </span>
             </Link>
           </li>
         ))}
       </ul>
-      {tiles.some((tile) => tile.count === 0) && (
-        <p className="home-tiles__none"><Icon name="check" size={14} />없음: {tiles.filter((tile) => tile.count === 0).map((tile) => tile.label).join(' · ')}</p>
-      )}
     </Panel>
   );
 }
@@ -120,35 +118,52 @@ export function TodayWorksPanel({ section, zones, highlightId, onRetry }) {
   );
 }
 
-/** 승인 대기(승인자) 또는 내가 올린 요청(작성자) */
-export function ApprovalsPanel({ section, approver, onRetry }) {
+/**
+ * 승인함 카드. 제목·버튼·자리는 역할과 상관없이 항상 같다.
+ * 안쪽에 "결재 대기 / 내 요청" 전환(승인함 화면 탭과 같은 이름)이 고정돼 있고, 처음 열리는 쪽만 역할에 따라 다르다.
+ */
+export function ApprovalsPanel({ pending, requested, approver, onRetry }) {
+  const [view, setView] = useState(approver ? 'pending' : 'requested');
+  const section = view === 'pending' ? pending : requested;
   const rows = section.data ?? [];
-  const open = approver ? rows : rows.filter((row) => row.status === 'PENDING');
+  const waiting = (list) => (list.status === 'ready' ? list.data.filter((row) => row.status === 'PENDING').length : null);
   return (
-    <Panel
-      id="approvals" title={approver ? '승인 대기' : '내 승인 요청'} count={section.status === 'ready' ? open.length : null}
-      section={section} onRetry={onRetry} link={approver ? '/approvals' : null}
-      isEmpty={!rows.length} empty={{ title: approver ? '기다리는 승인이 없습니다' : '올린 승인 요청이 없습니다' }}
-      className="home-approvals"
-    >
-      <ul className="home-list">
-        {rows.slice(0, 20).map((row) => (
-          <li key={row.approvalId}>
-            <Link to={approver ? `/approvals/${row.approvalId}` : (jobRecordPath(row.targetType, row.targetId) ?? `/approvals/${row.approvalId}`)} className="home-list__item">
-              <span className="home-list__main">
-                <span className="home-list__kind">{APPROVAL_TARGET_LABELS[row.targetType] ?? row.targetType}</span>
-                <span className="home-list__title">{row.title || `${row.targetType} #${row.targetId}`}</span>
-              </span>
-              <span className="home-list__meta">
-                {row.overdue && <Badge tone="block">지연</Badge>}
-                <Badge tone={toneOf(row.status)}>{row.status === 'PENDING' ? `${row.currentStep}/${row.totalSteps} ${row.currentStepLabel ?? ''}`.trim() : ({ APPROVED: '승인', REJECTED: '반려', CANCELED: '취소' }[row.status] ?? row.status)}</Badge>
-              </span>
-            </Link>
-          </li>
+    <Panel id="approvals" title="승인함" count={waiting(pending)} link="/approvals" linkLabel="승인함 열기" className="home-approvals">
+      <div className="home-seg" role="tablist" aria-label="승인함 목록">
+        {[['pending', '결재 대기', waiting(pending)], ['requested', '내 요청', waiting(requested)]].map(([key, label, count]) => (
+          <button key={key} type="button" role="tab" aria-selected={view === key} className={`home-seg__btn${view === key ? ' is-active' : ''}`} onClick={() => setView(key)}>
+            {label}{count != null && <span className="home-seg__count">{count}</span>}
+          </button>
         ))}
-      </ul>
+      </div>
+      <SectionBody section={section} onRetry={onRetry} isEmpty={!rows.length} empty={view === 'pending' ? '지금 결재할 문서가 없습니다' : '요청한 문서가 없습니다'}>
+        <ul className="home-list">
+          {rows.slice(0, 20).map((row) => (
+            <li key={row.approvalId}>
+              <Link to={`/approvals?tab=${view}&open=${row.approvalId}`} className="home-list__item">
+                <span className="home-list__main">
+                  <span className="home-list__kind">{APPROVAL_TARGET_LABELS[row.targetType] ?? row.targetType}</span>
+                  <span className="home-list__title">{row.title || `${row.targetType} #${row.targetId}`}</span>
+                </span>
+                <span className="home-list__meta">
+                  {row.overdue && row.status === 'PENDING' && <Badge tone="block">지연</Badge>}
+                  <Badge tone={toneOf(row.status)}>{row.status === 'PENDING' ? `${row.currentStep}/${row.totalSteps} ${row.currentStepLabel ?? ''}`.trim() : ({ APPROVED: '승인', REJECTED: '반려', CANCELED: '회수' }[row.status] ?? row.status)}</Badge>
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </SectionBody>
     </Panel>
   );
+}
+
+/** 카드 안 일부 영역의 상태 화면 (카드 머리는 그대로 두고 내용만 바뀐다) */
+function SectionBody({ section, onRetry, isEmpty, empty, children }) {
+  if (section.status === 'loading') return <div className="home-panel__pad"><Skeleton lines={3} /></div>;
+  if (section.status === 'error') return section.code === 403 ? <StatusView kind="forbidden" compact /> : <StatusView kind="error" compact message={section.error} onRetry={onRetry} />;
+  if (isEmpty) return <StatusView kind="empty" compact title={empty} />;
+  return children;
 }
 
 /** 위험·주의 알림 */

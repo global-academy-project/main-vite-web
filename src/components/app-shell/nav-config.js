@@ -4,7 +4,6 @@
 export const ROLE_LABELS = Object.freeze({ ADMIN: '회사 관리자', SITE_ADMIN: '현장 관리자', APPROVER: '승인자', WRITER: '작성자' });
 
 const ALL = ['ADMIN', 'SITE_ADMIN', 'APPROVER', 'WRITER'];
-const APPROVERS = ['ADMIN', 'SITE_ADMIN', 'APPROVER'];
 const MANAGERS = ['ADMIN', 'SITE_ADMIN'];
 
 export const NAV = Object.freeze([
@@ -19,7 +18,8 @@ export const NAV = Object.freeze([
       { key: 'tbm', label: 'TBM', path: '/job/tbm' },
     ],
   },
-  { key: 'approvals', label: '승인함', icon: 'inbox', path: '/approvals', roles: APPROVERS },
+  // 승인함은 모든 역할: 승인자는 "결재 대기", 작성자는 "내 요청"을 주로 본다 (승인·반려 권한은 서버가 canDecide 로 판단)
+  { key: 'approvals', label: '승인함', icon: 'inbox', path: '/approvals', roles: ALL },
   {
     key: 'records', label: '기록', icon: 'records', roles: ALL,
     children: [
@@ -67,7 +67,7 @@ export function isActivePath(item, pathname) {
 /** 그룹이면 첫 하위 경로 (태블릿 아이콘 메뉴에서 누를 때) */
 export const firstPath = (item) => item.path ?? item.children?.[0]?.path ?? '/dashboard';
 
-/** 모바일 하단 탭: 홈·작업·(승인함)·기록 + 더보기(전체 메뉴) */
+/** 모바일 하단 탭: 홈·작업·승인함·기록 + 더보기(전체 메뉴). 역할과 상관없이 같은 자리 */
 export function bottomTabsFor(accountRole, siteRole) {
   const keys = ['home', 'work', 'approvals', 'records'];
   return navFor(accountRole, siteRole).filter((item) => keys.includes(item.key));

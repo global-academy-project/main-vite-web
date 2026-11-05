@@ -1,6 +1,7 @@
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import SafetyPageLayout from '../../components/safety-page-layout';
 import ApprovalReview from '../../components/approvals/approval-review.jsx';
+import PageHeader from '../../components/ui/page-header.jsx';
 import '../../styles/home.css';
 import '../../styles/work.css';
 import '../../styles/approvals.css';
@@ -14,7 +15,7 @@ function Detail() {
   const navigate = useNavigate();
   return (
     <div className="work-hub appr-page">
-      <nav className="work-crumb" aria-label="경로"><Link to="/approvals">승인함</Link><span aria-hidden="true">›</span><span>결재 #{approvalId}</span></nav>
+      <PageHeader title="결재 검토" description={`결재 #${approvalId}`} actions={<Link className="ui-btn ui-btn--ghost" to="/approvals">승인함 목록</Link>} />
       <section className="home-panel appr-page__panel">
         <ApprovalReview approvalId={approvalId} onDecided={(latest, action) => {
           if (action === 'cancel') return;

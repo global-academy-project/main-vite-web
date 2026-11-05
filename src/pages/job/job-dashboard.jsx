@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import { useWorkSite } from '../../api/workers';
 import { getSafetyDashboard } from '../../api/dashboard';
 import JobPageLayout, { JobPageHeading } from '../../components/job-page-layout';
-import { JobSiteSelector } from './job-work-form';
 import JobWorkList from '../../components/job-work-list';
 import { localDate } from '../../utils/job-forms';
 
@@ -44,8 +43,7 @@ export default function JobDashboard() {
 
   return (
     <JobPageLayout title="작업 현황" user={context.account?.user} contentClassName="job-management job-overview">
-      <JobPageHeading title="안전 작업 현황" description={`${new Date().toLocaleDateString('ko-KR')} · ${context.currentSite?.name ?? '현장 미선택'}`} />
-      <JobSiteSelector context={context} />
+      <JobPageHeading title="안전 작업 현황" description={new Date().toLocaleDateString('ko-KR')} context={context} />
       <p className="scenario-notice">선택 현장과 권한은 실제 사용자 API 정보입니다. 업무 조회 API가 없는 항목은 0건이나 가상 작업으로 대체하지 않습니다.</p>
       <section className="stat-grid" aria-label="안전관리 요약">
         <div className="stat-card"><span>접근 가능 현장</span><strong>{context.account ? context.account.sites.length : '미조회'}<small>곳</small></strong></div>

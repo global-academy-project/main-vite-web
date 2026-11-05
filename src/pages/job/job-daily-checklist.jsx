@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useWorkSite } from '../../api/workers';
-import { JobSiteSelector } from './job-work-form';
 import JobPageLayout, { JobPageHeading } from '../../components/job-page-layout';
 import '../../style/job/job-dailey-checklist.css';
 
@@ -122,7 +121,7 @@ function ChecklistWorkspace({ context }) {
       <JobPageHeading
         title="작업구역 점검"
         className="checklist-heading"
-        eyebrow={<span className="job-eyebrow">ZONE INSPECTION</span>}
+        context={context}
         actions={<button type="button" className="checklist-back" onClick={() => navigate('/dashboard')}>대시보드로 돌아가기</button>}
       >
         <label>점검일<input type="date" value={inspectionDate} onChange={(event) => {
@@ -130,7 +129,6 @@ function ChecklistWorkspace({ context }) {
         }} /></label>
       </JobPageHeading>
 
-          <JobSiteSelector context={context} />
           <p className="job-demo-notice">서버의 현장 정보만 연결되어 있습니다. 구역·점검 양식 조회 및 점검 저장·제출 API가 없어 아래는 입력 연습용입니다.</p>
 
           <section className="inspection-metadata" aria-label="점검 기록 정보">

@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { refreshWorkSite, useWorkSite } from '../../api/workers';
+import { useWorkSite } from '../../api/workers';
 import JobPageLayout from '../../components/job-page-layout';
 import WorkIncidentWarnings from '../../components/work-incident-warnings';
-import { JobSiteSelector } from './job-work-form';
+import PageHeader from '../../components/ui/page-header.jsx';
 import JobWorkAgent from './job-work-agent';
 import { Badge } from '../../components/home/panel.jsx';
 import WorkCreateForm from '../../components/work/work-create-form.jsx';
@@ -46,23 +46,16 @@ export default function JobWorkspace() {
   const [lastSite, setLastSite] = useState(site?.siteId);
   if (lastSite !== site?.siteId) { setLastSite(site?.siteId); setRecordQueryState(createRecordQueryState()); }
 
-  const changeSite = async (event) => {
-    await context.selectSite(event.target.value);
-    refreshWorkSite();
-    if (workId) setParams({});
-  };
+  // 허브에서 현장을 바꾸면 그 작업은 다른 현장 것이므로 목록으로 돌아간다
+
 
   return (
     <JobPageLayout title={workId ? '작업 허브' : '작업'} user={context.account?.user} contentClassName="work-page">
-      {!site ? <JobSiteSelector context={context} /> : (
+      {!site ? <PageHeader title="작업" context={context} /> : (
         <>
-          {context.error && (
-            <p className="work-form__error" role="alert"><Icon name="alert" size={16} />{context.error}
-              <button type="button" className="ui-btn ui-btn--ghost" disabled={context.loading || context.selecting} onClick={context.reload}>다시 조회</button></p>
-          )}
           {workId
-            ? <ErrorBoundary resetKeys={[workId]}><WorkHub site={site} workId={workId} params={params} setParams={setParams} /></ErrorBoundary>
-            : <WorkList site={site} context={context} onChangeSite={changeSite} onCreate={() => setSheet('create')} onAgent={() => setSheet('agent')} />}
+            ? <ErrorBoundary resetKeys={[workId]}><WorkHub site={site} context={context} workId={workId} params={params} setParams={setParams} /></ErrorBoundary>
+            : <WorkList site={site} context={context} onCreate={() => setSheet('create')} onAgent={() => setSheet('agent')} />}
         </>
       )}
 
@@ -92,7 +85,7 @@ export default function JobWorkspace() {
 
 const TYPE_KEYS = Object.keys(WORK_TYPE_LABELS);
 
-function WorkList({ site, context, onChangeSite, onCreate, onAgent }) {
+function WorkList({ site, context, onCreate, onAgent }) {
   const navigate = useNavigate();
   const today = localDate();
   const [from, setFrom] = useState(today);
@@ -120,22 +113,12 @@ function WorkList({ site, context, onChangeSite, onCreate, onAgent }) {
 
   return (
     <div className="work-list">
-      <header className="work-head">
-        <div>
-          <h1 className="work-head__title">작업</h1>
-          <p className="work-head__meta">{site.name} · 작업을 누르면 작업 허브에서 다음 할 일을 이어 갑니다.</p>
-        </div>
-        <div className="work-head__actions">
-          {context.account?.sites?.length > 1 && (
-            <label className="home-site"><span className="sr-only">현장 선택</span>
-              <select value={site.siteId} onChange={onChangeSite} disabled={context.selecting}>{context.account.sites.map((item) => <option key={item.siteId} value={item.siteId}>{item.name}</option>)}</select>
-            </label>
-          )}
+      <PageHeader title="작업" description="작업을 누르면 작업 허브에서 다음 할 일을 이어 갑니다." context={context}
+        actions={<>
           <button type="button" className="ui-btn ui-btn--ghost" onClick={onAgent}>AI 대화</button>
           <Link className="ui-btn ui-btn--secondary" to="/dashboard">대화로 만들기</Link>
           <button type="button" className="ui-btn ui-btn--primary" onClick={onCreate}>작업 직접 등록</button>
-        </div>
-      </header>
+        </>} />
 
       <ul className="work-stats" aria-label="작업 상태별 건수">
         {stats.map((stat) => {
@@ -232,7 +215,7 @@ function WorkList({ site, context, onChangeSite, onCreate, onAgent }) {
 
 /* ── 작업 허브 ─────────────────────────────────────────────── */
 
-function WorkHub({ site, workId, params, setParams }) {
+function WorkHub({ site, context, workId, params, setParams }) {
   const hub = useWorkHub(site.siteId, workId);
   const docParam = parseDocParam(params.get('doc'));
   const [entry, setEntry] = useState(null);
@@ -271,13 +254,10 @@ function WorkHub({ site, workId, params, setParams }) {
 
   return (
     <div className="work-hub">
-      <nav className="work-crumb" aria-label="경로"><Link to="/job/workspace">작업</Link><span aria-hidden="true">›</span><span>{work.title}</span></nav>
-      <header className="work-head">
-        <div>
-          <h1 className="work-head__title">{work.title} <Badge tone={work.highRisk ? 'warn' : 'neutral'}>{WORK_TYPE_LABELS[work.workType] ?? work.workType}</Badge> <Badge tone={toneOf(work.status)}>{WORK_STATUS_LABELS[work.status] ?? work.status}</Badge></h1>
-          <p className="work-head__meta">#{work.workId} · {zone?.name ?? (work.zoneId ? `구역 #${work.zoneId}` : '구역 미지정')} · {work.workDate} {timeRange(work.startAt, work.endAt)} · 작업자 {work.workerCount ?? '-'}명</p>
-        </div>
-      </header>
+      <PageHeader title={work.title} context={context} onBeforeSelect={() => setParams({})}
+        badges={<><Badge tone={work.highRisk ? 'warn' : 'neutral'}>{WORK_TYPE_LABELS[work.workType] ?? work.workType}</Badge><Badge tone={toneOf(work.status)}>{WORK_STATUS_LABELS[work.status] ?? work.status}</Badge></>}
+        description={`작업 #${work.workId} · ${zone?.name ?? (work.zoneId ? `구역 #${work.zoneId}` : '구역 미지정')} · ${work.workDate} ${timeRange(work.startAt, work.endAt)} · 작업자 ${work.workerCount ?? '-'}명`}
+        actions={<Link className="ui-btn ui-btn--ghost" to="/job/workspace">작업 목록</Link>} />
       {hub.error && <p className="work-form__error" role="alert"><Icon name="alert" size={16} />{hub.error}</p>}
 
       <section className="home-panel work-progress" aria-label="진행 단계">

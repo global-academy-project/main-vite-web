@@ -8,7 +8,6 @@ import {
 import { useWorkSite } from '../../api/workers';
 import JobPageLayout, { JobPageHeading } from '../../components/job-page-layout';
 import { jobRecordPath, localDate } from '../../utils/job-forms';
-import { JobSiteSelector } from './job-work-form';
 
 const statusLabel = { DRAFT: '작성 중', PENDING: '승인 대기', APPROVED: '승인 완료', REJECTED: '반려됨' };
 const approverRoles = ['APPROVER', 'SITE_ADMIN', 'ADMIN'];
@@ -168,8 +167,8 @@ export default function JobDailySafety() {
   };
 
   return <JobPageLayout title="일일 안전일지" user={context.account?.user} contentClassName="job-management job-overview">
-    <JobPageHeading title="일일 안전일지" description={`${date} · ${context.currentSite?.name ?? '현장 미선택'}`} actions={<Deadline dashboard={dashboard} />} />
-    <JobSiteSelector context={context} onBeforeSelect={() => dirty && setNotice('저장하지 않은 요약 수정 내용은 현장을 바꾸면 사라집니다. 현장을 바꾸기 전에 저장해 주세요.')} />
+    <JobPageHeading title="일일 안전일지" description={date} actions={<Deadline dashboard={dashboard} />} context={context}
+      onBeforeSelect={() => dirty && setNotice('저장하지 않은 요약 수정 내용은 현장을 바꾸면 사라집니다. 현장을 바꾸기 전에 저장해 주세요.')} />
     <section className="panel job-form"><label>기준 날짜<input type="date" value={date} onChange={(event) => setDate(event.target.value)} disabled={busy} /></label></section>
     {error && <p className="dashboard-error" role="alert">{error} <button type="button" onClick={() => void load()} disabled={loading || busy}>다시 조회</button></p>}
     {notice && <p className="job-review-notice" role="status">{notice}</p>}
