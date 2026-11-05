@@ -57,6 +57,7 @@ export function TagEditor({ tags, codes, onChange, disabled = false }) {
     <fieldset className="incident-tag-editor" disabled={disabled}>
       <legend>5축 태그 검토</legend>
       <p className="job-help">모르는 축은 미분류로 남겨 두세요. 직접 선택한 값은 사용자 태그로 저장됩니다. 신뢰도는 안전 판정 점수가 아닙니다.</p>
+      <div className="incident-tag-axes">
       {TAG_AXES.filter(({ axis }) => axis !== 'SUBSTANCE').map(({ axis, label }) => (
         <fieldset key={axis}>
           <legend>{label}</legend>
@@ -71,16 +72,22 @@ export function TagEditor({ tags, codes, onChange, disabled = false }) {
           </div>
         </fieldset>
       ))}
-      <label className="incident-cas-input">물질 CAS 번호
-        <input value={cas} onChange={(event) => setCas(event.target.value)} placeholder="108-88-3" />
-      </label>
-      <button type="button" className="job-history-refresh" onClick={addCas}>물질 추가</button>
-      {tags.filter((tag) => tag.axis === 'SUBSTANCE').map((tag) => (
-        <button type="button" className="job-history-refresh" key={tag.value}
-          onClick={() => toggle('SUBSTANCE', tag.value, false)}>{tag.value} 삭제</button>
-      ))}
+      </div>
+      <div className="incident-cas-row">
+        <label className="incident-cas-input">물질 CAS 번호
+          <input value={cas} onChange={(event) => setCas(event.target.value)} placeholder="108-88-3" />
+        </label>
+        <button type="button" className="job-history-refresh" onClick={addCas}>물질 추가</button>
+        {tags.filter((tag) => tag.axis === 'SUBSTANCE').map((tag) => (
+          <button type="button" className="job-history-refresh incident-cas-chip" key={tag.value}
+            onClick={() => toggle('SUBSTANCE', tag.value, false)}>{tag.value} 삭제</button>
+        ))}
+      </div>
       {error && <p role="alert" className="dashboard-error">{error}</p>}
-      <TagChips tags={tags} codes={codes} />
+      <details className="incident-tag-summary">
+        <summary>고른 태그와 출처 보기 (사용자 / AI 신뢰도)</summary>
+        <TagChips tags={tags} codes={codes} />
+      </details>
     </fieldset>
   );
 }
