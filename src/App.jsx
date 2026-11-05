@@ -1,110 +1,117 @@
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { lazy, Suspense, useEffect, useState } from "react";
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { getToken } from "./api/client";
-// User Component 모듈
-import Register from "./pages/users/register";
-import RegisterDone from "./pages/users/register-done";
-import Signin from "./pages/users/signin";
-import Me from "./pages/users/me";
-import ChangePassword from "./pages/users/change-password";
-import ForgotPassword from "./pages/users/forgot-password";
-import ResetPassword from "./pages/users/reset-password";
-import VerifyEmail from "./pages/users/verify-email";
-import VerifyEmailChange from "./pages/users/verify-email-change";
+import { getCachedCurrentUser } from "./api/workers";
 import ProtectedRoute from "./components/protected-route";
-// Job Component 모듈
-import JobSearch from "./pages/job/job-search";
-import JobDashboard from "./pages/job/job-dashboard";
-import JobWorkspace from "./pages/job/job-workspace";
-import DailyChecklist from "./pages/job/job-daily-checklist";
-import JobIncidents from "./pages/job/job-incidents";
-import JobPermits from "./pages/job/job-permits";
-import JobRiskAssessment from "./pages/job/job-risk-assessment";
-import JobTbm from "./pages/job/job-tbm";
-import JobDailySafety from "./pages/job/job-daily-safety";
-import AdminUsers from "./pages/admin/users";
-import Dashboard from "./pages/dashboard";
-import ApprovalInbox from "./pages/approvals/approval-inbox";
-import ApprovalDetail from "./pages/approvals/approval-detail";
-import ApprovalResult from "./pages/approvals/approval-result";
-import ApprovalRevision from "./pages/approvals/approval-revision";
-import RecordSearch from "./pages/records/record-search";
-import RecordDetail from "./pages/records/record-detail";
+import Signin from "./pages/users/signin";
+import { homePathFor } from "./components/app-shell/nav-config.js";
+import ErrorBoundary from "./components/ui/error-boundary.jsx";
+import StatusView from "./components/ui/status-view.jsx";
+import ToastProvider from "./components/ui/toast-provider.jsx";
+import "./styles/ui.css";
 
+// 화면별 지연 로딩: 첫 화면(로그인)만 바로 싣고 나머지는 들어갈 때 받는다
+const Register = lazy(() => import("./pages/users/register"));
+const RegisterDone = lazy(() => import("./pages/users/register-done"));
+const Me = lazy(() => import("./pages/users/me"));
+const ChangePassword = lazy(() => import("./pages/users/change-password"));
+const ForgotPassword = lazy(() => import("./pages/users/forgot-password"));
+const ResetPassword = lazy(() => import("./pages/users/reset-password"));
+const VerifyEmail = lazy(() => import("./pages/users/verify-email"));
+const VerifyEmailChange = lazy(() => import("./pages/users/verify-email-change"));
+const JobSearch = lazy(() => import("./pages/job/job-search"));
+const JobDashboard = lazy(() => import("./pages/job/job-dashboard"));
+const JobWorkspace = lazy(() => import("./pages/job/job-workspace"));
+const DailyChecklist = lazy(() => import("./pages/job/job-daily-checklist"));
+const JobIncidents = lazy(() => import("./pages/job/job-incidents"));
+const JobPermits = lazy(() => import("./pages/job/job-permits"));
+const JobRiskAssessment = lazy(() => import("./pages/job/job-risk-assessment"));
+const JobTbm = lazy(() => import("./pages/job/job-tbm"));
+const JobDailySafety = lazy(() => import("./pages/job/job-daily-safety"));
+const AdminUsers = lazy(() => import("./pages/admin/users"));
+const Dashboard = lazy(() => import("./pages/dashboard"));
+const ApprovalInbox = lazy(() => import("./pages/approvals/approval-inbox"));
+const ApprovalDetail = lazy(() => import("./pages/approvals/approval-detail"));
+const ApprovalResult = lazy(() => import("./pages/approvals/approval-result"));
+const ApprovalRevision = lazy(() => import("./pages/approvals/approval-revision"));
+const RecordSearch = lazy(() => import("./pages/records/record-search"));
+const RecordDetail = lazy(() => import("./pages/records/record-detail"));
+
+/** 첫 화면: 로그인 안 했으면 로그인, 했으면 역할별 첫 화면(승인자는 승인함, 나머지는 홈) */
 function EntryRedirect() {
-  return <Navigate to={getToken() ? "/dashboard" : "/signin"} replace />;
+  const [target, setTarget] = useState(() => (getToken() ? null : "/signin"));
+  useEffect(() => {
+    if (target) return undefined;
+    let cancelled = false;
+    getCachedCurrentUser()
+      .then((data) => {
+        const site = data.sites.find((item) => item.siteId === data.currentSiteId);
+        if (!cancelled) setTarget(homePathFor(data.user?.role, site?.role));
+      })
+      .catch(() => { if (!cancelled) setTarget("/dashboard"); });
+    return () => { cancelled = true; };
+  }, [target]);
+  if (!target) return <PageLoading />;
+  return <Navigate to={target} replace />;
 }
+
+function PageLoading() {
+  return <main className="page-message"><StatusView kind="loading" title="화면을 불러오는 중입니다" /></main>;
+}
+
+/** 화면마다 에러 경계: 한 화면이 실패해도 메뉴 이동으로 다른 화면은 쓸 수 있다 */
+function RouteFrame({ children }) {
+  const { pathname } = useLocation();
+  return (
+    <ErrorBoundary resetKeys={[pathname]} title="이 화면을 표시하지 못했습니다">
+      <Suspense fallback={<PageLoading />}>{children}</Suspense>
+    </ErrorBoundary>
+  );
+}
+
+const guard = (element) => <ProtectedRoute>{element}</ProtectedRoute>;
 
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<EntryRedirect />} />
-        <Route path="/signin" element={<Signin />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/register/done" element={<RegisterDone />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/reset-password" element={<ResetPassword />} />
-        <Route path="/verify-email" element={<VerifyEmail />} />
-        <Route path="/verify-email-change" element={<VerifyEmailChange />} />
-        <Route
-          path="/me"
-          element={
-            <ProtectedRoute>
-              <Me />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/change-password"
-          element={
-            <ProtectedRoute>
-              <ChangePassword />
-            </ProtectedRoute>
-          }
-        />
-        {/* Job List, Details 라우팅 */}
-        <Route
-          path="/job/list"
-          element={
-              <ProtectedRoute><JobSearch /></ProtectedRoute>
-          }
-        />
-        <Route path="/job/dashboard" element={<ProtectedRoute><JobDashboard /></ProtectedRoute>} />
-        <Route path="/job/workspace" element={<ProtectedRoute><JobWorkspace /></ProtectedRoute>} />
-        {/* ROUTE: /approvals | ROLE: APPROVER, SITE_ADMIN, ADMIN | API: approvals/pending */}
-        <Route path="/approvals" element={<ProtectedRoute><ApprovalInbox /></ProtectedRoute>} />
-        {/* ROUTE: /approvals/:approvalId | FLOW: 승인함 → 상세 → 승인/반려 */}
-        <Route path="/approvals/:approvalId" element={<ProtectedRoute><ApprovalDetail /></ProtectedRoute>} />
-        <Route path="/approvals/:approvalId/result" element={<ProtectedRoute><ApprovalResult /></ProtectedRoute>} />
-        <Route path="/approvals/:approvalId/revision" element={<ProtectedRoute><ApprovalRevision /></ProtectedRoute>} />
-        {/* ROUTE: /records/search | TODO: RECORD_QUERY agent flow is not connected yet. */}
-        <Route path="/records/search" element={<ProtectedRoute><RecordSearch /></ProtectedRoute>} />
-        <Route path="/records/:recordType/:recordId" element={<ProtectedRoute><RecordDetail /></ProtectedRoute>} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route
-          path="/job/dailey-checklist"
-          element={<ProtectedRoute><DailyChecklist /></ProtectedRoute>}
-        />
-        <Route path="/job/incidents" element={<ProtectedRoute><JobIncidents /></ProtectedRoute>} />
-        <Route path="/job/permits" element={<ProtectedRoute><JobPermits /></ProtectedRoute>} />
-        <Route path="/job/risk-assessment" element={<ProtectedRoute><JobRiskAssessment /></ProtectedRoute>} />
-        <Route path="/job/tbm" element={<ProtectedRoute><JobTbm /></ProtectedRoute>} />
-        <Route path="/job/daily-safety" element={<ProtectedRoute><JobDailySafety /></ProtectedRoute>} />
-        <Route path="/admin/users" element={<ProtectedRoute><AdminUsers /></ProtectedRoute>} />
-        <Route path="*" element={<Navigate to="/signin" replace />} />
-      </Routes>
-    </BrowserRouter>
+    <ToastProvider>
+      <BrowserRouter>
+        <RouteFrame>
+          <Routes>
+            <Route path="/" element={<EntryRedirect />} />
+            <Route path="/signin" element={<Signin />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/register/done" element={<RegisterDone />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/verify-email" element={<VerifyEmail />} />
+            <Route path="/verify-email-change" element={<VerifyEmailChange />} />
+            <Route path="/me" element={guard(<Me />)} />
+            <Route path="/change-password" element={guard(<ChangePassword />)} />
+            <Route path="/dashboard" element={guard(<Dashboard />)} />
+            <Route path="/job/list" element={guard(<JobSearch />)} />
+            <Route path="/job/dashboard" element={guard(<JobDashboard />)} />
+            <Route path="/job/workspace" element={guard(<JobWorkspace />)} />
+            {/* ROUTE: /approvals | ROLE: APPROVER, SITE_ADMIN, ADMIN | API: approvals/pending */}
+            <Route path="/approvals" element={guard(<ApprovalInbox />)} />
+            {/* ROUTE: /approvals/:approvalId | FLOW: 승인함 → 상세 → 승인/반려 */}
+            <Route path="/approvals/:approvalId" element={guard(<ApprovalDetail />)} />
+            <Route path="/approvals/:approvalId/result" element={guard(<ApprovalResult />)} />
+            <Route path="/approvals/:approvalId/revision" element={guard(<ApprovalRevision />)} />
+            <Route path="/records/search" element={guard(<RecordSearch />)} />
+            <Route path="/records/:recordType/:recordId" element={guard(<RecordDetail />)} />
+            <Route path="/job/dailey-checklist" element={guard(<DailyChecklist />)} />
+            <Route path="/job/incidents" element={guard(<JobIncidents />)} />
+            <Route path="/job/permits" element={guard(<JobPermits />)} />
+            <Route path="/job/risk-assessment" element={guard(<JobRiskAssessment />)} />
+            <Route path="/job/tbm" element={guard(<JobTbm />)} />
+            <Route path="/job/daily-safety" element={guard(<JobDailySafety />)} />
+            <Route path="/admin/users" element={guard(<AdminUsers />)} />
+            <Route path="*" element={<Navigate to="/signin" replace />} />
+          </Routes>
+        </RouteFrame>
+      </BrowserRouter>
+    </ToastProvider>
   );
 }
 
 export default App;
-
-/* 생성한 파일
-- App.jsx: React Router를 사용하여 애플리케이션의 라우팅을 설정하는 컴포넌트
-- EntryRedirect: 사용자가 로그인 상태인지 확인하고, 로그인 상태에 따라 /dashboard 또는 /signin으로 리디렉션하는 컴포넌트
-- App: 애플리케이션의 주요 라우팅을 정의하는 컴포넌트
-- 다른 파일들과의 관계
-- pages: 각 페이지 컴포넌트들을 import하여 라우팅에 사용
-- components/protected-route.jsx: 로그인 상태를 확인하고 보호된 라우트를 구현하는 컴포넌트를 import하여 사용
-- api/client.js: 토큰 관리를 위한 getToken 함수를 import하여 사용
-*/

@@ -25,7 +25,8 @@ export default function Signin() {
         rememberMe: data.get("rememberMe") === "on",
       });
       setToken(result.accessToken, result.expiresIn);
-      navigate(result.mustChangePassword ? "/change-password" : "/dashboard");
+      // "/" 에서 역할별 첫 화면으로 보낸다 (승인자는 승인함, 나머지는 홈)
+      navigate(result.mustChangePassword ? "/change-password" : "/");
     } catch (err) {
       setError(err);
     } finally {

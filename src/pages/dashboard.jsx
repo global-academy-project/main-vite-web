@@ -1,179 +1,93 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { logout } from '../api/auth';
-import { sendAndWait } from '../api/agent-chat';
-import { clearToken } from '../api/client';
-import { getCachedCurrentUser } from '../api/workers';
-import DashboardHeader from '../components/dashboard-header';
-import Sidebar from '../components/sidebar';
-import { useTheme } from '../contexts/theme-context';
-import '../style/job/job-dashboard.css';
-import '../style/job/job-search.css';
+import { useCallback, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { refreshWorkSite } from '../api/workers';
+import SafetyPageLayout from '../components/safety-page-layout';
+import { ROLE_LABELS, effectiveRole } from '../components/app-shell/nav-config.js';
+import AssistantPanel from '../components/home/assistant-panel.jsx';
+import { AlertsPanel, ApprovalsPanel, TodayWorksPanel, TodoPanel, WorkStatusPanel } from '../components/home/home-panels.jsx';
+import ErrorBoundary from '../components/ui/error-boundary.jsx';
+import StatusView from '../components/ui/status-view.jsx';
+import { useToast } from '../components/ui/toast-context.js';
+import { useHomeData } from '../hooks/use-home-data.js';
+import { alertsOf } from '../utils/home-model.js';
+import '../styles/home.css';
 
-const suggestedQuestions = [
-  '작업 전 안전 점검 항목을 알려줘',
-  '밀폐공간 작업 시 필요한 안전 조치는?',
-  '아차사고 발생 후 무엇을 해야 하나요?',
-];
+const APPROVERS = ['ADMIN', 'SITE_ADMIN', 'APPROVER'];
 
-function Dashboard() {
-  const navigate = useNavigate();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { darkMode, setDarkMode } = useTheme();
-  const [user, setUser] = useState(null);
-  const [userError, setUserError] = useState('');
-  const [question, setQuestion] = useState('');
-  const [messages, setMessages] = useState([]);
-  const [conversationId, setConversationId] = useState(null);
-  const [chatError, setChatError] = useState('');
-  const [sending, setSending] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    getCachedCurrentUser()
-      .then((currentUser) => {
-        if (!cancelled) setUser(currentUser);
-      })
-      .catch((requestError) => {
-        if (!cancelled) setUserError(requestError.message || '사용자 정보를 불러오지 못했습니다.');
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const userName = user?.user?.name || user?.user?.email || '사용자';
-  const userInitial = Array.from(userName)[0] || '사';
-
-  const doLogout = async () => {
-    try {
-      await logout();
-    } finally {
-      clearToken();
-      navigate('/signin', { replace: true });
-    }
-  };
-
-  const submitQuestion = async (event) => {
-    event.preventDefault();
-    const message = question.trim();
-    if (!message || sending) return;
-    setMessages((current) => [...current, { role: 'user', text: message }]);
-    setQuestion('');
-    setChatError('');
-    setSending(true);
-    try {
-      const { conversationId: nextId, run } = await sendAndWait({ message, conversationId });
-      console.debug('agent run', run); // 응답 필드 이름 확인용. 확인 뒤 지워도 된다.
-      setConversationId(nextId);
-      setMessages((current) => [...current, { role: 'assistant', text: agentReply(run) }]);
-    } catch (requestError) {
-      setChatError(requestError.message || 'AI 답변을 받지 못했습니다.');
-    } finally {
-      setSending(false);
-    }
-  };
-
+/**
+ * 홈 = 대시보드 + AI 도우미 (첫 화면). PC 는 화면 높이에 고정되고 카드 안쪽만 스크롤된다.
+ * 태블릿·모바일은 카드가 세로로 쌓이고 페이지가 스크롤된다.
+ */
+export default function Dashboard() {
   return (
-    <div className="dashboard-shell">
-      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-      <div className="dashboard-main">
-        <DashboardHeader
-          userInitial={userInitial}
-          userName={userName}
-          darkMode={darkMode}
-          setDarkMode={setDarkMode}
-          doLogout={doLogout}
-          setSidebarOpen={setSidebarOpen}
-          title="AI 질문"
-        />
-        <main className="dashboard-content ai-dashboard-content">
-          {userError && <p className="ai-user-error" role="alert">{userError}</p>}
-          <section className="ai-assistant">
-            <span className="ai-assistant-mark" aria-hidden="true">AI</span>
-            <p className="ai-assistant-eyebrow">AI SAFETY ASSISTANT</p>
-            <h1>안전관리, 무엇이 궁금하세요?</h1>
-            <p className="ai-assistant-description">작업과 현장 안전에 관한 질문을 입력해 주세요.</p>
-            {messages.length > 0 && <section className="ai-conversation" aria-live="polite" aria-label="AI 대화">
-              {messages.map((message, index) => <div className={`ai-message ai-message-${message.role}`} key={`${message.role}-${index}`}>
-                <strong>{message.role === 'user' ? '나' : 'AI'}</strong>
-                <p>{message.text}</p>
-              </div>)}
-              {sending && <div className="ai-message ai-message-assistant"><strong>AI</strong><p>답변을 생성하고 있습니다...</p></div>}
-            </section>}
-            <form className="ai-question-form" onSubmit={submitQuestion}>
-              <label className="sr-only" htmlFor="ai-question-input">질문 내용</label>
-              <textarea
-                id="ai-question-input"
-                value={question}
-                onChange={(event) => {
-                  setQuestion(event.target.value);
-                  setChatError('');
-                }}
-                placeholder="예: 밀폐공간 작업 전 확인해야 할 사항은 무엇인가요?"
-                rows={4}
-                maxLength={2000}
-                disabled={sending}
-                required
-              />
-              <div className="ai-question-form-footer">
-                <span>정확한 답변을 위해 작업 상황을 구체적으로 적어 주세요.</span>
-                <button type="submit" disabled={!question.trim() || sending}>{sending ? '답변 중...' : '질문하기'} <span aria-hidden="true">↑</span></button>
-              </div>
-            </form>
-            {chatError && <p className="ai-question-notice" role="alert">{chatError}</p>}
-            <div className="ai-suggestions">
-              <h2>이런 질문을 해보세요</h2>
-              <div>
-                {suggestedQuestions.map((suggestion) => (
-                  <button
-                    type="button"
-                    key={suggestion}
-                    onClick={() => {
-                      setQuestion(suggestion);
-                      setChatError('');
-                    }}
-                  >
-                    {suggestion}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </section>
-        </main>
+    <SafetyPageLayout title="홈" fixed>
+      {(site) => <Home site={site} />}
+    </SafetyPageLayout>
+  );
+}
+
+function Home({ site }) {
+  const toast = useToast();
+  const siteId = site.currentSite?.siteId ?? null;
+  const role = effectiveRole(site.account?.user?.role, site.currentSite?.role);
+  const approver = APPROVERS.includes(role);
+  const data = useHomeData(siteId, { approver });
+  const [newWorkId, setNewWorkId] = useState(null);
+  const alerts = useMemo(() => alertsOf(data.dashboard.data, data.works.data ?? []), [data.dashboard.data, data.works.data]);
+  const { reload } = data;
+
+  const onDraftSaved = useCallback((workId) => { setNewWorkId(workId); reload(); }, [reload]);
+
+  const changeSite = async (event) => {
+    await site.selectSite(event.target.value);
+    refreshWorkSite();
+    toast.show({ tone: 'info', message: '현장을 바꿨습니다. AI 도우미는 새 대화로 시작합니다.' });
+  };
+
+  if (site.loading && !site.account) return <StatusView kind="loading" title="현장 정보를 불러오는 중입니다" />;
+  if (!siteId) {
+    return <StatusView kind="empty" title="선택할 수 있는 현장이 없습니다" message="관리자에게 현장 권한을 요청하세요." action={{ label: '내 정보', onClick: () => window.location.assign('/me') }} />;
+  }
+
+  const userName = site.account?.user?.name || '사용자';
+  return (
+    <div className="home">
+      <header className="home-hero">
+        <div className="home-hero__who">
+          <h1 className="home-hero__title">{userName}님, 안녕하세요</h1>
+          <p className="home-hero__meta">
+            {role && <span className="home-hero__role">{ROLE_LABELS[role]}</span>}
+            <span>{data.date.replace(/-/g, '. ')}</span>
+          </p>
+        </div>
+        <div className="home-hero__actions">
+          {site.account?.sites?.length > 1 ? (
+            <label className="home-site">
+              <span className="sr-only">현장 선택</span>
+              <select value={siteId} onChange={changeSite} disabled={site.selecting}>
+                {site.account.sites.map((item) => <option key={item.siteId} value={item.siteId}>{item.name}</option>)}
+              </select>
+            </label>
+          ) : <span className="home-site home-site--static">{site.currentSite?.name}</span>}
+          <Link className="ui-btn ui-btn--secondary" to="/job/workspace">단계별로 만들기</Link>
+          <button type="button" className="ui-btn ui-btn--primary" onClick={() => document.getElementById('home-composer')?.focus()}>대화로 만들기</button>
+        </div>
+      </header>
+
+      <div className="home-grid">
+        <div className="home-cell home-cell--todo"><ErrorBoundary compact resetKeys={[siteId]}><TodoPanel section={data.dashboard} onRetry={reload} /></ErrorBoundary></div>
+        <div className="home-cell home-cell--status"><ErrorBoundary compact resetKeys={[siteId]}><WorkStatusPanel dashboard={data.dashboard} works={data.works} onRetry={reload} /></ErrorBoundary></div>
+        <div className="home-cell home-cell--ai">
+          <ErrorBoundary compact resetKeys={[siteId]} title="AI 도우미를 표시하지 못했습니다">
+            <AssistantPanel siteId={siteId} siteName={site.currentSite?.name} zones={data.zones.data ?? []} onDraftSaved={onDraftSaved} onDraftChanged={reload} />
+          </ErrorBoundary>
+        </div>
+        <div className="home-cell home-cell--works"><ErrorBoundary compact resetKeys={[siteId]}><TodayWorksPanel section={data.works} zones={data.zones} highlightId={newWorkId} onRetry={reload} /></ErrorBoundary></div>
+        <div className="home-cell home-cell--side">
+          <ErrorBoundary compact resetKeys={[siteId]}><ApprovalsPanel section={data.approvals} approver={approver} onRetry={reload} /></ErrorBoundary>
+          <ErrorBoundary compact resetKeys={[siteId]}><AlertsPanel alerts={alerts} section={data.works.status === 'ready' ? data.dashboard : data.works} onRetry={reload} /></ErrorBoundary>
+        </div>
       </div>
     </div>
   );
 }
-
-// 실행 결과에서 AI 응답(WorkRegisterResult)을 꺼낸다. 필드 이름은 확인 전이라 여러 후보를 본다.
-function extractResult(run) {
-  const raw = run?.result ?? run?.output ?? run?.outputJson ?? run?.response ?? run;
-  if (typeof raw === 'string') {
-    try {
-      return JSON.parse(raw);
-    } catch {
-      return null;
-    }
-  }
-  return raw;
-}
-
-function agentReply(run) {
-  if (run?.status === 'FAILED') return 'AI 처리에 실패했습니다. 잠시 후 다시 시도해 주세요.';
-  const result = extractResult(run);
-  const askText = result?.ask?.message ?? result?.ask?.question ?? run?.askMessage;
-  if (askText) return askText;
-  const guidance = result?.guidance;
-  if (Array.isArray(guidance) && guidance.length) {
-    return guidance.map((item) => `${item.title}: ${item.why}`).join('\n');
-  }
-  if (result?.runStatus === 'DONE') {
-    const workTypes = result.classification?.workTypes?.join(', ');
-    const approval = result.approvalGate?.canRequest ? '승인 요청 요건을 충족했습니다.' : result.approvalGate?.reasons?.join(' ');
-    return [`질문을 분석했습니다${workTypes ? ` (작업 유형: ${workTypes})` : ''}.`, approval].filter(Boolean).join('\n');
-  }
-  return '질문 처리가 완료됐지만 표시할 답변이 없습니다.';
-}
-
-export default Dashboard;

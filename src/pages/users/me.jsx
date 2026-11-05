@@ -104,7 +104,7 @@ export default function Me() {
 
   const shell = (content) => (
     <div className="dashboard-shell">
-      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} onOpen={() => setSidebarOpen(true)} />
       <div className="dashboard-main">
         <DashboardHeader
           userInitial={Array.from(user?.name || user?.email || "U")[0]}
