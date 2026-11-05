@@ -1,204 +1,331 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
-import { useWorkSite, workTypes } from '../../api/workers';
-import { createWork, getWork, requireWork, validatePeriod } from '../../api/jobs';
-import JobPageLayout, { JobPageHeading } from '../../components/job-page-layout';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { refreshWorkSite, useWorkSite } from '../../api/workers';
+import JobPageLayout from '../../components/job-page-layout';
+import WorkIncidentWarnings from '../../components/work-incident-warnings';
 import { JobSiteSelector } from './job-work-form';
 import JobWorkAgent from './job-work-agent';
-import JobReferenceSelectors from '../../components/job-reference-selectors';
-import WorkIncidentWarnings from '../../components/work-incident-warnings';
+import { Badge } from '../../components/home/panel.jsx';
+import WorkCreateForm from '../../components/work/work-create-form.jsx';
+import { DocPanel } from '../../components/work/doc-panels.jsx';
+import { docLoaders } from '../../components/work/doc-loaders.js';
+import ErrorBoundary from '../../components/ui/error-boundary.jsx';
+import Icon from '../../components/ui/icon.jsx';
+import Sheet from '../../components/ui/sheet.jsx';
+import StatusView, { Skeleton } from '../../components/ui/status-view.jsx';
+import StepIndicator from '../../components/ui/step-indicator.jsx';
+import { useWorkHub } from '../../hooks/use-work-hub.js';
+import { useWorkList } from '../../hooks/use-work-list.js';
+import {
+  localDate, nextAction, PERMIT_STATUS_LABELS, RISK_STATUS_LABELS, TBM_STATUS_LABELS, timeRange, toneOf, WORK_STATUS_LABELS, WORK_TYPE_LABELS, workStages,
+} from '../../utils/home-model.js';
+import { jobRecordPath } from '../../utils/job-forms.js';
+import { filterWorks, hubDocs, parseDocParam, sortWorks, workStats } from '../../utils/work-list-model.js';
+import '../../styles/home.css';
+import '../../styles/work.css';
 
-const workZoneEnabled = import.meta.env.VITE_ENABLE_WORK_ZONE_API !== 'false';
-// 작업 등록·조회 페이지는 현장 선택과 작업 ID 조회를 통해 서버의 개별 작업을 직접 조회하고 저장할 수 있는 기능을 제공합니다.
+const createRecordQueryState = () => ({ message: '', execution: null, run: null, messages: [], polling: false, lookupId: '', error: '' });
+const docStatusLabel = (doc) => (doc.type === 'RISK' ? RISK_STATUS_LABELS : doc.type === 'PERMIT' ? PERMIT_STATUS_LABELS : TBM_STATUS_LABELS)[doc.status] ?? doc.status;
 
-const createRecordQueryState = () => ({
-  message: '',
-  execution: null,
-  run: null,
-  messages: [],
-  polling: false,
-  lookupId: '',
-  error: '',
-});
-// 기록 질문 대화는 현장에 종속되므로 현장 변경 시 이전 대화를 폐기한다.
-function WorkWorkspace({ site, disabled, initialWorkId }) {
-  const [work, setWork] = useState(null);
-  const [lookupId, setLookupId] = useState(initialWorkId ?? '');
-  const [zoneId, setZoneId] = useState('');
-  const [busy, setBusy] = useState(Boolean(initialWorkId));
-  const [error, setError] = useState('');
-  const [message, setMessage] = useState('');
-  const [creationUncertain, setCreationUncertain] = useState(false);
-  const pending = useRef(false);
-  const mounted = useRef(false);
-  useEffect(() => {
-    mounted.current = true;
-    return () => { mounted.current = false; };
-  }, []);
-  useEffect(() => {
-    if (!initialWorkId) return undefined;
-    let active = true;
-    getWork(initialWorkId).then((saved) => requireWork(saved, site.siteId)).then((saved) => {
-      if (active) {
-        setWork(saved);
-        setLookupId(String(saved.workId));
-        setZoneId(saved.zoneId == null ? '' : String(saved.zoneId));
-        setMessage('서버의 작업을 조회했습니다.');
-      }
-    }).catch((requestError) => {
-      if (active) setError(requestError.message || '작업 요청에 실패했습니다.');
-    }).finally(() => {
-      if (active) setBusy(false);
-    });
-    return () => { active = false; };
-  }, [initialWorkId, site.siteId]);
+/**
+ * 작업: ?workId 가 없으면 작업 목록, 있으면 작업 허브(단계 + 지금 할 일 + 문서 드로어).
+ * 문서를 열면 주소에 doc=PERMIT-31 처럼 남아 새로고침·공유해도 같은 문서가 열린다.
+ */
+export default function JobWorkspace() {
+  const context = useWorkSite();
+  const [params, setParams] = useSearchParams();
+  const navigate = useNavigate();
+  const workId = params.get('workId');
+  const [sheet, setSheet] = useState(null); // 'create' | 'agent'
+  const [assistantTab, setAssistantTab] = useState('work');
+  const [recordQueryState, setRecordQueryState] = useState(createRecordQueryState);
+  const site = context.currentSite;
+  const updateRecordQueryState = useCallback((patch) => setRecordQueryState((previous) => ({ ...previous, ...patch })), []);
 
-  const run = async (action, success, creating = false) => {
-    if (pending.current || disabled) return;
-    pending.current = true;
-    setBusy(true);
-    setError('');
-    setMessage('');
-    try {
-      const saved = await action();
-      if (mounted.current) {
-        setWork(saved);
-        setLookupId(String(saved.workId));
-        setZoneId(saved.zoneId == null ? '' : String(saved.zoneId));
-        setMessage(success);
-        if (creating) setCreationUncertain(false);
-      }
-    } catch (requestError) {
-      if (mounted.current) {
-        if (creating && requestError.code === 'WRITE_OUTCOME_UNKNOWN') setCreationUncertain(true);
-        setError(requestError.message || '작업 요청에 실패했습니다.');
-      }
-    } finally {
-      pending.current = false;
-      if (mounted.current) setBusy(false);
-    }
-  };
-  const create = (event) => {
-    event.preventDefault();
-    if (creationUncertain) return;
-    const fields = Object.fromEntries(new FormData(event.currentTarget));
-    void run(() => {
-      if (fields.startAt && fields.endAt) validatePeriod(fields.startAt, fields.endAt);
-      const workerCount = fields.workerCount ? Number(fields.workerCount) : null;
-      if (workerCount !== null && (!Number.isSafeInteger(workerCount) || workerCount < 1)) {
-        throw new Error('작업 인원은 1 이상의 정수로 입력하세요.');
-      }
-      if (!fields.title.trim()) throw new Error('작업명을 입력하세요.');
-      return createWork({
-        siteId: site.siteId, workDate: fields.workDate, title: fields.title.trim(),
-        description: fields.description.trim() || null, workType: fields.workType,
-        startAt: fields.startAt || null, endAt: fields.endAt || null, workerCount,
-        ...(workZoneEnabled ? { zoneId: zoneId ? Number(zoneId) : null } : {}),
-      });
-    }, '작업을 서버에 저장했습니다. 작업 승인은 별도 절차입니다.', true);
+  // 기록 질문 대화는 현장에 종속되므로 현장 변경 시 이전 대화를 폐기한다 (기존 동작 그대로)
+  const [lastSite, setLastSite] = useState(site?.siteId);
+  if (lastSite !== site?.siteId) { setLastSite(site?.siteId); setRecordQueryState(createRecordQueryState()); }
+
+  const changeSite = async (event) => {
+    await context.selectSite(event.target.value);
+    refreshWorkSite();
+    if (workId) setParams({});
   };
 
   return (
-    <>
-      {error && <p className="dashboard-error" role="alert">{error}</p>}
-      {message && <p className="job-review-notice" role="status">{message}</p>}
-      {creationUncertain && <section className="job-demo-notice" role="alert">
-        <p>작업 생성 결과가 불확실하여 추가 등록을 중지했습니다. 작업 ID를 알면 먼저 조회하세요. 작업 목록 API가 없으므로 ID도 모르면 관리자에게 저장 여부를 확인해야 합니다.</p>
-        <button type="button" disabled={busy || disabled} onClick={() => {
-          if (window.confirm('관리자 또는 작업 ID 조회로 저장 여부를 확인했으며, 새 작업 등록을 진행하시겠습니까? 중복 작업이 생길 수 있습니다.')) {
-            setCreationUncertain(false); setError('');
-          }
-        }}>반영 여부 확인 후 등록 잠금 해제</button>
-      </section>}
-      <div className="job-work-grid">
-        <form className="panel job-form" onSubmit={create}>
-          <div className="job-section-heading"><div><span className="job-eyebrow">NEW WORK</span><h2>작업 등록</h2><p className="job-help">작업 기본 정보를 저장하고 허가서 작성으로 이어갑니다.</p></div><span className="job-status-badge">서버 연결</span></div>
-          <fieldset disabled={disabled || busy || creationUncertain}>
-            <legend>{site.name}</legend>
-            <div className="job-fields">
-              <label>작업명<input name="title" required maxLength={200} placeholder="예: 저장탱크 주변 용접 작업" /></label>
-              <label>작업일<input name="workDate" type="date" required /></label>
-              <label>작업 유형<select name="workType">{Object.entries(workTypes).map(([code, label]) => <option key={code} value={code}>{label}</option>)}</select></label>
-              {workZoneEnabled && <JobReferenceSelectors siteId={site.siteId} zoneId={zoneId}
-                onChange={(_, value) => setZoneId(value)} disabled={disabled || busy} showTeams={false} />}
-              <label>작업 인원<input name="workerCount" type="number" min="1" step="1" /></label>
-              <label>시작 일시<input name="startAt" type="datetime-local" /></label>
-              <label>종료 일시<input name="endAt" type="datetime-local" /></label>
-              <label className="job-field-wide">작업 내용<textarea name="description" placeholder="작업 범위와 확인할 사항을 입력해 주세요." /></label>
+    <JobPageLayout title={workId ? '작업 허브' : '작업'} user={context.account?.user} contentClassName="work-page">
+      {!site ? <JobSiteSelector context={context} /> : (
+        <>
+          {context.error && (
+            <p className="work-form__error" role="alert"><Icon name="alert" size={16} />{context.error}
+              <button type="button" className="ui-btn ui-btn--ghost" disabled={context.loading || context.selecting} onClick={context.reload}>다시 조회</button></p>
+          )}
+          {workId
+            ? <ErrorBoundary resetKeys={[workId]}><WorkHub site={site} workId={workId} params={params} setParams={setParams} /></ErrorBoundary>
+            : <WorkList site={site} context={context} onChangeSite={changeSite} onCreate={() => setSheet('create')} onAgent={() => setSheet('agent')} />}
+        </>
+      )}
+
+      <Sheet open={sheet === 'create'} onClose={() => setSheet(null)} title="작업 직접 등록" subtitle={site?.name}
+        footer={<><button type="button" className="ui-btn ui-btn--ghost" onClick={() => setSheet(null)}>취소</button><button type="submit" form="work-create-form" className="ui-btn ui-btn--primary ui-btn--lg">작업 저장</button></>}>
+        {site && <WorkCreateForm site={site} disabled={context.selecting} onCreated={(saved) => { setSheet(null); navigate(`/job/workspace?workId=${saved.workId}`); }} />}
+      </Sheet>
+
+      <Sheet open={sheet === 'agent'} onClose={() => setSheet(null)} title="AI 대화" subtitle="허가서 연결 · 실행 번호로 다시 조회" wide>
+        {site && (
+          <div className="work-agent">
+            <div className="home-assistant__tabs work-agent__tabs" role="tablist" aria-label="AI 도우미 탭">
+              <button type="button" role="tab" aria-selected={assistantTab === 'work'} className={`home-assistant__tab${assistantTab === 'work' ? ' is-active' : ''}`} onClick={() => setAssistantTab('work')}>작업 등록</button>
+              <button type="button" role="tab" aria-selected={assistantTab === 'records'} className={`home-assistant__tab${assistantTab === 'records' ? ' is-active' : ''}`} onClick={() => setAssistantTab('records')}>기록 질문</button>
             </div>
-            <div className="job-form-actions"><span>저장 후 작업 ID가 발급됩니다.</span><button type="submit">{busy ? '처리 중...' : '작업 저장'}</button></div>
-          </fieldset>
-        </form>
-        <div className="job-work-aside">
-          <form className="panel job-form job-lookup" onSubmit={(event) => {
-            event.preventDefault();
-            void run(async () => requireWork(await getWork(lookupId), site.siteId), '서버의 작업을 조회했습니다.');
-          }}>
-            <span className="job-eyebrow">FIND WORK</span>
-            <h2>작업 조회</h2>
-            <fieldset disabled={disabled || busy}>
-              <label>작업 ID<input value={lookupId} placeholder="저장한 작업 ID 입력" onChange={(event) => { setLookupId(event.target.value); setWork(null); setMessage(''); }} required inputMode="numeric" /></label>
-              <button type="submit">조회</button>
-            </fieldset>
-            <p className="job-help">현재 서버에는 현장별 작업 목록·통계 API가 없습니다. 저장한 작업 ID로 다시 조회하세요.</p>
-          </form>
-          {work && <section className="panel job-example" aria-label="저장된 작업">
-            <div className="job-section-heading"><span className="job-eyebrow">WORK #{work.workId}</span><span className="job-status-badge">{work.status}</span></div>
-            <h2>{work.title}</h2>
-            <p>{work.workDate} · {workTypes[work.workType]}</p>
-            <p>{work.description || '작업 내용 없음'}</p>
-            <p>{work.startAt || '시작 미지정'} ~ {work.endAt || '종료 미지정'} · 인원 {work.workerCount ?? '미지정'}</p>
-            <Link className="job-link-button" to={`/job/permits?workId=${work.workId}`}>이 작업의 허가서 작성 <span aria-hidden="true">→</span></Link>
-          </section>}
-          {work && <WorkIncidentWarnings key={`work-warnings-${work.workId}`} siteId={site.siteId}
-            initialWorkId={work.workId} disabled={disabled || busy} />}
-          {!work && <section className="job-empty-state" aria-label="작업 조회 안내"><span className="job-eyebrow">WORK DETAILS</span><h3>작업 정보를 이곳에서 확인하세요</h3><p className="job-help">새 작업을 저장하거나 기존 작업 ID를 조회하면 상세 정보와 허가서 작성 링크가 표시됩니다.</p></section>}
-        </div>
-      </div>
-    </>
+            {assistantTab === 'work'
+              ? <JobWorkAgent key={`agent-work-${site.siteId}`} siteId={site.siteId} disabled={context.selecting} taskType="WORK_REGISTER" />
+              : <JobWorkAgent key={`agent-records-${site.siteId}`} siteId={site.siteId} disabled={context.selecting} taskType="RECORD_QUERY" persistedState={recordQueryState} onPersistedStateChange={updateRecordQueryState} />}
+          </div>
+        )}
+      </Sheet>
+    </JobPageLayout>
   );
 }
 
-export default function JobWorkspace() {
-  const context = useWorkSite();
-  const [assistantTab, setAssistantTab] = useState('work');
-  const [recordQueryState, setRecordQueryState] = useState(createRecordQueryState);
-  const [params] = useSearchParams();
-  const initialWorkId = params.get('workId');
+/* ── 작업 목록 ─────────────────────────────────────────────── */
 
-  const updateRecordQueryState = useCallback((patch) => {
-    setRecordQueryState((previous) => ({ ...previous, ...patch }));
-  }, []);
+const TYPE_KEYS = Object.keys(WORK_TYPE_LABELS);
 
-  useEffect(() => {
-    // 기록질문 대화는 현장에 종속되므로 현장 변경 시 이전 대화를 폐기한다.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setRecordQueryState(createRecordQueryState());
-  }, [context.currentSite?.siteId]);
+function WorkList({ site, context, onChangeSite, onCreate, onAgent }) {
+  const navigate = useNavigate();
+  const today = localDate();
+  const [from, setFrom] = useState(today);
+  const [to, setTo] = useState(today);
+  const [types, setTypes] = useState([]);
+  const [status, setStatus] = useState('');
+  const [query, setQuery] = useState('');
+  const [actionOnly, setActionOnly] = useState(false);
+  const [lookup, setLookup] = useState('');
+  const [periodError, setPeriodError] = useState('');
+  const list = useWorkList(site.siteId, from, to);
+  const all = useMemo(() => list.works.data ?? [], [list.works.data]);
+  const rows = useMemo(() => sortWorks(filterWorks(all, { types, status, query, actionOnly })), [all, types, status, query, actionOnly]);
+  const stats = workStats(all);
+  const zoneName = (id) => list.zones.data?.find((zone) => zone.zoneId === id)?.name ?? (id ? `구역 #${id}` : '구역 미지정');
+
+  const setPeriod = (nextFrom, nextTo) => {
+    if (nextFrom && nextTo && nextTo < nextFrom) { setPeriodError('끝 날짜는 시작 날짜와 같거나 뒤여야 합니다.'); return; }
+    setPeriodError(''); setFrom(nextFrom); setTo(nextTo);
+  };
+  const shiftDays = (days) => {
+    const date = new Date(); date.setDate(date.getDate() - days);
+    setPeriod(localDate(date), today);
+  };
 
   return (
-    <JobPageLayout title="작업 등록·조회" user={context.account?.user} contentClassName="job-management">
-      <JobPageHeading title="작업 등록·조회" description={`선택 현장: ${context.currentSite?.name ?? '현장 미선택'}`} />
-      <JobSiteSelector context={context} />
-      {context.currentSite && <section className="job-overview-workspace" aria-labelledby="job-workspace-title">
-        <section className="panel" aria-label="AI 작업 및 기록 질문">
-          <nav className="approval-tabs" aria-label="AI 도우미 탭">
-            <button type="button" className={assistantTab === 'work' ? 'is-active' : ''} onClick={() => setAssistantTab('work')}>작업 등록</button>
-            <button type="button" className={assistantTab === 'records' ? 'is-active' : ''} onClick={() => setAssistantTab('records')}>기록 질문</button>
-          </nav>
-          {assistantTab === 'work' ? (
-            <JobWorkAgent key={`agent-work-${context.currentSite.siteId}`} siteId={context.currentSite.siteId} disabled={context.selecting} taskType="WORK_REGISTER" />
-          ) : (
-            <JobWorkAgent key={`agent-records-${context.currentSite.siteId}`} siteId={context.currentSite.siteId} disabled={context.selecting} taskType="RECORD_QUERY"
-              persistedState={recordQueryState} onPersistedStateChange={updateRecordQueryState} />
-          )}
-        </section>
-        <div className="job-section-heading">
-          <div><span className="job-eyebrow">WORK MANAGEMENT</span><h2 id="job-workspace-title">작업 등록·조회</h2><p className="job-help">선택 현장의 개별 작업을 실제 서버에 저장하고 조회할 수 있습니다.</p></div>
+    <div className="work-list">
+      <header className="work-head">
+        <div>
+          <h1 className="work-head__title">작업</h1>
+          <p className="work-head__meta">{site.name} · 작업을 누르면 작업 허브에서 다음 할 일을 이어 갑니다.</p>
         </div>
-        <WorkWorkspace key={`${context.currentSite.siteId}:${initialWorkId ?? ''}`} site={context.currentSite}
-          disabled={context.selecting} initialWorkId={initialWorkId} />
-      </section>}
-    </JobPageLayout>
+        <div className="work-head__actions">
+          {context.account?.sites?.length > 1 && (
+            <label className="home-site"><span className="sr-only">현장 선택</span>
+              <select value={site.siteId} onChange={onChangeSite} disabled={context.selecting}>{context.account.sites.map((item) => <option key={item.siteId} value={item.siteId}>{item.name}</option>)}</select>
+            </label>
+          )}
+          <button type="button" className="ui-btn ui-btn--ghost" onClick={onAgent}>AI 대화</button>
+          <Link className="ui-btn ui-btn--secondary" to="/dashboard">대화로 만들기</Link>
+          <button type="button" className="ui-btn ui-btn--primary" onClick={onCreate}>작업 직접 등록</button>
+        </div>
+      </header>
+
+      <ul className="work-stats" aria-label="작업 상태별 건수">
+        {stats.map((stat) => {
+          const active = stat.key === 'ALL' ? !status : status === stat.key;
+          return (
+            <li key={stat.key}>
+              <button type="button" aria-pressed={active} className={`work-stat work-stat--${stat.tone}${active ? ' is-active' : ''}`}
+                onClick={() => setStatus(stat.key === 'ALL' || status === stat.key ? '' : stat.key)}>
+                <span className="work-stat__label">{stat.label}</span>
+                <strong className="work-stat__value">{list.works.status === 'ready' ? stat.value : '–'}</strong>
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+
+      <section className="work-filters" aria-label="작업 거르기">
+        <div className="work-filters__row">
+          <div className="work-period" role="group" aria-label="기간">
+            <label><span className="sr-only">시작 날짜</span><input type="date" value={from} max={to} onChange={(event) => setPeriod(event.target.value, to)} /></label>
+            <span aria-hidden="true">~</span>
+            <label><span className="sr-only">끝 날짜</span><input type="date" value={to} min={from} onChange={(event) => setPeriod(from, event.target.value)} /></label>
+            <button type="button" className="work-chip" aria-pressed={from === today && to === today} onClick={() => setPeriod(today, today)}>오늘</button>
+            <button type="button" className="work-chip" onClick={() => shiftDays(6)}>7일</button>
+            <button type="button" className="work-chip" onClick={() => shiftDays(29)}>30일</button>
+          </div>
+          <div className="work-types" role="group" aria-label="작업 종류">
+            {TYPE_KEYS.map((type) => (
+              <button key={type} type="button" className="work-chip" aria-pressed={types.includes(type)}
+                onClick={() => setTypes((value) => (value.includes(type) ? value.filter((item) => item !== type) : [...value, type]))}>
+                {types.includes(type) && <Icon name="check" size={14} />}{WORK_TYPE_LABELS[type]}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="work-filters__row">
+          <label className="work-search"><span className="sr-only">작업명 검색</span>
+            <input type="search" value={query} placeholder="작업명 검색" onChange={(event) => setQuery(event.target.value)} />
+          </label>
+          <label className="work-toggle"><input type="checkbox" checked={actionOnly} onChange={(event) => setActionOnly(event.target.checked)} />할 일 있는 작업만</label>
+          <form className="work-lookup" onSubmit={(event) => { event.preventDefault(); if (/^\d+$/.test(lookup.trim())) navigate(`/job/workspace?workId=${lookup.trim()}`); }}>
+            <label><span className="sr-only">작업 번호로 찾기</span><input inputMode="numeric" value={lookup} placeholder="작업 번호" onChange={(event) => setLookup(event.target.value)} /></label>
+            <button type="submit" className="ui-btn ui-btn--ghost" disabled={!/^\d+$/.test(lookup.trim())}>열기</button>
+          </form>
+        </div>
+        <p className="work-filters__help" role={periodError ? 'alert' : undefined}>{periodError || `${from === to ? from : `${from} ~ ${to}`} · ${rows.length}건 표시`}</p>
+      </section>
+
+      <section className="home-panel work-table-panel" aria-label="작업 목록">
+        {list.works.status === 'loading' && <div className="home-panel__pad"><Skeleton lines={6} /></div>}
+        {list.works.status === 'error' && <StatusView kind={list.works.code === 403 ? 'forbidden' : 'error'} message={list.works.error} onRetry={list.reload} />}
+        {list.works.status === 'ready' && !rows.length && (
+          <StatusView kind="empty" title={all.length ? '조건에 맞는 작업이 없습니다' : '이 기간에 등록된 작업이 없습니다'}
+            message={all.length ? '거르기를 바꿔 보세요.' : '대화로 만들거나 직접 등록하세요.'}
+            action={all.length ? { label: '거르기 지우기', onClick: () => { setTypes([]); setStatus(''); setQuery(''); setActionOnly(false); } } : { label: '작업 직접 등록', onClick: onCreate }} />
+        )}
+        {list.works.status === 'ready' && rows.length > 0 && (
+          <table className="home-table work-table">
+            <thead>
+              <tr><th scope="col">작업일</th><th scope="col">작업</th><th scope="col">종류</th><th scope="col">위험성평가</th><th scope="col">허가</th><th scope="col">TBM</th><th scope="col">진행</th><th scope="col">지금 할 일</th></tr>
+            </thead>
+            <tbody>
+              {rows.map((work) => {
+                const stages = workStages(work);
+                const next = nextAction(work);
+                const permits = (work.permits ?? []).filter((permit) => permit.status !== 'SUPERSEDED');
+                return (
+                  <tr key={work.workId}>
+                    <td data-label="작업일" className="work-table__date">{work.workDate?.slice(5).replace('-', '/')}</td>
+                    <td data-label="작업">
+                      <span className="home-table__name"><Link to={`/job/workspace?workId=${work.workId}`} className="home-table__title">{work.title}</Link><span className="work-table__id">#{work.workId}</span></span>
+                      <span className={`home-table__facts${work.zoneId ? '' : ' is-warn'}`}>{[zoneName(work.zoneId), timeRange(work.startAt, work.endAt), work.workerCount != null ? `${work.workerCount}명` : ''].filter(Boolean).join(' · ')}</span>
+                    </td>
+                    <td data-label="종류"><Badge tone={work.highRisk ? 'warn' : 'neutral'}>{WORK_TYPE_LABELS[work.workType] ?? work.workType}</Badge></td>
+                    <td data-label="위험성평가">{work.riskAssessment ? <Badge tone={toneOf(work.riskAssessment.status)}>{RISK_STATUS_LABELS[work.riskAssessment.status]}</Badge> : <span className="work-none">없음</span>}</td>
+                    <td data-label="허가">{permits.length ? <span className="work-badges">{permits.map((permit) => <Badge key={permit.permitId} tone={toneOf(permit.status)}>{PERMIT_STATUS_LABELS[permit.status]}</Badge>)}</span> : <span className="work-none">{work.workType === 'GENERAL' ? '해당 없음' : '없음'}</span>}</td>
+                    <td data-label="TBM">{work.tbm ? <Badge tone={toneOf(work.tbm.status)}>{TBM_STATUS_LABELS[work.tbm.status]}</Badge> : <span className="work-none">없음</span>}</td>
+                    <td data-label="진행">
+                      <span className="home-dots" role="img" aria-label={stages.map((stage) => `${stage.label} ${stage.hint || stage.state}`).join(', ')}>
+                        {stages.map((stage) => <span key={stage.key} className={`home-dot home-dot--${stage.state}`} title={`${stage.label} · ${stage.hint || ''}`} />)}
+                      </span>
+                    </td>
+                    <td data-label="지금 할 일">{next.path ? <Link to={`/job/workspace?workId=${work.workId}`} className={`home-next home-next--${next.tone}`}>{next.label}</Link> : <Badge tone={next.tone}>{next.label}</Badge>}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+      </section>
+    </div>
+  );
+}
+
+/* ── 작업 허브 ─────────────────────────────────────────────── */
+
+function WorkHub({ site, workId, params, setParams }) {
+  const hub = useWorkHub(site.siteId, workId);
+  const docParam = parseDocParam(params.get('doc'));
+  const [entry, setEntry] = useState(null);
+  const work = hub.work;
+  const docs = useMemo(() => hubDocs(work), [work]);
+  const openDoc = docParam ? docs.find((doc) => doc.key === docParam.key) ?? { ...docParam, label: docParam.type } : null;
+
+  // 열린 문서 조회: effect 안에서 부르고 응답 콜백에서만 상태를 바꾼다. 문서가 바뀌면 늦게 온 응답은 버린다.
+  const [docRevision, setDocRevision] = useState(0);
+  const openKey = openDoc?.key;
+  const siteId = site.siteId;
+  useEffect(() => {
+    const doc = parseDocParam(openKey);
+    if (!doc) return undefined;
+    let cancelled = false;
+    docLoaders[doc.type](doc, siteId)
+      .then((data) => { if (!cancelled) setEntry({ key: doc.key, status: 'ready', data }); })
+      .catch((error) => { if (!cancelled) setEntry({ key: doc.key, status: 'error', error: error.message }); });
+    return () => { cancelled = true; };
+  }, [openKey, siteId, docRevision]);
+  const reloadDoc = useCallback(() => setDocRevision((value) => value + 1), []);
+
+  const open = (doc) => setParams({ workId, doc: doc.key });
+  const close = () => setParams({ workId }, { replace: true });
+
+  if (hub.status === 'loading') return <div className="work-hub"><Skeleton lines={8} height={20} /></div>;
+  if (hub.status === 'error') {
+    return <StatusView kind={hub.code === 403 ? 'forbidden' : hub.code === 404 ? 'empty' : 'error'} title={hub.code === 404 ? '작업을 찾을 수 없습니다' : undefined} message={hub.error} onRetry={hub.reload} action={hub.code === 404 ? { label: '작업 목록', onClick: () => setParams({}) } : undefined} />;
+  }
+
+  const stages = workStages(work);
+  const next = nextAction(work);
+  const zone = hub.zones.find((item) => item.zoneId === work.zoneId);
+  const docForStage = (key) => docs.find((doc) => doc.type === ({ risk: 'RISK', permit: 'PERMIT', tbm: 'TBM' })[key]);
+  const nextDoc = next.path ? docs.find((doc) => doc.id && next.path === jobRecordPath(doc.type, doc.id)) : null;
+
+  return (
+    <div className="work-hub">
+      <nav className="work-crumb" aria-label="경로"><Link to="/job/workspace">작업</Link><span aria-hidden="true">›</span><span>{work.title}</span></nav>
+      <header className="work-head">
+        <div>
+          <h1 className="work-head__title">{work.title} <Badge tone={work.highRisk ? 'warn' : 'neutral'}>{WORK_TYPE_LABELS[work.workType] ?? work.workType}</Badge> <Badge tone={toneOf(work.status)}>{WORK_STATUS_LABELS[work.status] ?? work.status}</Badge></h1>
+          <p className="work-head__meta">#{work.workId} · {zone?.name ?? (work.zoneId ? `구역 #${work.zoneId}` : '구역 미지정')} · {work.workDate} {timeRange(work.startAt, work.endAt)} · 작업자 {work.workerCount ?? '-'}명</p>
+        </div>
+      </header>
+      {hub.error && <p className="work-form__error" role="alert"><Icon name="alert" size={16} />{hub.error}</p>}
+
+      <section className="home-panel work-progress" aria-label="진행 단계">
+        <div className="work-progress__steps">
+          <StepIndicator steps={stages} onSelect={(key) => { const doc = docForStage(key); if (doc?.id) open(doc); }} />
+        </div>
+        <div className={`work-next work-next--${next.tone}`}>
+          <span className="work-next__text"><span className="work-next__eyebrow">지금 할 일</span><strong>{next.label}</strong></span>
+          {nextDoc ? <button type="button" className="ui-btn ui-btn--primary ui-btn--lg" onClick={() => open(nextDoc)}>지금 하기</button>
+            : next.path ? <Link className="ui-btn ui-btn--primary ui-btn--lg" to={next.path}>지금 하기</Link> : null}
+        </div>
+      </section>
+
+      <div className="work-hub__grid">
+        <section aria-labelledby="hub-docs" className="work-docs">
+          <h2 id="hub-docs" className="work-sec">문서</h2>
+          <ul className="work-docs__list">
+            {docs.map((doc) => (
+              <li key={doc.key} className={`work-doc${doc.id ? '' : ' is-missing'}`}>
+                <div className="work-doc__head">
+                  <h3 className="work-doc__title">{doc.label}</h3>
+                  {doc.id ? <Badge tone={toneOf(doc.status)}>{docStatusLabel(doc)}</Badge> : <Badge tone="todo">작성 전</Badge>}
+                </div>
+                <p className="work-doc__meta">{doc.id ? `${doc.permitNo ?? `#${doc.id}`}` : '아직 만들지 않았습니다.'}</p>
+                <div className="work-doc__actions">
+                  {doc.id ? <>
+                    <button type="button" className="ui-btn ui-btn--secondary" onClick={() => open(doc)}>열기</button>
+                    <Link className="ui-btn ui-btn--ghost" to={jobRecordPath(doc.type, doc.id)}>전체 화면</Link>
+                  </> : <Link className="ui-btn ui-btn--secondary" to={doc.createPath}>작성하기</Link>}
+                </div>
+              </li>
+            ))}
+          </ul>
+          {work.briefMissing && <p className="work-filters__help">붙은 문서 요약을 찾지 못했습니다. 각 화면에서 직접 확인하세요.</p>}
+          {work.description && <><h2 className="work-sec">작업 내용</h2><p className="work-desc">{work.description}</p></>}
+        </section>
+        <section aria-label="관련 아차사고 경고" className="home-panel work-warnings">
+          <WorkIncidentWarnings key={`work-warnings-${work.workId}`} siteId={site.siteId} initialWorkId={work.workId} />
+        </section>
+      </div>
+
+      <Sheet open={Boolean(openDoc)} onClose={close} title={openDoc?.label ?? ''} subtitle={openDoc?.id ? jobRecordPath(openDoc.type, openDoc.id) : ''}
+        actions={openDoc?.id && <Link className="ui-icon-btn" to={jobRecordPath(openDoc.type, openDoc.id)} aria-label="전체 화면으로 열기"><Icon name="external" size={18} /></Link>}>
+        {openDoc && (
+          <DocPanel doc={openDoc} entry={entry?.key === openDoc.key ? entry : null} siteId={site.siteId} zones={hub.zones} showFull
+            onReload={reloadDoc} onDone={() => { reloadDoc(); hub.reload(); }} />
+        )}
+      </Sheet>
+    </div>
   );
 }

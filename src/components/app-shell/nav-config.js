@@ -12,7 +12,7 @@ export const NAV = Object.freeze([
   {
     key: 'work', label: '작업', icon: 'work', roles: ALL,
     children: [
-      { key: 'work-list', label: '작업 등록·조회', path: '/job/workspace' },
+      { key: 'work-list', label: '작업 목록', path: '/job/workspace' },
       { key: 'work-status', label: '작업 현황', path: '/job/dashboard' },
       { key: 'risk', label: '위험성평가', path: '/job/risk-assessment' },
       { key: 'permit', label: '작업허가', path: '/job/permits' },
