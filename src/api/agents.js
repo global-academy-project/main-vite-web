@@ -66,3 +66,17 @@ export async function getAgentMessages(conversationId) {
   }
   return history;
 }
+
+/**
+ * 내 지난 대화 목록 (현장 · 대화 종류별, 최근 순). 서버: GET /api/v1/agent/conversations — 읽기 전용, 본인 대화만.
+ * [{ conversationId, siteId, taskType, title, messageCount, lastMessageAt, lastRunId, lastRunStatus }]
+ */
+export async function getAgentConversations({ siteId, taskType, limit = 30 }) {
+  const query = new URLSearchParams({ siteId: String(jobId(siteId)), taskType, limit: String(Math.min(Math.max(Number(limit) || 30, 1), 50)) });
+  const list = await api(`/api/v1/agent/conversations?${query}`);
+  if (!Array.isArray(list) || !list.every((item) => item && positiveId(item.conversationId) && item.taskType === taskType
+    && (item.lastRunId == null || positiveId(item.lastRunId)))) {
+    throw new Error('지난 대화 목록 응답 형식이 올바르지 않습니다.');
+  }
+  return list;
+}
