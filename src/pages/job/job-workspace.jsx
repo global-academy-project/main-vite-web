@@ -138,9 +138,9 @@ function WorkList({ site, context, onCreate, onAgent }) {
       <section className="work-filters" aria-label="작업 검색 조건">
         <div className="work-filters__row">
           <div className="work-period" role="group" aria-label="기간">
-            <label><span className="sr-only">시작 날짜</span><input type="date" value={from} max={to} onChange={(event) => setPeriod(event.target.value, to)} /></label>
+            <label><span className="sr-only">시작 날짜</span><input type="date" value={from} max={to || '9999-12-31'} onChange={(event) => setPeriod(event.target.value, to)} /></label>
             <span aria-hidden="true">~</span>
-            <label><span className="sr-only">끝 날짜</span><input type="date" value={to} min={from} onChange={(event) => setPeriod(from, event.target.value)} /></label>
+            <label><span className="sr-only">끝 날짜</span><input type="date" max="9999-12-31" value={to} min={from} onChange={(event) => setPeriod(from, event.target.value)} /></label>
             <button type="button" className="work-chip" aria-pressed={from === today && to === today} onClick={() => setPeriod(today, today)}>오늘</button>
             <button type="button" className="work-chip" onClick={() => shiftDays(6)}>7일</button>
             <button type="button" className="work-chip" onClick={() => shiftDays(29)}>30일</button>

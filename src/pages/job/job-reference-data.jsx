@@ -109,7 +109,7 @@ export default function JobReferenceData({ site, user, disabled }) {
               {worker.teamId && !resources.teams?.some((entry) => entry.active && String(entry.teamId) === String(worker.teamId))
                 && <option value={worker.teamId}>기존 팀 #{worker.teamId} (사용 여부 확인 필요)</option>}
             </select></label>
-            {!worker.workerId && <label>배치 시작일 (미입력 시 서버 기본값)<input type="date" value={worker.assignedFrom} onChange={(e) => setWorker({ ...worker, assignedFrom: e.target.value })} /></label>}
+            {!worker.workerId && <label>배치 시작일 (미입력 시 서버 기본값)<input type="date" max="9999-12-31" value={worker.assignedFrom} onChange={(e) => setWorker({ ...worker, assignedFrom: e.target.value })} /></label>}
           </div>
           {worker.workerId && <p className="job-help">연락처는 조회되지 않으며 미입력하면 유지됩니다. 삭제 선택 시에만 지웁니다. 미지정 팀은 기존 팀 연결을 제거합니다.</p>}
           <button type="submit">작업자 저장</button>
@@ -120,7 +120,7 @@ export default function JobReferenceData({ site, user, disabled }) {
         <legend>기존 작업자 현장 배치 / 떠남</legend>
         <div className="job-fields">
           <label>기존 작업자 ID<input inputMode="numeric" value={assignmentId} onChange={(e) => setAssignmentId(e.target.value)} /></label>
-          <label>배치·떠남 날짜 (비우면 오늘)<input type="date" value={assignmentDate} onChange={(e) => setAssignmentDate(e.target.value)} /></label>
+          <label>배치·떠남 날짜 (비우면 오늘)<input type="date" max="9999-12-31" value={assignmentDate} onChange={(e) => setAssignmentDate(e.target.value)} /></label>
         </div>
         <button type="button" onClick={() => {
           void run('workers', () => changeWorkerAssignment(site.siteId, assignmentId, 'assign', assignmentDate), '현장 배치를 저장했습니다.');

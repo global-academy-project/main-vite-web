@@ -10,7 +10,7 @@ export default function DateFactoryFilters({
       <label>
         <span className="sr-only">날짜</span>
         <input
-          type="date"
+          type="date" max="9999-12-31"
           value={date}
           onChange={(event) => onDateChange(event.target.value)}
         />

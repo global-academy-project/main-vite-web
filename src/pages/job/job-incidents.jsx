@@ -144,7 +144,7 @@ function IncidentWorkspace({ site, reporter, disabled, initialId }) {
             </select></label>
             <label>관련 작업 ID (선택)<input type="number" min="1" step="1" value={form.workId}
               onChange={(event) => updateForm('workId', event.target.value)} /></label>
-            <label>발생 일시<input required type="datetime-local" value={form.occurredAt}
+            <label>발생 일시<input required type="datetime-local" max="9999-12-31T23:59" value={form.occurredAt}
               onChange={(event) => updateForm('occurredAt', event.target.value)} /></label>
             <label>보고자<input readOnly value={reporter?.name ?? reporter?.email ?? ''} /></label>
             <label className="job-field-wide">발생 상황<textarea required maxLength={20000} rows={4} value={form.description}

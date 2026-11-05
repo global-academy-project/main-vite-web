@@ -124,7 +124,7 @@ function ChecklistWorkspace({ context }) {
         context={context}
         actions={<button type="button" className="checklist-back" onClick={() => navigate('/dashboard')}>대시보드로 돌아가기</button>}
       >
-        <label>점검일<input type="date" value={inspectionDate} onChange={(event) => {
+        <label>점검일<input type="date" max="9999-12-31" value={inspectionDate} onChange={(event) => {
           setInspectionDate(event.target.value); setSubmitted(false); setMessage('');
         }} /></label>
       </JobPageHeading>

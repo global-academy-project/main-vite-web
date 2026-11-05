@@ -148,7 +148,7 @@ function RiskWorkspace({ site, disabled, initialRiskId, initialWorkId }) {
         <fieldset disabled={disabled || busy || locked || needsReload}>
           <div className="job-fields">
             <label>작업 ID<input required inputMode="numeric" value={workId} disabled={Boolean(risk)} onChange={(event) => setWorkId(event.target.value)} /></label>
-            <label>평가일<input required type="date" value={assessDate} onChange={(event) => setAssessDate(event.target.value)} /></label>
+            <label>평가일<input required type="date" max="9999-12-31" value={assessDate} onChange={(event) => setAssessDate(event.target.value)} /></label>
           </div>
           <p className="job-help">빈도×강도가 12 이상이면 HIGH, 6 이상이면 MEDIUM, 그 아래는 LOW입니다. 선택 등급이 계산 등급보다 낮으면 서버가 올려 저장합니다. 계산 등급보다 높은 선택은 유지하며, 등급은 승인이나 작업 시작 허가가 아닙니다.</p>
           {risk?.formData && <details><summary>기존 초안 근거·검토 정보 (수정 시 보존)</summary><pre className="table-scroll">{typeof risk.formData === 'string' ? risk.formData : JSON.stringify(risk.formData, null, 2)}</pre></details>}

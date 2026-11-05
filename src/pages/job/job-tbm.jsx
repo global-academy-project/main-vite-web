@@ -231,7 +231,7 @@ function TbmWorkspace({ site, disabled, initialTbmId, initialDate }) {
         <h2>현장 TBM 조회</h2>
         <fieldset disabled={disabled || loading || busy}>
           <div className="job-fields">
-            <label>실시 날짜<input required type="date" value={date} onChange={(event) => setDate(event.target.value)} /></label>
+            <label>실시 날짜<input required type="date" max="9999-12-31" value={date} onChange={(event) => setDate(event.target.value)} /></label>
             <label>TBM 기록<select value={tbmId} onChange={(event) => {
               const record = records.find((item) => String(item.tbmId) === event.target.value);
               selectTbm(record ?? null);
@@ -248,7 +248,7 @@ function TbmWorkspace({ site, disabled, initialTbmId, initialDate }) {
         <h2>{editing ? `TBM #${selectedTbm?.tbmId} 내용 수정` : 'TBM 작성'}</h2>
         <fieldset disabled={disabled || loading || busy || needsReload || (editing && !editable)}>
           <div className="job-fields">
-            <label>TBM 날짜<input required type="date" value={date} onChange={(event) => setDate(event.target.value)} /></label>
+            <label>TBM 날짜<input required type="date" max="9999-12-31" value={date} onChange={(event) => setDate(event.target.value)} /></label>
             <label>진행자<input maxLength={50} value={leaderName} onChange={(event) => setLeaderName(event.target.value)} /></label>
             <JobReferenceSelectors key={site.siteId} siteId={site.siteId} teamId={teamId} zoneId={zoneId}
               onChange={(field, value) => { if (field === 'teamId') setTeamId(value); else setZoneId(value); setContentDirty(true); }}

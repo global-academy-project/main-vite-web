@@ -113,9 +113,9 @@ function Inbox({ site }) {
         </div>
         <div className="work-filters__row">
           <div className="work-period" role="group" aria-label="요청일">
-            <label><span className="sr-only">요청일 시작</span><input type="date" value={filters.from} max={filters.to || undefined} onChange={(event) => update('from', event.target.value)} /></label>
+            <label><span className="sr-only">요청일 시작</span><input type="date" value={filters.from} max={filters.to || '9999-12-31'} onChange={(event) => update('from', event.target.value)} /></label>
             <span aria-hidden="true">~</span>
-            <label><span className="sr-only">요청일 끝</span><input type="date" value={filters.to} min={filters.from || undefined} onChange={(event) => update('to', event.target.value)} /></label>
+            <label><span className="sr-only">요청일 끝</span><input type="date" max="9999-12-31" value={filters.to} min={filters.from || undefined} onChange={(event) => update('to', event.target.value)} /></label>
           </div>
           <label className="work-search"><span className="sr-only">문서명·요청자 검색</span>
             <input type="search" value={filters.keyword} placeholder="문서명·요청자 검색" onChange={(event) => update('keyword', event.target.value)} />

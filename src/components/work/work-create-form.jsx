@@ -65,12 +65,12 @@ export default function WorkCreateForm({ site, disabled = false, onCreated }) {
       <fieldset className="work-form__fields" disabled={disabled || busy || uncertain}>
         <legend className="sr-only">{site.name} 작업 등록</legend>
         <label className="work-form__wide">작업명 <span aria-hidden="true">*</span><input name="title" required maxLength={200} placeholder="예: 저장탱크 주변 용접 작업" /></label>
-        <label>작업일 <span aria-hidden="true">*</span><input name="workDate" type="date" required /></label>
+        <label>작업일 <span aria-hidden="true">*</span><input name="workDate" type="date" max="9999-12-31" required /></label>
         <label>작업 유형<select name="workType">{Object.entries(workTypes).map(([code, label]) => <option key={code} value={code}>{label}</option>)}</select></label>
         {workZoneEnabled && <JobReferenceSelectors siteId={site.siteId} zoneId={zoneId} onChange={(_, value) => setZoneId(value)} disabled={disabled || busy} showTeams={false} />}
         <label>작업 인원<input name="workerCount" type="number" min="1" step="1" inputMode="numeric" /></label>
-        <label>시작 일시<input name="startAt" type="datetime-local" /></label>
-        <label>종료 일시<input name="endAt" type="datetime-local" /></label>
+        <label>시작 일시<input name="startAt" type="datetime-local" max="9999-12-31T23:59" /></label>
+        <label>종료 일시<input name="endAt" type="datetime-local" max="9999-12-31T23:59" /></label>
         <label className="work-form__wide">작업 내용<textarea name="description" rows={3} placeholder="작업 범위와 확인할 사항을 입력해 주세요." /></label>
       </fieldset>
       <p className="work-form__help">저장하면 작업 허브로 이동해 위험성평가·허가·TBM을 이어서 작성합니다.</p>

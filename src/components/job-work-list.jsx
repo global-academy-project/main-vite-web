@@ -37,8 +37,8 @@ export default function JobWorkList({ siteId, disabled, revision = 0 }) {
       }}>
         <fieldset disabled={disabled}>
           <div className="job-fields">
-            <label>시작일<input required type="date" value={from} onChange={(event) => setFrom(event.target.value)} /></label>
-            <label>종료일<input required type="date" value={to} onChange={(event) => setTo(event.target.value)} /></label>
+            <label>시작일<input required type="date" max="9999-12-31" value={from} onChange={(event) => setFrom(event.target.value)} /></label>
+            <label>종료일<input required type="date" max="9999-12-31" value={to} onChange={(event) => setTo(event.target.value)} /></label>
           </div>
           <button type="submit">작업 목록 조회 / 새로고침</button>
         </fieldset>
