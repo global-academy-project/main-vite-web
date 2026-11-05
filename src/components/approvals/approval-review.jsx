@@ -14,9 +14,9 @@ import { jobRecordPath } from '../../utils/job-forms.js';
 
 /**
  * 결재 한 건 검토: 요청 정보 → 결재선 → 문서 미리보기 → 승인·반려(또는 회수).
- * 승인함 드로어와 /approvals/:id 전체 화면이 같이 쓴다. onDecided(latest, action) 로 결과를 알린다.
+ * 승인함 드로어(layout='sheet')와 /approvals/:id 전체 화면(layout='page')이 같이 쓴다. onDecided(latest, action) 로 결과를 알린다.
  */
-export default function ApprovalReview({ approvalId, onDecided }) {
+export default function ApprovalReview({ approvalId, onDecided, layout = 'sheet' }) {
   const review = useApprovalReview(approvalId);
   const toast = useToast();
   const [comment, setComment] = useState('');
@@ -50,8 +50,8 @@ export default function ApprovalReview({ approvalId, onDecided }) {
     onDecided?.(latest, action);
   };
 
-  return (
-    <div className="appr-review">
+  const mainBlock = (
+    <>
       <header className="appr-review__head">
         <div className="appr-review__badges">
           <Badge tone="info">{APPROVAL_TARGET_LABELS[summary.targetType] ?? summary.targetType}</Badge>
@@ -93,6 +93,10 @@ export default function ApprovalReview({ approvalId, onDecided }) {
         {preview ? <ApprovalPreview preview={preview} /> : <StatusView kind="error" compact title="미리보기를 불러오지 못했습니다" message={review.previewError} onRetry={review.reload} />}
       </section>
 
+    </>
+  );
+  const actionBlock = (
+    <>
       {detail.canDecide && (
         <section className="appr-block appr-decide" aria-labelledby={`${commentId}-decide`}>
           <h4 id={`${commentId}-decide`} className="appr-block__title">결재 처리</h4>
@@ -137,6 +141,17 @@ export default function ApprovalReview({ approvalId, onDecided }) {
           <button type="button" className="ui-btn ui-btn--ghost" disabled={Boolean(review.busy)} onClick={() => act('cancel')}>{review.busy === 'cancel' ? '회수 중…' : '승인 요청 회수'}</button>
         </div>
       )}
-    </div>
+    </>
   );
+
+  // 전체 화면(넓을 때): 왼쪽 본문 · 오른쪽 결재 처리(따라 내려옴). 드로어·좁은 화면: 한 줄로 쌓는다
+  if (layout === 'page') {
+    return (
+      <div className="appr-review appr-review--page">
+        <section className="home-panel appr-review__main">{mainBlock}</section>
+        <aside className="home-panel appr-review__side" aria-label="결재 처리">{actionBlock}</aside>
+      </div>
+    );
+  }
+  return <div className="appr-review">{mainBlock}{actionBlock}</div>;
 }

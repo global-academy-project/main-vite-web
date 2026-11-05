@@ -1,7 +1,7 @@
 import { measurementFields, permitFormFields } from '../../api/jobs';
 import { Badge } from '../home/panel.jsx';
 import Icon from '../ui/icon.jsx';
-import { shortDateTime } from '../../utils/approval-model.js';
+import { shortDateTime, unitLabel } from '../../utils/approval-model.js';
 import { RISK_LEVEL_LABELS, timeRange, WORK_TYPE_LABELS } from '../../utils/home-model.js';
 
 const PERMIT_TYPE = { HOT: '화기', CONFINED: '밀폐공간', HEIGHT: '고소' };
@@ -65,7 +65,7 @@ function PermitPreview({ permit }) {
             <tbody>
               {fields.map(({ code, label }) => {
                 const m = latest[code];
-                return <tr key={code}><td>{label}</td><td className="appr-num">{m ? `${m.value} ${m.unit ?? ''}` : <span className="appr-missing">미입력</span>}</td><td>{m ? `${shortDateTime(m.measuredAt)} · ${m.measurerName ?? ''}${m.remeasure ? ' · 재측정' : ''}` : '-'}</td></tr>;
+                return <tr key={code}><td>{label}</td><td className="appr-num">{m ? `${m.value} ${unitLabel(m.unit)}`.trim() : <span className="appr-missing">미입력</span>}</td><td>{m ? [shortDateTime(m.measuredAt), m.measurerName, m.remeasure ? '재측정' : ''].filter(Boolean).join(' · ') : '-'}</td></tr>;
               })}
             </tbody>
           </table>

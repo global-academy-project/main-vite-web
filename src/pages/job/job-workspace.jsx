@@ -135,7 +135,7 @@ function WorkList({ site, context, onCreate, onAgent }) {
         })}
       </ul>
 
-      <section className="work-filters" aria-label="작업 거르기">
+      <section className="work-filters" aria-label="작업 검색 조건">
         <div className="work-filters__row">
           <div className="work-period" role="group" aria-label="기간">
             <label><span className="sr-only">시작 날짜</span><input type="date" value={from} max={to} onChange={(event) => setPeriod(event.target.value, to)} /></label>
@@ -172,8 +172,8 @@ function WorkList({ site, context, onCreate, onAgent }) {
         {list.works.status === 'error' && <StatusView kind={list.works.code === 403 ? 'forbidden' : 'error'} message={list.works.error} onRetry={list.reload} />}
         {list.works.status === 'ready' && !rows.length && (
           <StatusView kind="empty" title={all.length ? '조건에 맞는 작업이 없습니다' : '이 기간에 등록된 작업이 없습니다'}
-            message={all.length ? '거르기를 바꿔 보세요.' : '대화로 만들거나 직접 등록하세요.'}
-            action={all.length ? { label: '거르기 지우기', onClick: () => { setTypes([]); setStatus(''); setQuery(''); setActionOnly(false); } } : { label: '작업 직접 등록', onClick: onCreate }} />
+            message={all.length ? '검색 조건을 바꿔 보세요.' : '대화로 만들거나 직접 등록하세요.'}
+            action={all.length ? { label: '조건 초기화', onClick: () => { setTypes([]); setStatus(''); setQuery(''); setActionOnly(false); } } : { label: '작업 직접 등록', onClick: onCreate }} />
         )}
         {list.works.status === 'ready' && rows.length > 0 && (
           <table className="home-table work-table">

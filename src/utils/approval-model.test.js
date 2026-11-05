@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { approvalStats, filterApprovals, missingItemOptions, nextStep, shortDateTime, sortApprovals } from './approval-model.js';
+import { approvalStats, unitLabel, filterApprovals, missingItemOptions, nextStep, shortDateTime, sortApprovals } from './approval-model.js';
 
 const row = (patch) => ({ approvalId: 1, targetType: 'PERMIT', title: '탱크 허가', requestedByName: '김안전', requestedAt: '2026-11-05T09:00:00', dueAt: null, overdue: false, status: 'PENDING', ...patch });
 const rows = [row({ approvalId: 1 }), row({ approvalId: 2, targetType: 'RISK', title: '지붕 평가', requestedByName: '이현장', requestedAt: '2026-11-03T08:00:00', status: 'REJECTED' }), row({ approvalId: 3, overdue: true, dueAt: '2026-11-05T08:00:00' })];
@@ -32,4 +32,8 @@ test('시각 줄임과 다음 단계', () => {
   assert.equal(shortDateTime('2026-11-05T09:20:00'), '11/05 09:20');
   assert.equal(shortDateTime(null), '');
   assert.equal(nextStep({ steps: [{ stepNo: 1, status: 'APPROVED' }, { stepNo: 2, status: 'PENDING' }] }).stepNo, 2);
+});
+
+test('측정 단위 코드를 화면 표시로', () => {
+  assert.deepEqual(['PCT', 'PPM', 'PCT_LEL', null].map(unitLabel), ['%', 'ppm', '%LEL', '']);
 });

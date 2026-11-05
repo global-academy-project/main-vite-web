@@ -16,12 +16,10 @@ function Detail() {
   return (
     <div className="work-hub appr-page">
       <PageHeader title="결재 검토" description={`결재 #${approvalId}`} actions={<Link className="ui-btn ui-btn--ghost" to="/approvals">승인함 목록</Link>} />
-      <section className="home-panel appr-page__panel">
-        <ApprovalReview approvalId={approvalId} onDecided={(latest, action) => {
-          if (action === 'cancel') return;
-          navigate(`/approvals/${approvalId}/result`, { state: { approval: latest, decisionType: latest.summary?.status } });
-        }} />
-      </section>
+      <ApprovalReview layout="page" approvalId={approvalId} onDecided={(latest, action) => {
+        if (action === 'cancel') return;
+        navigate(`/approvals/${approvalId}/result`, { state: { approval: latest, decisionType: latest.summary?.status } });
+      }} />
     </div>
   );
 }
