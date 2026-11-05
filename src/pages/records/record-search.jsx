@@ -1,19 +1,56 @@
-import { Link } from 'react-router-dom';
+import { useState } from 'react';
 import SafetyPageLayout from '../../components/safety-page-layout';
+import { useAgentConversation } from '../../hooks/use-agent-conversation.js';
+import { jobRecordPath } from '../../utils/job-forms.js';
 import '../../style/records.css';
 
 // ROUTE: /records/search
-// FLOW: 기록 조회는 직접 목록 API가 아니라 작업 대시보드의 기록 질문 탭으로 통합
-// TODO: API NOT CONNECTED: POST /api/v1/agent/record-query
+// FLOW: 기록 조회는 Spring의 기록질문 실행 API를 거쳐 AI 서버와 내부 기록 도구를 호출한다.
 export default function RecordSearch() {
   return <SafetyPageLayout title="기록 질문">{(site) => (
-    <section className="panel records-question" aria-labelledby="record-query-unavailable-title">
-      <h1 id="record-query-unavailable-title">기록 질문</h1>
-      <p>기록 조회는 현장 권한과 실행 이력을 보장하기 위해 작업 등록 화면의 기록 질문 탭에서 처리합니다.</p>
-      <p className="dashboard-error" role="status">기록 질문 에이전트 API가 아직 연결되지 않았습니다.</p>
-      <Link className="secondary-button" to="/job/dashboard">작업 대시보드로 이동</Link>
-      <p className="job-help">서버 API가 배포되면 질문·답변·근거 기록 링크·조회 조건·진행 과정·0건 결과를 해당 탭에서 표시합니다.</p>
-      {site.currentSite && <p className="job-help">현재 선택 현장: {site.currentSite.name}</p>}
-    </section>
+    <RecordQueryPanel siteId={site.currentSite?.siteId ?? site.currentSite?.id} siteName={site.currentSite?.name} />
   )}</SafetyPageLayout>;
+}
+
+function RecordQueryPanel({ siteId, siteName }) {
+  const conversation = useAgentConversation({ siteId, taskType: 'RECORD_QUERY' });
+  const [text, setText] = useState('');
+  const submit = async (event) => {
+    event.preventDefault();
+    if (await conversation.send(text)) setText('');
+  };
+
+  return <section className="panel records-question" aria-labelledby="record-query-title">
+      <h1 id="record-query-title">기록 질문</h1>
+      <p className="job-help">{siteName ?? '선택한 현장'}의 안전 기록을 질문하면 조회 결과와 근거를 보여줍니다.</p>
+      <div className="records-question__thread" aria-live="polite">
+        {conversation.messages.map((item) => <p key={item.messageId} className={`bubble bubble--${item.role === 'USER' ? 'me' : 'ai'}`}>{item.content}</p>)}
+        {conversation.pendingText && <p className="bubble bubble--me">{conversation.pendingText}</p>}
+        {conversation.processing && <p className="bubble bubble--ai" role="status">기록을 조회하고 있습니다…</p>}
+        {conversation.run?.status === 'WAITING_INPUT' && conversation.run.result?.ask?.message && <p className="bubble bubble--ai">{conversation.run.result.ask.message}</p>}
+        {conversation.run?.status === 'DONE' && <RecordAnswer result={conversation.run.result} />}
+        {conversation.run?.status === 'FAILED' && <p className="dashboard-error" role="alert">AI 처리에 실패했습니다. {conversation.run.errorMessage}</p>}
+        {conversation.error && conversation.run?.status !== 'FAILED' && <p className="dashboard-error" role="alert">{conversation.error}</p>}
+      </div>
+      <form className="records-question__form" onSubmit={submit}>
+        <label htmlFor="record-query-input">질문</label>
+        <textarea id="record-query-input" value={text} maxLength={2000} disabled={conversation.locked} onChange={(event) => setText(event.target.value)} placeholder="예: 지난달 TBM을 하지 않은 작업은?" />
+        <button className="primary-button" type="submit" disabled={conversation.locked || !text.trim()}>조회하기</button>
+      </form>
+      {!siteId && <p className="dashboard-error" role="status">기록을 조회하려면 먼저 현장을 선택하세요.</p>}
+    </section>
+}
+
+function RecordAnswer({ result }) {
+  return <article className="bubble bubble--ai record-answer">
+    <p style={{ whiteSpace: 'pre-wrap' }}>{result?.answer || '조회 결과가 없습니다.'}</p>
+    {result?.evidence?.length > 0 && <ul className="record-answer__evidence">
+      {result.evidence.map((item, index) => {
+        const path = jobRecordPath(item.type, item.id);
+        const label = item.label || `${item.type} #${item.id}`;
+        return <li key={`${item.type}-${item.id}-${index}`}>{path ? <a href={path}>{label}</a> : label}</li>;
+      })}
+    </ul>}
+    {result?.queries?.length > 0 && <p className="job-help">조회 {result.queries.map((query) => `${query.queryType} ${query.total ?? 0}건`).join(' · ')}</p>}
+  </article>;
 }
