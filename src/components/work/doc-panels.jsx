@@ -7,7 +7,7 @@ import Field from '../ui/field.jsx';
 import Icon from '../ui/icon.jsx';
 import StatusView from '../ui/status-view.jsx';
 import { Badge } from '../home/panel.jsx';
-import { PERMIT_STATUS_LABELS, RISK_STATUS_LABELS, TBM_STATUS_LABELS, timeRange, toneOf, WORK_STATUS_LABELS, WORK_TYPE_LABELS } from '../../utils/home-model.js';
+import { PERMIT_STATUS_LABELS, RISK_LEVEL_LABELS, RISK_STATUS_LABELS, TBM_STATUS_LABELS, timeRange, toneOf, WORK_STATUS_LABELS, WORK_TYPE_LABELS } from '../../utils/home-model.js';
 import { jobRecordPath } from '../../utils/job-forms.js';
 
 /*
@@ -65,7 +65,7 @@ function RiskDraft({ risk, siteId, footer, onDone }) {
       <div className="draft-panel__status"><Badge tone={toneOf(risk.status)}>{RISK_STATUS_LABELS[risk.status]}</Badge><span>위험요인 {risk.items.length}개</span></div>
       <ol className="draft-risks">
         {risk.items.slice(0, 5).map((item) => (
-          <li key={item.seq}><strong>{item.hazard}</strong><span>{item.controls || '감소대책 없음'}</span>{item.riskLevel && <Badge tone={item.riskLevel === 'HIGH' ? 'block' : item.riskLevel === 'MEDIUM' ? 'warn' : 'neutral'}>{item.riskLevel}</Badge>}</li>
+          <li key={item.seq}><strong>{item.hazard}</strong><span>{item.controls || '감소대책 없음'}</span>{item.riskLevel && <Badge tone={item.riskLevel === 'HIGH' ? 'block' : item.riskLevel === 'MEDIUM' ? 'warn' : 'neutral'}>위험도 {RISK_LEVEL_LABELS[item.riskLevel] ?? item.riskLevel}</Badge>}</li>
         ))}
       </ol>
       {risk.items.length > 5 && <p className="draft-muted">외 {risk.items.length - 5}개</p>}

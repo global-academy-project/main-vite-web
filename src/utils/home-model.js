@@ -11,6 +11,7 @@ export const PERMIT_STATUS_LABELS = Object.freeze({
   SUSPENDED: '중지', REJECTED: '반려', CLOSED: '종료', SUPERSEDED: '이전 판',
 });
 export const RISK_STATUS_LABELS = Object.freeze({ DRAFT: '작성 중', PENDING: '승인 대기', APPROVED: '승인', REJECTED: '반려', SUPERSEDED: '이전 판' });
+export const RISK_LEVEL_LABELS = Object.freeze({ HIGH: '높음', MEDIUM: '보통', LOW: '낮음' });
 export const TBM_STATUS_LABELS = Object.freeze({ DRAFT: '작성 중', DONE: '완료', APPROVED: '승인' });
 export const APPROVAL_TARGET_LABELS = Object.freeze({
   WORK: '작업', RISK: '위험성평가', PERMIT: '작업허가', PERMIT_EVENT: '허가 변경', INSPECTION: '점검표',
