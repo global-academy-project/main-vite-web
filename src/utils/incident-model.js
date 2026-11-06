@@ -2,7 +2,8 @@
 import { TAG_LABELS } from './agentic-rag-tags.js';
 
 // 서버 상태값 → 화면 말. 모르는 값은 그대로 보인다.
-export const INCIDENT_STATUS_LABELS = Object.freeze({ REPORTED: '접수', TAGGING: '태깅 중', TAGGED: '태그 완료', REVIEWED: '검토 완료' });
+// 서버 NearMissStatus 와 같은 4가지 (REPORTED 보고됨 · TAGGED 5축 분류 완료 · REVIEWED 관리자 검토 · CLOSED 종결)
+export const INCIDENT_STATUS_LABELS = Object.freeze({ REPORTED: '접수', TAGGED: '분류 완료', REVIEWED: '검토 완료', CLOSED: '종결' });
 
 // 중대도 → 배지 색
 const SEVERITY_TONES = Object.freeze({ FATAL: 'block', SERIOUS: 'block', MINOR: 'warn', NEAR_MISS: 'info' });
