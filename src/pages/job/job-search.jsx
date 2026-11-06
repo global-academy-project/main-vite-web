@@ -67,7 +67,7 @@ function SettingsPage({ site, context }) {
 
       {!data.permissions.manageSite && <p className="rec-note"><Icon name="info" size={16} />보기 전용입니다. 변경은 현장 관리자 이상만 할 수 있습니다.</p>}
       {data.anyBlocked && (
-        <div className="work-form__error" role="alert"><Icon name="warning" size={16} /><span>저장 결과나 최신 판을 확인해야 합니다. 새로고침으로 서버 반영 여부를 확인한 뒤 계속하세요.</span>
+        <div className="work-form__error" role="alert"><Icon name="warning" size={16} /><span>저장 결과나 최신 내용을 확인해야 합니다. 새로고침으로 서버 반영 여부를 확인한 뒤 계속하세요.</span>
           <button type="button" className="ui-btn ui-btn--ghost" onClick={data.reload}>새로고침</button></div>
       )}
 

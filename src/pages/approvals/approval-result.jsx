@@ -15,7 +15,7 @@ import '../../styles/approvals.css';
 const resultCopy = {
   APPROVED: { title: '승인 완료', description: '최종 승인되었습니다. 요청자에게 알림이 갑니다.', tone: 'done', icon: 'check' },
   PENDING: { title: '다음 단계 승인 대기', description: '이 단계는 승인되었고 다음 승인자의 처리를 기다리고 있습니다.', tone: 'wait', icon: 'check' },
-  REJECTED: { title: '반려 완료', description: '문서가 반려되었습니다. 요청자는 사유를 확인한 뒤 새 판으로 다시 작성합니다.', tone: 'block', icon: 'alert' },
+  REJECTED: { title: '반려 완료', description: '문서가 반려되었습니다. 요청자는 사유를 확인한 뒤 고쳐서 다시 제출합니다.', tone: 'block', icon: 'alert' },
   CANCELED: { title: '회수됨', description: '요청자가 승인 요청을 회수했습니다.', tone: 'neutral', icon: 'info' },
 };
 
@@ -62,7 +62,7 @@ function ApprovalResultContent() {
         <div className="appr-done__box"><span>{status === 'REJECTED' ? '반려 사유' : '처리 의견'}</span><p>{summary.comment}</p></div>
       )}
       <div className="appr-done__actions">
-        {status === 'REJECTED' && <Link className="ui-btn ui-btn--primary ui-btn--lg" to={`/approvals/${approvalId}/revision`} state={{ approval }}>새 판으로 다시 작성</Link>}
+        {status === 'REJECTED' && <Link className="ui-btn ui-btn--primary ui-btn--lg" to={`/approvals/${approvalId}/revision`} state={{ approval }}>수정 후 다시 제출</Link>}
         <Link className="ui-btn ui-btn--secondary ui-btn--lg" to="/approvals">승인함으로</Link>
         {docPath && <Link className="ui-btn ui-btn--ghost ui-btn--lg" to={docPath}>문서 화면 열기</Link>}
       </div>

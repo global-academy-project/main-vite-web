@@ -17,8 +17,10 @@ import StepIndicator from '../../components/ui/step-indicator.jsx';
 import { useAgentConversation } from '../../hooks/use-agent-conversation.js';
 import { useWorkHub } from '../../hooks/use-work-hub.js';
 import { useWorkList } from '../../hooks/use-work-list.js';
+import { usePeriod } from '../../hooks/use-period.js';
+import PeriodBar from '../../components/period-bar.jsx';
 import {
-  localDate, nextAction, PERMIT_STATUS_LABELS, RISK_STATUS_LABELS, TBM_STATUS_LABELS, timeRange, toneOf, WORK_STATUS_LABELS, WORK_TYPE_LABELS, workStages,
+  nextAction, PERMIT_STATUS_LABELS, workReady, RISK_STATUS_LABELS, TBM_STATUS_LABELS, timeRange, toneOf, WORK_STATUS_LABELS, WORK_TYPE_LABELS, workStages,
 } from '../../utils/home-model.js';
 import { jobRecordPath } from '../../utils/job-forms.js';
 import { filterWorks, hubDocs, parseDocParam, sortWorks, withBack, workStats } from '../../utils/work-list-model.js';
@@ -74,29 +76,20 @@ const TYPE_KEYS = Object.keys(WORK_TYPE_LABELS);
 
 function WorkList({ site, context, onCreate, onAgent }) {
   const navigate = useNavigate();
-  const today = localDate();
-  const [from, setFrom] = useState(today);
-  const [to, setTo] = useState(today);
+  // 고른 기간은 다른 메뉴에 다녀와도 남는다 (같은 탭 동안)
+  const period = usePeriod(`works:${site.siteId}`, { maxDays: 0 });
+  const { from, to } = period;
   const [types, setTypes] = useState([]);
   const [status, setStatus] = useState('');
   const [query, setQuery] = useState('');
   const [actionOnly, setActionOnly] = useState(false);
   const [lookup, setLookup] = useState('');
-  const [periodError, setPeriodError] = useState('');
   const list = useWorkList(site.siteId, from, to);
   const all = useMemo(() => list.works.data ?? [], [list.works.data]);
   const rows = useMemo(() => sortWorks(filterWorks(all, { types, status, query, actionOnly })), [all, types, status, query, actionOnly]);
   const stats = workStats(all);
   const zoneName = (id) => list.zones.data?.find((zone) => zone.zoneId === id)?.name ?? (id ? `구역 #${id}` : '구역 미지정');
 
-  const setPeriod = (nextFrom, nextTo) => {
-    if (nextFrom && nextTo && nextTo < nextFrom) { setPeriodError('끝 날짜는 시작 날짜와 같거나 뒤여야 합니다.'); return; }
-    setPeriodError(''); setFrom(nextFrom); setTo(nextTo);
-  };
-  const shiftDays = (days) => {
-    const date = new Date(); date.setDate(date.getDate() - days);
-    setPeriod(localDate(date), today);
-  };
 
   return (
     <div className="work-list">
@@ -124,14 +117,7 @@ function WorkList({ site, context, onCreate, onAgent }) {
 
       <section className="work-filters" aria-label="작업 검색 조건">
         <div className="work-filters__row">
-          <div className="work-period" role="group" aria-label="기간">
-            <label><span className="sr-only">시작 날짜</span><input type="date" value={from} max={to || '9999-12-31'} onChange={(event) => setPeriod(event.target.value, to)} /></label>
-            <span aria-hidden="true">~</span>
-            <label><span className="sr-only">끝 날짜</span><input type="date" max="9999-12-31" value={to} min={from} onChange={(event) => setPeriod(from, event.target.value)} /></label>
-            <button type="button" className="work-chip" aria-pressed={from === today && to === today} onClick={() => setPeriod(today, today)}>오늘</button>
-            <button type="button" className="work-chip" onClick={() => shiftDays(6)}>7일</button>
-            <button type="button" className="work-chip" onClick={() => shiftDays(29)}>30일</button>
-          </div>
+          <PeriodBar period={period} />
           <div className="work-types" role="group" aria-label="작업 종류">
             {TYPE_KEYS.map((type) => (
               <button key={type} type="button" className="work-chip" aria-pressed={types.includes(type)}
@@ -151,7 +137,7 @@ function WorkList({ site, context, onCreate, onAgent }) {
             <button type="submit" className="ui-btn ui-btn--ghost" disabled={!/^\d+$/.test(lookup.trim())}>열기</button>
           </form>
         </div>
-        <p className="work-filters__help" role={periodError ? 'alert' : undefined}>{periodError || `${from === to ? from : `${from} ~ ${to}`} · ${rows.length}건 표시`}</p>
+        <p className="work-filters__help" role={period.error ? 'alert' : undefined}>{period.error || `${from === to ? from : `${from} ~ ${to}`} · ${rows.length}건 표시`}</p>
       </section>
 
       <section className="home-panel work-table-panel" aria-label="작업 목록">
@@ -242,7 +228,7 @@ function WorkHub({ site, context, workId, params, setParams }) {
   return (
     <div className="work-hub">
       <PageHeader title={work.title} context={context} onBeforeSelect={() => setParams({})}
-        badges={<><Badge tone={work.highRisk ? 'warn' : 'neutral'}>{WORK_TYPE_LABELS[work.workType] ?? work.workType}</Badge><Badge tone={toneOf(work.status)}>{WORK_STATUS_LABELS[work.status] ?? work.status}</Badge></>}
+        badges={<><Badge tone={work.highRisk ? 'warn' : 'neutral'}>{WORK_TYPE_LABELS[work.workType] ?? work.workType}</Badge>{/* 작업 상태는 서버에서 바뀌지 않아(작업 승인·종료 API 없음) 문서가 다 승인됐는지로 보인다 */}<Badge tone={workReady(work) ? 'done' : toneOf(work.status)}>{workReady(work) ? '작업 준비 완료' : work.status === 'DRAFT' ? '준비 중' : (WORK_STATUS_LABELS[work.status] ?? work.status)}</Badge></>}
         description={`작업 #${work.workId} · ${zone?.name ?? (work.zoneId ? `구역 #${work.zoneId}` : '구역 미지정')} · ${work.workDate} ${timeRange(work.startAt, work.endAt)} · 작업자 ${work.workerCount ?? '-'}명`}
         actions={<Link className="ui-btn ui-btn--ghost" to="/job/workspace">작업 목록</Link>} />
       {hub.error && <p className="work-form__error" role="alert"><Icon name="alert" size={16} />{hub.error}</p>}

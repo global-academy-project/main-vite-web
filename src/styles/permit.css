@@ -74,3 +74,7 @@ button.permit-check__btn:disabled { opacity: 0.6; cursor: not-allowed; }
   button.permit-check__btn { flex: 1 1 0; justify-content: center; }
   .permit-history { margin: 0; width: 100%; }
 }
+
+/* 같은 종류 허가서가 이미 있을 때 안내 (오류가 아니라 안내 색) */
+.work-form__error.permit-existing { border-color: var(--color-primary-border, var(--color-border)); background: var(--color-primary-soft); color: var(--color-text-strong); }
+.permit-existing > span { flex: 1 1 280px; line-height: 1.6; }

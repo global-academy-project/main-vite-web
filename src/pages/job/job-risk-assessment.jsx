@@ -11,13 +11,14 @@ import StepIndicator from '../../components/ui/step-indicator.jsx';
 import { useRiskAssessment } from '../../hooks/use-risk-assessment.js';
 import { TAG_LABELS } from '../../utils/agentic-rag-tags';
 import { RISK_STATUS_LABELS, toneOf, WORK_TYPE_LABELS } from '../../utils/home-model.js';
-import { localDate } from '../../utils/job-forms';
 import { itemScore, levelCounts, RISK_LEVEL_TEXT, RISK_LEVEL_TONES, riskSteps } from '../../utils/risk-model.js';
 import { backToHubPath, withBack } from '../../utils/work-list-model.js';
 import '../../styles/home.css';
 import '../../styles/work.css';
 import '../../styles/records.css';
 import '../../styles/risk.css';
+import { usePeriod } from '../../hooks/use-period.js';
+import PeriodBar from '../../components/period-bar.jsx';
 
 const SCALE = ['1', '2', '3', '4', '5'];
 const FREQUENCY_HINT = { 1: '거의 없음', 2: '드묾', 3: '가끔', 4: '자주', 5: '매우 자주' };
@@ -27,6 +28,10 @@ const SEVERITY_HINT = { 1: '경미', 2: '가벼운 부상', 3: '치료 필요', 
  * 위험성평가. 주소에 riskId 또는 workId 가 있으면 그 평가를 바로 열고, 없으면 작업을 고르는 화면.
  * 저장·검사·승인 요청 규칙은 기존과 같다(use-risk-assessment).
  */
+// 기간으로 보면 여러 날 작업이 섞이므로 최근 날짜부터
+const sortByDate = (works) => [...works].sort((a, b) => String(b.workDate).localeCompare(String(a.workDate)) || b.workId - a.workId);
+const shortDay = (date) => (date ? date.slice(5).replace('-', '/') : '-');
+
 export default function JobRiskAssessment() {
   const context = useWorkSite();
   const [params] = useSearchParams();
@@ -46,42 +51,44 @@ export default function JobRiskAssessment() {
 /** 평가 찾기: 날짜별 작업에서 고르기 (+ 평가 번호로 바로 열기) */
 function RiskFinder({ site, context }) {
   const navigate = useNavigate();
-  const [date, setDate] = useState(localDate);
+  // 기간(오늘·7일·30일)은 다른 메뉴에 다녀와도 남는다
+  const period = usePeriod(`risk:${site.siteId}`);
+  const { from, to } = period;
   const [state, setState] = useState({ key: null, works: [], error: '' });
   const [lookup, setLookup] = useState('');
-  const key = `${site.siteId}:${date}`;
+  const key = `${site.siteId}:${from}:${to}`;
   useEffect(() => {
     let active = true;
-    getSiteWorks(site.siteId, date).then((works) => { if (active) setState({ key, works, error: '' }); })
+    getSiteWorks(site.siteId, from, to).then((works) => { if (active) setState({ key, works: sortByDate(works), error: '' }); })
       .catch((requestError) => { if (active) setState({ key, works: [], error: requestError.message || '작업 목록을 불러오지 못했습니다.' }); });
     return () => { active = false; };
-  }, [site.siteId, date, key]);
+  }, [site.siteId, from, to, key]);
   const loading = state.key !== key;
 
   return (
     <div className="work-list rec-page">
       <PageHeader title="위험성평가" description="작업을 고르면 그 작업의 위험성평가를 열거나 새로 작성합니다." context={context} />
       <section className="work-filters rec-datebar" aria-label="작업일">
-        <div className="rec-datebar__nav">
-          <label><span className="sr-only">작업일</span><input type="date" max="9999-12-31" value={date} onChange={(event) => setDate(event.target.value || localDate())} /></label>
-        </div>
+        <PeriodBar period={period} label="작업일" />
         <form className="risk-lookup" onSubmit={(event) => { event.preventDefault(); if (/^\d+$/.test(lookup.trim())) navigate(`/job/risk-assessment?riskId=${lookup.trim()}`); }}>
           <label><span className="sr-only">평가 번호</span><input value={lookup} inputMode="numeric" placeholder="평가 번호로 열기" onChange={(event) => setLookup(event.target.value)} /></label>
           <button type="submit" className="ui-btn ui-btn--ghost" disabled={!/^\d+$/.test(lookup.trim())}>열기</button>
         </form>
+        {period.error && <p className="work-filters__help" role="alert">{period.error}</p>}
       </section>
       <section className="home-panel work-table-panel" aria-label="작업 목록">
         {loading && <div className="home-panel__pad"><Skeleton lines={5} /></div>}
         {!loading && state.error && <StatusView kind="error" message={state.error} />}
-        {!loading && !state.error && !state.works.length && <StatusView kind="empty" title="이 날짜에 등록된 작업이 없습니다" message="작업을 먼저 등록하세요." action={{ label: '작업 목록으로', onClick: () => navigate('/job/workspace') }} />}
+        {!loading && !state.error && !state.works.length && <StatusView kind="empty" title={from === to ? '이 날짜에 등록된 작업이 없습니다' : '이 기간에 등록된 작업이 없습니다'} message="작업을 먼저 등록하세요." action={{ label: '작업 목록으로', onClick: () => navigate('/job/workspace') }} />}
         {!loading && state.works.length > 0 && (
           <table className="home-table">
-            <thead><tr><th scope="col">작업</th><th scope="col">종류</th><th scope="col">위험성평가</th><th scope="col"><span className="sr-only">열기</span></th></tr></thead>
+            <thead><tr><th scope="col" className="work-table__date">작업일</th><th scope="col">작업</th><th scope="col">종류</th><th scope="col">위험성평가</th><th scope="col"><span className="sr-only">열기</span></th></tr></thead>
             <tbody>
               {state.works.map((work) => {
                 const brief = work.riskAssessment;
                 return (
                   <tr key={work.workId}>
+                    <td data-label="작업일" className="work-table__date">{shortDay(work.workDate)}</td>
                     <td data-label="작업"><span className="home-table__name"><span className="home-table__title">{work.title}</span><span className="work-table__id">#{work.workId}</span></span></td>
                     <td data-label="종류"><Badge tone={work.highRisk ? 'warn' : 'neutral'}>{WORK_TYPE_LABELS[work.workType] ?? work.workType}</Badge></td>
                     <td data-label="위험성평가">{brief ? <Badge tone={toneOf(brief.status)}>{RISK_STATUS_LABELS[brief.status] ?? brief.status}</Badge> : <span className="work-none">작성 전</span>}</td>
@@ -131,7 +138,7 @@ function RiskEditor({ site, context, initialRiskId, initialWorkId, back }) {
       {data.needsReload && (
         <div className="work-form__error" role="alert">
           <Icon name="warning" size={16} />
-          <span>저장 결과나 최신 판을 확인해야 합니다. 다시 불러온 뒤 계속하세요.</span>
+          <span>저장 결과나 최신 내용을 확인해야 합니다. 다시 불러온 뒤 계속하세요.</span>
           <button type="button" className="ui-btn ui-btn--ghost" disabled={data.busy} onClick={() => data.load({ riskId: risk?.riskAssessmentId, workId: data.workId })}>다시 불러오기</button>
         </div>
       )}
@@ -168,10 +175,10 @@ function RiskEditor({ site, context, initialRiskId, initialWorkId, back }) {
 
         <div className="risk-bar">
           <span className={`risk-bar__state${data.dirty ? ' is-dirty' : ''}`}>
-            {data.locked ? (risk?.status === 'REJECTED' ? '반려된 평가입니다. 새 판을 만들어 고치세요.' : '작성 중인 평가만 고칠 수 있습니다.')
+            {data.locked ? (risk?.status === 'REJECTED' ? '반려된 평가입니다. "수정 후 다시 제출"을 누르면 반려된 내용을 그대로 옮긴 수정본이 열립니다.' : '작성 중인 평가만 고칠 수 있습니다.')
               : data.dirty ? '저장하지 않은 변경이 있습니다. 저장한 뒤 승인 요청하세요.' : risk ? '서버에 저장된 최신 내용입니다.' : '아직 저장하지 않은 새 평가입니다.'}
           </span>
-          {risk?.status === 'REJECTED' && <button type="button" className="ui-btn ui-btn--secondary" disabled={data.busy || data.needsReload} onClick={async () => { const next = await data.revise(); if (next) navigate(withBack(`/job/risk-assessment?riskId=${next.riskAssessmentId}`, back ? targetWorkId : null), { replace: true }); }}>반려 평가 새 판 작성</button>}
+          {risk?.status === 'REJECTED' && <button type="button" className="ui-btn ui-btn--secondary" disabled={data.busy || data.needsReload} onClick={async () => { const next = await data.revise(); if (next) navigate(withBack(`/job/risk-assessment?riskId=${next.riskAssessmentId}`, back ? targetWorkId : null), { replace: true }); }}>수정 후 다시 제출</button>}
           {editable && <button type="submit" className="ui-btn ui-btn--ghost" disabled={data.busy || (!data.dirty && Boolean(risk))}>{data.busy ? '저장 중…' : '초안 저장'}</button>}
           {risk?.canSubmit && <button type="button" className="ui-btn ui-btn--primary" disabled={data.busy || data.dirty} onClick={data.submit}>승인 요청</button>}
         </div>

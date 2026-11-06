@@ -98,7 +98,7 @@ function StatusPage({ site, context }) {
                     <button type="button" className={`home-tile${tile.count ? ' has-count' : ''}${tile.overdue ? ' is-overdue' : ''}${open?.type === tile.type ? ' is-open' : ''}`}
                       aria-pressed={open?.type === tile.type} disabled={!tile.count} onClick={() => setOpenType(tile.type)}>
                       <span className="home-tile__label">{tile.fullLabel}</span>
-                      <span className="home-tile__row">{tile.overdue && <span className="home-tile__due">지연</span>}<span className={`home-tile__count${dashboard && tileValue(tile).word ? ' home-tile__count--word' : ''}`}>{dashboard ? tileValue(tile).text : '—'}{(!dashboard || tileValue(tile).unit) && <small>{dashboard ? tileValue(tile).unit : '건'}</small>}</span></span>
+                      <span className="home-tile__row">{tile.overdue && <span className="home-tile__due">지연</span>}<span className={`home-tile__count${dashboard && tileValue(tile, dashboard).word ? ' home-tile__count--word' : ''}`}>{dashboard ? tileValue(tile, dashboard).text : '—'}{(!dashboard || tileValue(tile, dashboard).unit) && <small>{dashboard ? tileValue(tile, dashboard).unit : '건'}</small>}</span></span>
                     </button>
                   </li>
                 ))}

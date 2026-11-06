@@ -16,6 +16,7 @@ import { APPROVAL_TARGET_LABELS } from '../../utils/home-model.js';
 import '../../styles/home.css';
 import '../../styles/work.css';
 import '../../styles/approvals.css';
+import { PERIOD_PRESETS, presetRange } from '../../utils/period-model.js';
 
 const TABS = [
   { key: 'pending', label: '결재 대기', empty: '지금 결재할 문서가 없습니다' },
@@ -116,6 +117,12 @@ function Inbox({ site }) {
             <label><span className="sr-only">요청일 시작</span><input type="date" value={filters.from} max={filters.to || '9999-12-31'} onChange={(event) => update('from', event.target.value)} /></label>
             <span aria-hidden="true">~</span>
             <label><span className="sr-only">요청일 끝</span><input type="date" max="9999-12-31" value={filters.to} min={filters.from || undefined} onChange={(event) => update('to', event.target.value)} /></label>
+            {/* 요청일 빠른 선택. "전체"는 기간 없이 (결재 대기는 오래된 것도 처리해야 해서 기본은 전체) */}
+            <button type="button" className="work-chip" aria-pressed={!filters.from && !filters.to} onClick={() => setFilters((prev) => ({ ...prev, from: '', to: '' }))}>전체</button>
+            {PERIOD_PRESETS.map((preset) => {
+              const range = presetRange(preset.days);
+              return <button key={preset.key} type="button" className="work-chip" aria-pressed={filters.from === range.from && filters.to === range.to} onClick={() => setFilters((prev) => ({ ...prev, ...range }))}>{preset.label}</button>;
+            })}
           </div>
           <label className="work-search"><span className="sr-only">문서명·요청자 검색</span>
             <input type="search" value={filters.keyword} placeholder="문서명·요청자 검색" onChange={(event) => update('keyword', event.target.value)} />

@@ -11,7 +11,6 @@ import StatusView, { Skeleton } from '../../components/ui/status-view.jsx';
 import StepIndicator from '../../components/ui/step-indicator.jsx';
 import { usePermitWorkspace } from '../../hooks/use-permit-workspace.js';
 import { PERMIT_STATUS_LABELS, toneOf, WORK_TYPE_LABELS } from '../../utils/home-model.js';
-import { localDate } from '../../utils/job-forms';
 import { EVALUATION_LABELS, EVALUATION_TONES, PERMIT_RULE_SUMMARY, PERMIT_TYPE_LABELS, permitSteps, RULE_CHECK_LABELS } from '../../utils/permit-model.js';
 import { backToHubPath } from '../../utils/work-list-model.js';
 import '../../styles/home.css';
@@ -19,6 +18,8 @@ import '../../styles/work.css';
 import '../../styles/records.css';
 import '../../styles/risk.css';
 import '../../styles/permit.css';
+import { usePeriod } from '../../hooks/use-period.js';
+import PeriodBar from '../../components/period-bar.jsx';
 
 // TODO: BACKEND CONTRACT REQUIRED: POST /api/v1/permits/{permitId}/signatures
 // EVENT: SUPERVISOR 서명은 approval.steps에 추가하지 않고 별도 이벤트로 저장한다.
@@ -27,6 +28,10 @@ import '../../styles/permit.css';
  * 작업허가. 주소에 permitId 가 있으면 그 허가서를 이어서 할 단계로 열고, workId 만 있으면 그 작업의 새 허가서,
  * 둘 다 없으면 작업을 고르는 화면. 4단계 규칙은 기존과 같다(use-permit-workspace).
  */
+// 기간으로 보면 여러 날 작업이 섞이므로 최근 날짜부터
+const sortByDate = (works) => [...works].sort((a, b) => String(b.workDate).localeCompare(String(a.workDate)) || b.workId - a.workId);
+const shortDay = (date) => (date ? date.slice(5).replace('-', '/') : '-');
+
 export default function JobPermits() {
   const context = useWorkSite();
   const [params] = useSearchParams();
@@ -46,42 +51,44 @@ export default function JobPermits() {
 /** 허가서 찾기: 날짜별 작업과 그 작업의 허가서 (+ 허가서 번호로 열기) */
 function PermitFinder({ site, context }) {
   const navigate = useNavigate();
-  const [date, setDate] = useState(localDate);
+  // 기간(오늘·7일·30일)은 다른 메뉴에 다녀와도 남는다
+  const period = usePeriod(`permits:${site.siteId}`);
+  const { from, to } = period;
   const [state, setState] = useState({ key: null, works: [], error: '' });
   const [lookup, setLookup] = useState('');
-  const key = `${site.siteId}:${date}`;
+  const key = `${site.siteId}:${from}:${to}`;
   useEffect(() => {
     let active = true;
-    getSiteWorks(site.siteId, date).then((works) => { if (active) setState({ key, works, error: '' }); })
+    getSiteWorks(site.siteId, from, to).then((works) => { if (active) setState({ key, works: sortByDate(works), error: '' }); })
       .catch((requestError) => { if (active) setState({ key, works: [], error: requestError.message || '작업 목록을 불러오지 못했습니다.' }); });
     return () => { active = false; };
-  }, [site.siteId, date, key]);
+  }, [site.siteId, from, to, key]);
   const loading = state.key !== key;
 
   return (
     <div className="work-list rec-page">
       <PageHeader title="작업허가" description="허가서 작성 → 측정값 → 규칙 판정 → 승인 요청. 작업을 고르면 그 작업의 허가서를 열거나 새로 만듭니다." context={context} />
       <section className="work-filters rec-datebar" aria-label="작업일">
-        <div className="rec-datebar__nav">
-          <label><span className="sr-only">작업일</span><input type="date" max="9999-12-31" value={date} onChange={(event) => setDate(event.target.value || localDate())} /></label>
-        </div>
+        <PeriodBar period={period} label="작업일" />
         <form className="risk-lookup" onSubmit={(event) => { event.preventDefault(); if (/^\d+$/.test(lookup.trim())) navigate(`/job/permits?permitId=${lookup.trim()}`); }}>
           <label><span className="sr-only">허가서 번호</span><input value={lookup} inputMode="numeric" placeholder="허가서 ID로 열기" onChange={(event) => setLookup(event.target.value)} /></label>
           <button type="submit" className="ui-btn ui-btn--ghost" disabled={!/^\d+$/.test(lookup.trim())}>열기</button>
         </form>
+        {period.error && <p className="work-filters__help" role="alert">{period.error}</p>}
       </section>
       <section className="home-panel work-table-panel" aria-label="작업 목록">
         {loading && <div className="home-panel__pad"><Skeleton lines={5} /></div>}
         {!loading && state.error && <StatusView kind="error" message={state.error} />}
-        {!loading && !state.error && !state.works.length && <StatusView kind="empty" title="이 날짜에 등록된 작업이 없습니다" action={{ label: '작업 목록으로', onClick: () => navigate('/job/workspace') }} />}
+        {!loading && !state.error && !state.works.length && <StatusView kind="empty" title={from === to ? '이 날짜에 등록된 작업이 없습니다' : '이 기간에 등록된 작업이 없습니다'} action={{ label: '작업 목록으로', onClick: () => navigate('/job/workspace') }} />}
         {!loading && state.works.length > 0 && (
           <table className="home-table">
-            <thead><tr><th scope="col">작업</th><th scope="col">종류</th><th scope="col">허가서</th><th scope="col"><span className="sr-only">열기</span></th></tr></thead>
+            <thead><tr><th scope="col" className="work-table__date">작업일</th><th scope="col">작업</th><th scope="col">종류</th><th scope="col">허가서</th><th scope="col"><span className="sr-only">열기</span></th></tr></thead>
             <tbody>
               {state.works.map((work) => {
                 const permits = (work.permits ?? []).filter((permit) => permit.status !== 'SUPERSEDED');
                 return (
                   <tr key={work.workId}>
+                    <td data-label="작업일" className="work-table__date">{shortDay(work.workDate)}</td>
                     <td data-label="작업"><span className="home-table__name"><span className="home-table__title">{work.title}</span><span className="work-table__id">#{work.workId}</span></span></td>
                     <td data-label="종류"><Badge tone={work.highRisk ? 'warn' : 'neutral'}>{WORK_TYPE_LABELS[work.workType] ?? work.workType}</Badge></td>
                     <td data-label="허가서">
@@ -116,8 +123,20 @@ function PermitEditor({ siteId, context, initialPermitId, initialWorkId, back })
     getWork(targetWorkId).then((found) => { if (active) setWork(found); }).catch(() => { if (active) setWork(null); });
     return () => { active = false; };
   }, [targetWorkId]);
+  // 작업 상세에는 허가서 목록이 없어서, 새 허가서일 때만 그날 작업 목록에서 이 작업의 허가서를 찾는다
+  const [workPermits, setWorkPermits] = useState(null);
+  const creating = !initialPermitId && !permit;
+  useEffect(() => {
+    if (!creating || !work?.workDate) return undefined;
+    let active = true;
+    getSiteWorks(siteId, work.workDate).then((list) => { if (active) setWorkPermits(list.find((item) => String(item.workId) === String(work.workId))?.permits ?? []); })
+      .catch(() => { if (active) setWorkPermits([]); });
+    return () => { active = false; };
+  }, [creating, siteId, work?.workDate, work?.workId]);
 
   const hub = back ?? (targetWorkId ? `/job/workspace?workId=${targetWorkId}` : null);
+  // 새 허가서인데 이 작업에 같은 종류 허가서가 이미 있으면 (서버는 작업당 종류별 1건만 받는다) 저장 전에 그쪽으로 안내
+  const existing = creating && workPermits ? workPermits.find((item) => item.permitType === data.type && item.status !== 'SUPERSEDED') : null;
   if (data.loading) return <div className="work-list"><PageHeader title="작업허가" context={context} /><div className="home-panel home-panel__pad"><Skeleton lines={8} /></div></div>;
 
   return (
@@ -143,6 +162,15 @@ function PermitEditor({ siteId, context, initialPermitId, initialWorkId, back })
           <Icon name="warning" size={16} />
           <span>최신 버전 확인이 필요합니다. 다시 불러온 뒤 수정·판정·승인 요청하세요.</span>
           {permit && <button type="button" className="ui-btn ui-btn--ghost" disabled={data.busy} onClick={() => data.load(permit.permitId)}>최신 허가서 다시 불러오기</button>}
+        </div>
+      )}
+
+      {existing && (
+        <div className="work-form__error permit-existing" role="alert">
+          <Icon name="info" size={16} />
+          <span>이 작업에는 {PERMIT_TYPE_LABELS[data.type]} 허가서가 이미 있습니다 ({existing.permitNo ?? `#${existing.permitId}`} · {PERMIT_STATUS_LABELS[existing.status] ?? existing.status}). 같은 종류는 하나만 만들 수 있어요.
+            {['DRAFT', 'CHECKING', 'REJECTED'].includes(existing.status) ? ' 그 허가서에서 이어서 고치세요.' : ' 승인 요청 뒤에는 읽기만 할 수 있습니다.'}</span>
+          <Link className="ui-btn ui-btn--primary" to={`/job/permits?permitId=${existing.permitId}`}>그 허가서로 이동</Link>
         </div>
       )}
 
