@@ -340,3 +340,11 @@
 .dark-mode .auth-alert--success { color: #a7f3d0; background: #1d392d; }
 .dark-mode .auth-alert--warning { color: #f6d58e; background: #352e21; }
 .dark-mode .auth-alert--error { color: #fda4af; background: #3b2024; }
+
+/* 좁은 화면 가로 넘침 막기: 입력칸 기본 최소 너비 때문에 부서·직책 두 칸이 화면보다 넓어지던 문제 */
+.auth-content > * { min-width: 0; max-width: 100%; }
+.auth-field { min-width: 0; }
+.auth-field input, .auth-field select { width: 100%; min-width: 0; box-sizing: border-box; }
+@media (max-width: 380px) {
+  .auth-form .auth-row:has(> .auth-field) { flex-direction: column; align-items: stretch; }
+}
