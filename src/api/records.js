@@ -1,12 +1,18 @@
 import { api } from './client.js';
 
-export function getRecordDetail(recordType, recordId) {
-  const paths = {
-    PERMIT: 'permits', RISK: 'risk-assessments', TBM: 'tbm', WORK: 'works', APPROVAL: 'approvals',
-  };
-  const resource = paths[String(recordType || '').toUpperCase()];
-  if (!resource || !recordId) throw new Error('기록 종류 또는 기록 ID가 올바르지 않습니다.');
-  return api(`/api/v1/${resource}/${recordId}`);
+// 문서 보기 (GET /previews/{type}/{id}). 저장하지 않는 미리보기이고 승인함 상세와 같은 응답이다.
+export const PREVIEW_TYPES = Object.freeze(['PERMIT', 'RISK', 'TBM', 'INSPECTION', 'DAILY_LOG']);
+
+export async function getDocumentPreview(targetType, targetId) {
+  const type = String(targetType || '').toUpperCase();
+  const id = Number(targetId);
+  if (!PREVIEW_TYPES.includes(type) || !Number.isSafeInteger(id) || id < 1) throw new Error('문서 종류 또는 번호가 올바르지 않습니다.');
+  const data = await api(`/api/v1/previews/${type}/${id}`);
+  if (!data || data.targetType !== type || data.targetId !== id || typeof data.status !== 'string'
+    || typeof data.official !== 'boolean' || !data.content || typeof data.content !== 'object') {
+    throw new Error('문서 미리보기 응답 형식이 올바르지 않습니다.');
+  }
+  return data;
 }
 
 // API: POST /api/v1/agent/record-query

@@ -40,3 +40,26 @@ test('daily safety log APIs use the agreed paths and lock versions', async (t) =
   assert.throws(() => updateDailySafetyLog(101, { lockVersion: 2, summary: ' ' }), /요약/);
   assert.throws(() => submitDailySafetyLog(101), /버전/);
 });
+
+test('document preview uses /previews and validates type and id', async (t) => {
+  const { getDocumentPreview } = await import('./records.js');
+  const storage = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
+  Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: { getItem: () => null } });
+  t.after(() => {
+    if (storage) Object.defineProperty(globalThis, 'localStorage', storage);
+    else delete globalThis.localStorage;
+  });
+  const preview = { targetType: 'TBM', targetId: 14, status: 'DRAFT', official: false, markText: '작성 중 · 정식 문서 아님', content: { tbmId: 14 } };
+  let data = preview;
+  let requested;
+  t.mock.method(globalThis, 'fetch', async (path) => {
+    requested = path;
+    return new Response(JSON.stringify({ success: true, data }), { headers: { 'Content-Type': 'application/json' } });
+  });
+  assert.deepEqual(await getDocumentPreview('tbm', '14'), preview);
+  assert.equal(requested, '/api/v1/previews/TBM/14');
+  await assert.rejects(getDocumentPreview('WORK', 1), /문서 종류/);
+  await assert.rejects(getDocumentPreview('TBM', 'x'), /문서 종류/);
+  data = { ...preview, targetId: 15 };
+  await assert.rejects(getDocumentPreview('TBM', 14), /형식/);
+});

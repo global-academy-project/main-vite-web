@@ -45,7 +45,10 @@ export default function JobDailySafety() {
         <PageHeader title="안전일지" description="그날 작업·허가·TBM·점검을 서버가 모아 초안을 만듭니다." context={context}
           onBeforeSelect={() => { if (data.dirty) toast.show({ tone: 'info', message: '저장하지 않은 요약 수정 내용은 현장을 바꾸면 사라집니다. 현장을 바꾸기 전에 저장해 주세요.' }); }}
           badges={deadline && <Badge tone={deadline.passed ? 'block' : 'neutral'}><Icon name="clock" size={12} />{deadline.text}</Badge>}
-          actions={<button type="button" className="ui-btn ui-btn--ghost" disabled={data.busy || data.loading} onClick={data.reload}><Icon name="refresh" size={16} />새로고침</button>} />
+          actions={<>
+            <button type="button" className="ui-btn ui-btn--ghost" disabled={data.busy || data.loading} onClick={data.reload}><Icon name="refresh" size={16} />새로고침</button>
+            {data.log?.dailyLogId && <Link className="ui-btn ui-btn--ghost" to={`/records/DAILY_LOG/${data.log.dailyLogId}`}>문서 보기</Link>}
+          </>} />
 
         <section className="work-filters rec-datebar" aria-label="기준 날짜">
           <div className="rec-datebar__nav">

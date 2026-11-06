@@ -4,7 +4,7 @@ import { useWorkSite } from '../../api/workers';
 import JobPageLayout from '../../components/job-page-layout';
 import WorkIncidentWarnings from '../../components/work-incident-warnings';
 import PageHeader from '../../components/ui/page-header.jsx';
-import JobWorkAgent from './job-work-agent';
+import AgentSheet from '../../components/work/agent-sheet.jsx';
 import { Badge } from '../../components/home/panel.jsx';
 import WorkCreateForm from '../../components/work/work-create-form.jsx';
 import { DocPanel } from '../../components/work/doc-panels.jsx';
@@ -14,6 +14,7 @@ import Icon from '../../components/ui/icon.jsx';
 import Sheet from '../../components/ui/sheet.jsx';
 import StatusView, { Skeleton } from '../../components/ui/status-view.jsx';
 import StepIndicator from '../../components/ui/step-indicator.jsx';
+import { useAgentConversation } from '../../hooks/use-agent-conversation.js';
 import { useWorkHub } from '../../hooks/use-work-hub.js';
 import { useWorkList } from '../../hooks/use-work-list.js';
 import {
@@ -24,7 +25,6 @@ import { filterWorks, hubDocs, parseDocParam, sortWorks, withBack, workStats } f
 import '../../styles/home.css';
 import '../../styles/work.css';
 
-const createRecordQueryState = () => ({ message: '', execution: null, run: null, messages: [], polling: false, lookupId: '', error: '' });
 const docStatusLabel = (doc) => (doc.type === 'RISK' ? RISK_STATUS_LABELS : doc.type === 'PERMIT' ? PERMIT_STATUS_LABELS : TBM_STATUS_LABELS)[doc.status] ?? doc.status;
 
 /**
@@ -37,14 +37,11 @@ export default function JobWorkspace() {
   const navigate = useNavigate();
   const workId = params.get('workId');
   const [sheet, setSheet] = useState(null); // 'create' | 'agent'
-  const [assistantTab, setAssistantTab] = useState('work');
-  const [recordQueryState, setRecordQueryState] = useState(createRecordQueryState);
+  const [assistantTab, setAssistantTab] = useState('WORK_REGISTER');
   const site = context.currentSite;
-  const updateRecordQueryState = useCallback((patch) => setRecordQueryState((previous) => ({ ...previous, ...patch })), []);
-
-  // 기록 질문 대화는 현장에 종속되므로 현장 변경 시 이전 대화를 폐기한다 (기존 동작 그대로)
-  const [lastSite, setLastSite] = useState(site?.siteId);
-  if (lastSite !== site?.siteId) { setLastSite(site?.siteId); setRecordQueryState(createRecordQueryState()); }
+  // AI 대화는 시트 밖(이 화면)에 두어 시트를 닫았다 열어도 남는다. 현장이 바뀌면 훅이 새 대화로 비운다
+  const agentWork = useAgentConversation({ siteId: site?.siteId, taskType: 'WORK_REGISTER' });
+  const agentRecord = useAgentConversation({ siteId: site?.siteId, taskType: 'RECORD_QUERY' });
 
   // 허브에서 현장을 바꾸면 그 작업은 다른 현장 것이므로 목록으로 돌아간다
 
@@ -64,18 +61,8 @@ export default function JobWorkspace() {
         {site && <WorkCreateForm site={site} disabled={context.selecting} onCreated={(saved) => { setSheet(null); navigate(`/job/workspace?workId=${saved.workId}`); }} />}
       </Sheet>
 
-      <Sheet open={sheet === 'agent'} onClose={() => setSheet(null)} title="AI 대화" subtitle="허가서 연결 · 실행 번호로 다시 조회" wide>
-        {site && (
-          <div className="work-agent">
-            <div className="home-assistant__tabs work-agent__tabs" role="tablist" aria-label="AI 도우미 탭">
-              <button type="button" role="tab" aria-selected={assistantTab === 'work'} className={`home-assistant__tab${assistantTab === 'work' ? ' is-active' : ''}`} onClick={() => setAssistantTab('work')}>작업 등록</button>
-              <button type="button" role="tab" aria-selected={assistantTab === 'records'} className={`home-assistant__tab${assistantTab === 'records' ? ' is-active' : ''}`} onClick={() => setAssistantTab('records')}>기록 질문</button>
-            </div>
-            {assistantTab === 'work'
-              ? <JobWorkAgent key={`agent-work-${site.siteId}`} siteId={site.siteId} disabled={context.selecting} taskType="WORK_REGISTER" />
-              : <JobWorkAgent key={`agent-records-${site.siteId}`} siteId={site.siteId} disabled={context.selecting} taskType="RECORD_QUERY" persistedState={recordQueryState} onPersistedStateChange={updateRecordQueryState} />}
-          </div>
-        )}
+      <Sheet open={sheet === 'agent'} onClose={() => setSheet(null)} title="AI 대화" subtitle={`${site?.name ?? ''} · 허가서 연결 · 실행 번호로 다시 조회`} wide>
+        {site && <AgentSheet siteId={site.siteId} siteName={site.name} work={agentWork} record={agentRecord} tab={assistantTab} setTab={setAssistantTab} />}
       </Sheet>
     </JobPageLayout>
   );

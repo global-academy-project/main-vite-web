@@ -1,0 +1,24 @@
+/* 문서 보기. 문서 모양은 approvals.css(appr-*), 값은 tokens.css 변수만 */
+
+.doc-grid { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: var(--space-4); align-items: start; }
+.doc-sheet { padding: var(--space-4); }
+.doc-sheet__head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: var(--space-2); padding-bottom: var(--space-3); border-bottom: 2px solid var(--color-text-strong); }
+.doc-sheet__head h2 { margin: 2px 0 0; color: var(--color-text-strong); font-size: var(--text-xl); font-weight: 700; }
+.doc-side { display: flex; flex-direction: column; gap: var(--space-4); position: sticky; top: var(--space-4); }
+.doc-approval { display: flex; flex-direction: column; gap: var(--space-3); padding: 0 var(--space-4); }
+.doc-approval p { margin: 0; }
+
+@media (max-width: 1024px) {
+  .doc-grid { grid-template-columns: minmax(0, 1fr); }
+  .doc-side { position: static; }
+}
+
+/* 인쇄: 메뉴·머리·버튼을 숨기고 문서만 */
+@media print {
+  .app-nav, .app-tabs, .dashboard-header, .page-head__actions, .page-head__site, .ui-toast, .app-nav-scrim, .doc-side .tbm-card__actions { display: none !important; }
+  .dashboard-main, .dashboard-content, .work-page { margin: 0 !important; padding: 0 !important; max-width: none !important; }
+  .doc-grid { grid-template-columns: minmax(0, 1fr); }
+  .doc-side { position: static; }
+  .home-panel { border: 0 !important; box-shadow: none !important; }
+  body { background: #fff; }
+}

@@ -194,6 +194,7 @@ function InspectionDetail({ data, item }) {
             <p className="rec-help">점검표 #{item.inspectionId} · {item.inspectDate} · 점검자 {item.inspectorName ?? '미상'}</p>
           </div>
           <div className="tbm-card__actions">
+            <Link className="ui-btn ui-btn--ghost" to={`/records/INSPECTION/${item.inspectionId}`}>문서 보기</Link>
             {item.approvalId && <Link className="ui-btn ui-btn--ghost" to={`/approvals/${item.approvalId}`}>결재 보기</Link>}
             {item.workId && <Link className="ui-btn ui-btn--ghost" to={`/job/workspace?workId=${item.workId}`}>작업 #{item.workId}</Link>}
           </div>

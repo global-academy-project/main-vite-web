@@ -180,6 +180,7 @@ function TbmDetail({ data, tbm, siteId }) {
             <p className="rec-help">{tbm.tbmDate} · 진행자 {tbm.leaderName || '미입력'}</p>
           </div>
           <div className="tbm-card__actions">
+            <Link className="ui-btn ui-btn--ghost" to={`/records/TBM/${tbm.tbmId}`}>문서 보기</Link>
             {tbm.approvalId && <Link className="ui-btn ui-btn--ghost" to={`/approvals/${tbm.approvalId}`}>결재 보기</Link>}
             {data.editable && <button type="button" className="ui-btn ui-btn--secondary" disabled={data.locked} onClick={data.openEdit}>내용 수정</button>}
           </div>
