@@ -131,7 +131,7 @@ export default function JobWorkAgent({
         setRun(saved); setCreationUncertain(false);
         if (saved.status === 'PROCESSING') {
           attempts += 1;
-          if (attempts >= 80) {
+          if (attempts >= 260) {
             throw new Error('자동 조회를 중지했습니다. 서버 실행은 취소되지 않았습니다. 실행 상태 다시 조회로 확인하세요.');
           }
           timer = setTimeout(poll, 1500);

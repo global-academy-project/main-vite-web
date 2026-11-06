@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { getAgentMessages, getAgentRun, startRecordQuery, startWorkRegister } from '../api/agents';
 
 const POLL_MS = 1500;
-const POLL_LIMIT = 80;
+const POLL_LIMIT = 260; // 1.5초 × 260 = 6분 30초. 서버 실행 정리 시간(6분)보다 길게 둔다
 
 // 마지막 대화를 기억해 두는 곳 (현장·대화 종류별). 다른 화면에 갔다 와도, 새로고침해도 같은 탭에서는 이어서 볼 수 있게.
 // 이 브라우저 탭에서만 남고(sessionStorage), 읽기·쓰기가 막힌 환경이면 그냥 기억하지 않는다.
