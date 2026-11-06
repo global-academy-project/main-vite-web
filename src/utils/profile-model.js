@@ -1,5 +1,5 @@
 // 내 정보 화면 입력 검사 (서버 UpdateMeRequest · ChangePasswordRequest 와 같은 규칙. 최종 판단은 서버)
-import { validPassword } from './auth-validation.js';
+import { nameError, validPassword } from './auth-validation.js';
 
 export const profileForm = (user) => ({
   name: user?.name ?? '', phone: user?.phone ?? '', department: user?.department ?? '', jobTitle: user?.jobTitle ?? '',
@@ -9,9 +9,10 @@ export const profileForm = (user) => ({
 export function profileBody(form) {
   const errors = {};
   const name = form.name.trim();
-  const phone = form.phone.replaceAll('-', '').trim();
-  if (!name || name.length > 50) errors.name = '이름은 1~50자로 입력하세요.';
-  if (phone && !/^0[0-9]{8,10}$/.test(phone)) errors.phone = '숫자만, 0으로 시작하는 9~11자리로 입력하세요. 하이픈은 빼고 저장합니다.';
+  const phone = form.phone.trim();
+  if (nameError(name)) errors.name = nameError(name);
+  if (!/^\d*$/.test(phone)) errors.phone = '숫자만 입력하세요. 하이픈(-)은 넣지 않습니다.';
+  else if (phone && !/^0[0-9]{8,10}$/.test(phone)) errors.phone = '0으로 시작하는 9~11자리 숫자로 입력하세요.';
   if (form.department.trim().length > 100) errors.department = '100자 이하로 입력하세요.';
   if (form.jobTitle.trim().length > 50) errors.jobTitle = '50자 이하로 입력하세요.';
   if (Object.keys(errors).length) return { errors };

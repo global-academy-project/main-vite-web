@@ -1,0 +1,131 @@
+/* 로그인 전 화면 (로그인·회원가입·인증·비밀번호). 흰 바탕 + 파란 강조, 값은 tokens.css 변수만 */
+
+.auth2 { display: grid; grid-template-columns: minmax(380px, 5fr) 7fr; min-height: 100vh; background: var(--color-surface); color: var(--color-text); font-family: var(--font-sans); }
+.auth2--compact { display: grid; grid-template-columns: minmax(0, 1fr); justify-items: center; align-content: start; background: var(--color-bg); }
+/* 결과 화면은 가운데가 아니라 위 기준: 확인 중 → 결과로 카드 길이가 바뀌어도 카드 위치가 움직이지 않게 */
+.auth2--compact .auth2-content { justify-content: flex-start; width: 100%; box-sizing: border-box; padding-top: clamp(40px, 12vh, 120px); }
+
+/* 왼쪽 소개 */
+.auth2-brand { position: relative; display: flex; flex-direction: column; justify-content: space-between; gap: var(--space-6, 32px); padding: 40px 48px; overflow: hidden; border-right: 1px solid var(--color-border); background: linear-gradient(160deg, var(--color-primary-soft) 0%, var(--color-surface-accent) 55%, var(--color-surface) 100%); }
+.auth2-brand::after { content: ''; position: absolute; right: -120px; bottom: -120px; width: 360px; height: 360px; border-radius: 50%; border: 48px solid var(--color-primary-soft); opacity: 0.7; pointer-events: none; }
+.auth2-brand__logo, .auth2-mobile-logo { display: inline-flex; align-items: center; gap: var(--space-2); color: var(--color-text-strong); font-size: var(--text-2xl); font-weight: 700; text-decoration: none; }
+.auth2-brand__logo img, .auth2-mobile-logo img { width: 32px; height: 32px; object-fit: contain; }
+.auth2-brand__main { position: relative; z-index: 1; display: flex; flex-direction: column; gap: var(--space-5, 24px); }
+.auth2-brand__main h2 { margin: 0; color: var(--color-text-strong); font-size: clamp(28px, 2.6vw, 40px); font-weight: 700; line-height: 1.3; letter-spacing: -0.01em; word-break: keep-all; }
+.auth2-brand__features { display: flex; flex-direction: column; gap: var(--space-4); margin: 0; padding: 0; list-style: none; }
+.auth2-brand__features li { display: flex; gap: var(--space-3); }
+.auth2-brand__features li > span:last-child { display: flex; flex-direction: column; gap: 2px; }
+.auth2-brand__features strong { color: var(--color-text-strong); font-size: var(--text-md); }
+.auth2-brand__features li > span:last-child > span { color: var(--color-text-sub); font-size: var(--text-sm); line-height: 1.55; }
+.auth2-brand__dot { display: grid; flex: 0 0 auto; place-items: center; width: 24px; height: 24px; margin-top: 1px; border-radius: 50%; background: var(--color-primary); color: var(--color-text-on-primary); }
+.auth2-brand small { position: relative; z-index: 1; color: var(--color-text-muted); font-size: var(--text-xs); }
+
+/* 가입 절차 */
+.auth-steps { display: flex; flex-direction: column; gap: 0; margin: 0; padding: 0; list-style: none; }
+.auth-steps li { position: relative; display: flex; gap: var(--space-3); padding-bottom: var(--space-4); }
+.auth-steps li:not(:last-child)::before { content: ''; position: absolute; left: 13px; top: 28px; bottom: 0; width: 2px; background: var(--color-border-accent); }
+.auth-steps__no { position: relative; z-index: 1; display: grid; flex: 0 0 auto; place-items: center; width: 28px; height: 28px; border: 2px solid var(--color-border-accent); border-radius: 50%; background: var(--color-surface); color: var(--color-text-muted); font-size: var(--text-sm); font-weight: 700; }
+.auth-steps li.is-current .auth-steps__no { border-color: var(--color-primary); color: var(--color-primary); }
+.auth-steps li.is-done .auth-steps__no { border-color: var(--color-primary); background: var(--color-primary); color: var(--color-text-on-primary); }
+.auth-steps__text { display: flex; flex-direction: column; gap: 2px; padding-top: 3px; }
+.auth-steps__text strong { color: var(--color-text-strong); font-size: var(--text-md); }
+.auth-steps__text span { color: var(--color-text-sub); font-size: var(--text-sm); }
+.auth-steps li.is-current .auth-steps__text strong { color: var(--color-primary); }
+
+/* 오른쪽 카드 */
+.auth2-content { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-5, 24px); min-width: 0; padding: 40px 24px; }
+.auth2-mobile-logo { display: none; }
+.auth2-card { display: flex; flex-direction: column; gap: var(--space-4); width: min(100%, 420px); }
+.auth2-card--wide { width: min(100%, 520px); }
+.auth2--compact .auth2-card { padding: 32px; border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface); box-shadow: var(--shadow-sm); }
+.auth2-card h1 { margin: 0; color: var(--color-text-strong); font-size: var(--text-2xl); font-weight: 700; line-height: 1.3; }
+.auth2-sub { margin: -8px 0 0; color: var(--color-text-sub); font-size: var(--text-md); line-height: 1.6; }
+.auth2-sub b { color: var(--color-text-strong); }
+.auth2-form { display: flex; flex-direction: column; gap: var(--space-2); }
+.auth2-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 var(--space-3); }
+.auth2-section { margin: var(--space-2) 0 0; padding-top: var(--space-3); border-top: 1px solid var(--color-border-soft); color: var(--color-text-muted); font-size: var(--text-xs); font-weight: 700; }
+.auth2-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2); }
+.auth2-check { display: inline-flex; align-items: center; gap: var(--space-2); color: var(--color-text-sub); font-size: var(--text-sm); cursor: pointer; }
+.auth2-check input { width: 18px; height: 18px; margin: 0; accent-color: var(--color-primary); }
+.auth2-hint { margin: 0; color: var(--color-text-muted); font-size: var(--text-xs); line-height: 1.5; }
+.auth2-foot { margin: 0; color: var(--color-text-sub); font-size: var(--text-sm); text-align: center; }
+.auth2 a.auth2-link, .auth2 button.auth2-link { padding: 0; border: 0; background: none; color: var(--color-primary); font: inherit; font-weight: 700; text-decoration: none; cursor: pointer; }
+.auth2 a.auth2-link:hover, .auth2 button.auth2-link:hover:not(:disabled) { background: none; color: var(--color-primary-hover); text-decoration: underline; transform: none; }
+.auth2 button.auth2-link:disabled { color: var(--color-text-muted); cursor: default; }
+.auth2 .ui-btn--lg { width: 100%; min-height: 48px; }
+
+/* 입력칸 */
+.auth-field2 { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.auth-field2__label { display: inline-flex; align-items: baseline; gap: 4px; color: var(--color-text-sub); font-size: var(--text-sm); font-weight: 700; }
+.auth-field2__req { color: var(--color-danger); }
+.auth-field2__opt { margin-left: 2px; color: var(--color-text-muted); font-size: var(--text-xs); font-weight: 500; }
+.auth-field2__box { position: relative; display: flex; }
+.auth-field2__box input { width: 100%; min-width: 0; min-height: 46px; padding: 0 var(--space-3); border: 1px solid var(--color-border-input); border-radius: var(--radius-sm); background: var(--color-surface); color: var(--color-text); font: inherit; font-size: var(--text-md); box-sizing: border-box; }
+.auth-field2__box input:has(+ .auth-field2__eye) { padding-right: 44px; }
+.auth-field2__box input:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 0; border-color: var(--color-primary); }
+.auth-field2.is-error .auth-field2__box input { border-color: var(--color-danger); }
+.auth-field2__box input:disabled, .auth-field2__box input:read-only { background: var(--color-surface-muted); }
+.auth2 button.auth-field2__eye { position: absolute; top: 50%; right: 4px; display: grid; place-items: center; width: 38px; height: 38px; padding: 0; border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--color-text-muted); transform: translateY(-50%); cursor: pointer; }
+.auth2 button.auth-field2__eye:hover:not(:disabled) { background: var(--color-surface-muted); color: var(--color-text-strong); transform: translateY(-50%); }
+.auth-field2__eye:focus-visible { outline: 3px solid var(--color-focus); }
+.auth-field2__help { min-height: 1.45em; color: var(--color-text-muted); font-size: var(--text-xs); line-height: 1.45; }
+.auth-field2__help.is-error { color: var(--color-danger-text); font-weight: 700; }
+.auth-field2__help.is-warn { color: var(--color-warning-text); font-weight: 700; }
+
+/* 비밀번호 규칙 */
+.auth-checklist { display: flex; flex-wrap: wrap; gap: 6px; margin: -2px 0 var(--space-2); padding: 0; list-style: none; }
+.auth-checklist li { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: var(--radius-pill); background: var(--color-surface-muted); color: var(--color-text-muted); font-size: var(--text-xs); font-weight: 700; }
+.auth-checklist li svg { opacity: 0.35; }
+.auth-checklist li.is-ok { background: var(--color-success-soft); color: var(--color-success-text); }
+.auth-checklist li.is-ok svg { opacity: 1; }
+.auth-checklist li.auth-checklist__note { flex-basis: 100%; padding: 0; background: none; font-weight: 500; }
+
+/* 안내 상자 */
+.auth-alert2 { display: flex; gap: var(--space-2); padding: var(--space-3); border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface-muted); color: var(--color-text); font-size: var(--text-sm); line-height: 1.55; }
+.auth-alert2 > svg { flex: 0 0 auto; margin-top: 1px; }
+.auth-alert2__body { display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; white-space: pre-line; }
+.auth-alert2__action { display: flex; flex-wrap: wrap; gap: var(--space-3); }
+.auth-alert2--error { border-color: var(--color-danger-border); background: var(--color-danger-soft); color: var(--color-danger-text); }
+.auth-alert2--warning { border-color: var(--color-warning-border); background: var(--color-warning-soft); color: var(--color-warning-text); }
+.auth-alert2--success { border-color: var(--color-border-accent); background: var(--color-success-soft); color: var(--color-success-text); }
+.auth-alert2--info { border-color: var(--color-border-accent); background: var(--color-primary-soft); color: var(--color-primary-hover); }
+
+/* 결과 화면 아이콘 */
+.auth2-status { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 50%; background: var(--color-primary-soft); color: var(--color-primary); }
+.auth2-status.is-success { background: var(--color-success-soft); color: var(--color-success-text); }
+.auth2-status.is-error { background: var(--color-danger-soft); color: var(--color-danger-text); }
+.auth2-status.is-loading svg { animation: auth2-spin 1s linear infinite; }
+@keyframes auth2-spin { to { transform: rotate(360deg); } }
+.auth2-actions { display: flex; flex-direction: column; gap: var(--space-2); }
+
+@media (max-width: 1024px) {
+  .auth2 { grid-template-columns: minmax(320px, 4fr) 6fr; }
+  .auth2-brand { padding: 32px; }
+}
+@media (max-width: 760px) {
+  .auth2, .auth2--compact { display: block; background: var(--color-surface); }
+  .auth2-brand { display: none; }
+  .auth2-content { justify-content: flex-start; min-height: 100vh; padding: 24px 16px 40px; }
+  .auth2-mobile-logo { display: inline-flex; align-self: flex-start; }
+  .auth2--compact .auth2-card { padding: 0; border: 0; box-shadow: none; }
+  .auth2--compact .auth2-content { padding-top: 24px; }
+}
+@media (max-width: 420px) {
+  .auth2-grid { grid-template-columns: minmax(0, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .auth2-status.is-loading svg { animation: none; }
+}
+
+/* 어두운 화면: tokens.css 의 .dark-mode 값으로 그대로 바뀐다. 소개 그라데이션만 조금 낮춘다 */
+.dark-mode .auth2-brand { background: linear-gradient(160deg, var(--color-surface-accent) 0%, var(--color-surface) 100%); }
+html:has(.auth2:not(.auth2--compact)) { background: var(--color-surface); }
+
+/* 전화번호 세 칸 (components/phone-input.jsx) */
+.phone-input { display: flex; align-items: center; gap: 0; min-width: 0; }
+.phone-input__cell { display: flex; flex: 1 1 0; align-items: center; min-width: 0; }
+.phone-input__cell:first-child { flex: 0.8 1 0; }
+.phone-input__dash { flex: 0 0 auto; width: 18px; color: var(--color-text-muted); text-align: center; }
+.phone-input input { width: 100%; min-width: 0; min-height: 46px; padding: 0 var(--space-2); border: 1px solid var(--color-border-input); border-radius: var(--radius-sm); background: var(--color-surface); color: var(--color-text); font: inherit; font-size: var(--text-md); font-variant-numeric: tabular-nums; letter-spacing: 0.06em; text-align: center; box-sizing: border-box; }
+.phone-input input:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 0; border-color: var(--color-primary); }
+.phone-input input[aria-invalid="true"] { border-color: var(--color-danger); }
