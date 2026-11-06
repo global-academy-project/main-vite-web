@@ -127,6 +127,7 @@ function PermitEditor({ siteId, context, initialPermitId, initialWorkId, back })
         description={[permit?.permitNo, targetWorkId ? `작업 #${targetWorkId}` : null, permit ? `버전 ${permit.lockVersion}` : null].filter(Boolean).join(' · ')}
         actions={<>
           {hub && <Link className="ui-btn ui-btn--ghost" to={hub}><Icon name="chevronLeft" size={16} />작업 허브로</Link>}
+          {permit?.permitId && <Link className="ui-btn ui-btn--ghost" to={`/records/PERMIT/${permit.permitId}`}>문서 보기</Link>}
           <Link className="ui-btn ui-btn--ghost" to="/job/permits">다른 허가서</Link>
         </>} />
 

@@ -124,6 +124,7 @@ function RiskEditor({ site, context, initialRiskId, initialWorkId, back }) {
         actions={<>
           {hub && <Link className="ui-btn ui-btn--ghost" to={hub}><Icon name="chevronLeft" size={16} />작업 허브로</Link>}
           {risk?.approvalId && <Link className="ui-btn ui-btn--ghost" to={`/approvals?tab=requested&open=${risk.approvalId}`}>결재 보기</Link>}
+          {risk?.riskAssessmentId && <Link className="ui-btn ui-btn--ghost" to={`/records/RISK/${risk.riskAssessmentId}`}>문서 보기</Link>}
           <Link className="ui-btn ui-btn--ghost" to="/job/risk-assessment">다른 평가</Link>
         </>} />
 

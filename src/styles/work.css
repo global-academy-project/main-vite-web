@@ -225,3 +225,34 @@ button.work-chip[aria-pressed='true'] { border-color: var(--color-primary); back
 
 /* 공통 페이지 머리는 목록·허브의 간격(gap)을 그대로 쓴다 */
 .work-list > .page-head-wrap, .work-hub > .page-head-wrap { margin-bottom: 0; }
+
+/* 작업 목록 AI 대화 시트 (대화 모양은 home.css 의 Thread·Composer) */
+.agent-sheet { display: flex; flex-direction: column; gap: var(--space-3); min-height: 100%; }
+.agent-sheet__tabs { border-bottom: 1px solid var(--color-border-soft); }
+.agent-sheet__tools { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--space-3); padding: var(--space-3); border-radius: var(--radius-md); background: var(--color-surface-muted); }
+.agent-sheet__tool { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.agent-sheet__tool .risk-field { width: 150px; }
+.agent-sheet__lookup { flex-direction: row; align-items: flex-end; gap: var(--space-2); }
+.agent-sheet__status { display: flex; flex: 1 1 auto; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--space-2); }
+.agent-sheet__note { max-width: 340px; margin: 0; color: var(--color-success-text); font-size: var(--text-xs); }
+.agent-sheet__note.is-error { color: var(--color-danger-text); font-weight: var(--weight-bold); }
+.agent-sheet .home-thread { flex: 1 1 auto; min-height: 240px; max-height: none; overflow: visible; padding: var(--space-2) 0; }
+.agent-sheet .home-composer { position: sticky; bottom: calc(-1 * var(--space-4)); margin: 0 calc(-1 * var(--space-5)) calc(-1 * var(--space-4)); padding: var(--space-3) var(--space-5); border-top: 1px solid var(--color-border); background: var(--color-surface); }
+
+.agent-details { border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface); }
+.agent-details > summary { display: flex; align-items: baseline; gap: var(--space-2); padding: var(--space-2) var(--space-3); color: var(--color-text-strong); font-weight: 700; cursor: pointer; }
+.agent-details__body { display: flex; flex-direction: column; gap: var(--space-3); padding: 0 var(--space-3) var(--space-3); }
+.agent-details__body h3 { display: flex; align-items: center; gap: var(--space-2); margin: 0 0 var(--space-2); color: var(--color-text-strong); font-size: var(--text-sm); }
+.agent-details__body ul, .agent-details__body ol { margin: 0; padding-left: 1.2em; color: var(--color-text-sub); font-size: var(--text-sm); line-height: 1.6; }
+.agent-details__body p { margin: 2px 0 0; }
+.agent-details__rules li + li { margin-top: var(--space-2); }
+.agent-details__query { margin-top: var(--space-2); }
+.agent-details pre { max-height: 220px; margin: var(--space-2) 0 0; padding: var(--space-2) var(--space-3); overflow: auto; border-radius: var(--radius-sm); background: var(--color-surface-muted); font-size: var(--text-xs); white-space: pre-wrap; word-break: break-all; }
+.agent-details__raw summary { color: var(--color-primary); font-size: var(--text-sm); font-weight: 700; cursor: pointer; }
+
+@media (max-width: 640px) {
+  .agent-sheet__tool, .agent-sheet__tool .risk-field { width: 100%; }
+  .agent-sheet__lookup .risk-field { flex: 1 1 auto; width: auto; }
+  .agent-sheet__status { justify-content: flex-start; }
+  .agent-sheet .home-composer { bottom: calc(-1 * var(--space-3)); margin: 0 calc(-1 * var(--space-4)) calc(-1 * var(--space-3)); padding: var(--space-3) var(--space-4); }
+}

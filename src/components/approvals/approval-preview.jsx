@@ -29,7 +29,8 @@ export default function ApprovalPreview({ preview }) {
       {preview.targetType === 'PERMIT' && <PermitPreview permit={content} />}
       {preview.targetType === 'RISK' && <RiskPreview risk={content} />}
       {preview.targetType === 'TBM' && <TbmPreview tbm={content} />}
-      {!['PERMIT', 'RISK', 'TBM'].includes(preview.targetType) && <GenericPreview content={content} />}
+      {preview.targetType === 'INSPECTION' && <InspectionPreview inspection={content} />}
+      {!['PERMIT', 'RISK', 'TBM', 'INSPECTION'].includes(preview.targetType) && <GenericPreview content={content} />}
     </div>
   );
 }
@@ -132,6 +133,49 @@ function TbmPreview({ tbm }) {
         </>
       )}
       {tbm.healthCheck && <p className="appr-note">건강 확인: {tbm.healthCheck}</p>}
+    </>
+  );
+}
+
+const ITEM_RESULT = { OK: ['양호', 'done'], NG: ['불량', 'block'], NA: ['해당 없음', 'neutral'] };
+const INSPECTION_RESULT = { PASS: '적합', PARTIAL: '일부 불량', FAIL: '불량' };
+
+/** 점검표: 대상·결과 요약과 구역별 항목 (서버 InspectionResponse 그대로) */
+function InspectionPreview({ inspection }) {
+  const items = inspection.items ?? [];
+  const sections = [];
+  for (const item of items) {
+    const title = item.section ?? '기타';
+    let group = sections.find((entry) => entry.title === title);
+    if (!group) { group = { title, items: [] }; sections.push(group); }
+    group.items.push(item);
+  }
+  const target = inspection.targetType === 'EQUIPMENT' ? (inspection.equipmentName ?? `설비 #${inspection.equipmentId}`) : (inspection.zoneName ?? `구역 #${inspection.zoneId}`);
+  const result = inspection.result ?? inspection.expectedResult;
+  return (
+    <>
+      <dl className="appr-facts">
+        <div><dt>양식</dt><dd>{inspection.templateName ?? inspection.templateCode}</dd></div>
+        <div><dt>{inspection.targetType === 'EQUIPMENT' ? '설비' : '구역'}</dt><dd>{target}</dd></div>
+        <div><dt>점검일 · 점검자</dt><dd>{inspection.inspectDate} · {inspection.inspectorName ?? '-'}</dd></div>
+        <div><dt>{inspection.result ? '종합 결과' : '예상 결과'}</dt><dd>{result ? INSPECTION_RESULT[result] ?? result : `${inspection.answered ?? 0}/${inspection.total ?? items.length} 점검`}</dd></div>
+      </dl>
+      {sections.map((section) => (
+        <section key={section.title}>
+          <h4 className="appr-sub">{section.title}</h4>
+          <ul className="appr-checks">
+            {section.items.map((item) => {
+              const [label, tone] = ITEM_RESULT[item.result] ?? ['미점검', 'warn'];
+              return (
+                <li key={item.itemCode} className="appr-check">
+                  {item.question}{item.note && <small className="appr-missing">{item.note}</small>}
+                  <Badge tone={tone}>{label}</Badge>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      ))}
     </>
   );
 }

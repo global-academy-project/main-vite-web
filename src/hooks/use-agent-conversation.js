@@ -6,7 +6,7 @@ const POLL_LIMIT = 80;
 
 /**
  * AI 대화 하나 (taskType 마다 따로: WORK_REGISTER / RECORD_QUERY). 서버는 대화 종류를 섞으면 409 이므로
- * 탭마다 이 훅을 하나씩 쓴다. 호출·검사·폴링 규칙은 기존 job-work-agent.jsx 와 같다.
+ * 탭마다 이 훅을 하나씩 쓴다. 홈 AI 도우미와 작업 목록 "AI 대화" 시트가 같이 쓴다.
  *  - 보낸 뒤 runId 로 1.5초마다 상태 조회, 80번 넘으면 자동 조회 중지(서버 실행은 취소되지 않음)
  *  - PROCESSING 이 끝나면 대화 기록을 다시 받는다
  *  - 전송 결과를 알 수 없으면(WRITE_OUTCOME_UNKNOWN) 중복 실행을 막으려고 전송을 잠근다
@@ -139,6 +139,24 @@ export function useAgentConversation({ siteId, taskType = 'WORK_REGISTER' }) {
     }
   }, [processing, siteId, taskType]);
 
+  /**
+   * 실행 번호로 다시 조회: 그 실행의 대화를 열고(기록·결과), 아직 처리 중이면 자동 조회를 이어 간다.
+   * 다른 종류(작업 등록 ↔ 기록 질문)나 다른 현장의 실행이면 getAgentRun 검사에서 막힌다.
+   */
+  const lookup = useCallback(async (runId) => {
+    if (processing || sending.current) return false;
+    setResuming(true); setError('');
+    try {
+      const found = await getAgentRun(runId, { siteId, taskType });
+      if (!mounted.current) return false;
+      setResuming(false);
+      return await resume({ conversationId: found.conversationId, lastRunId: found.runId });
+    } catch (requestError) {
+      if (mounted.current) { setError(`${requestError.message || '실행을 찾지 못했습니다.'} (실행 #${runId})`); setResuming(false); }
+      return false;
+    }
+  }, [processing, siteId, taskType, resume]);
+
   /** 서버에 실행이 생겼는지 확인한 뒤 잠금을 푼다 (중복 실행 주의) */
   const unlock = useCallback(() => { setUncertain(false); setError(''); }, []);
 
@@ -148,5 +166,5 @@ export function useAgentConversation({ siteId, taskType = 'WORK_REGISTER' }) {
     setError(''); setPolling(true);
   }, [execution]);
 
-  return { run, messages, pendingText, processing, busy, error, uncertain, locked, send, reset, unlock, retry, execution, resume, resuming, conversationId };
+  return { run, messages, pendingText, processing, busy, error, uncertain, locked, send, reset, unlock, retry, execution, resume, lookup, resuming, conversationId };
 }

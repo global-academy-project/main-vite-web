@@ -1,0 +1,45 @@
+/* 내 정보. 카드·입력은 tbm.css · risk.css · site-settings.css, 값은 tokens.css 변수만 */
+
+.profile-grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); gap: var(--space-4); align-items: start; }
+.profile-col { display: flex; flex-direction: column; gap: var(--space-4); min-width: 0; }
+
+.profile-summary { padding: var(--space-4); }
+.profile-summary__top { display: flex; align-items: center; gap: var(--space-3); }
+.profile-avatar { display: grid; flex: 0 0 auto; place-items: center; width: 56px; height: 56px; border-radius: 50%; background: var(--color-primary-soft); color: var(--color-primary); font-size: 24px; font-weight: 700; }
+.profile-summary__name { display: flex; flex-direction: column; min-width: 0; }
+.profile-summary__name h2 { margin: 0; color: var(--color-text-strong); font-size: var(--text-lg); font-weight: 700; }
+.profile-summary__name .rec-help { overflow-wrap: anywhere; }
+.profile-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+.profile-spacer { display: block; }
+.profile-rules .auth-password-rules { margin: 0; padding: var(--space-2) var(--space-3) var(--space-2) var(--space-6, 28px); border-radius: var(--radius-md); background: var(--color-surface-muted); color: var(--color-text-sub); font-size: var(--text-sm); line-height: 1.6; }
+
+.profile-prefs th[scope="row"] { font-weight: var(--weight-medium); }
+.profile-prefs thead th:not(:first-child), .profile-prefs__cell { width: 72px; text-align: center; }
+.profile-must { margin-left: 6px; padding: 0 6px; border-radius: var(--radius-pill); background: var(--color-danger-soft); color: var(--color-danger-text); font-size: var(--text-xs); font-weight: 700; }
+.profile-switch { position: relative; display: inline-flex; cursor: pointer; }
+.profile-switch input { position: absolute; inset: 0; margin: 0; opacity: 0; cursor: inherit; }
+.profile-switch span { width: 40px; height: 22px; border-radius: var(--radius-pill); background: var(--color-border-input); transition: background-color 0.15s; }
+.profile-switch span::after { content: ''; display: block; width: 18px; height: 18px; margin: 2px; border-radius: 50%; background: var(--color-surface); box-shadow: var(--shadow-sm); transition: transform 0.15s; }
+.profile-switch input:checked + span { background: var(--color-primary); }
+.profile-switch input:checked + span::after { transform: translateX(18px); }
+.profile-switch input:focus-visible + span { outline: 3px solid var(--color-focus); outline-offset: 1px; }
+.profile-switch input:disabled + span { opacity: 0.55; }
+.profile-switch:has(input:disabled) { cursor: not-allowed; }
+
+@media (max-width: 1024px) {
+  .profile-grid { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 640px) {
+  .profile-spacer { display: none; }
+  /* 알림 표는 카드로 바꾸지 않고 표 그대로 둔다 (칸이 3개뿐) */
+  .profile-prefs thead { display: table-header-group; }
+  .profile-prefs, .profile-prefs tbody { display: table; width: 100%; }
+  .profile-prefs tbody { display: table-row-group; }
+  .profile-prefs tr { display: table-row; padding: 0; }
+  .profile-prefs td, .profile-prefs tbody th { display: table-cell; padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--color-border-soft); }
+  .profile-prefs td::before { content: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .profile-switch span, .profile-switch span::after { transition: none; }
+}

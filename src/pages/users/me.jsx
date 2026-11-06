@@ -1,237 +1,256 @@
-import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { logout } from "../../api/auth";
-import { getMe, requestEmailChange, updateMe } from "../../api/users";
-import { clearToken } from "../../api/client";
-import { authErrorMessage } from "../../constants/auth-errors";
-import { getDetailMessages, getFieldErrors } from "../../utils/validation-details";
-import AuthAlert from "../../components/auth/auth-alert";
-import DashboardHeader from "../../components/dashboard-header";
-import Sidebar from "../../components/sidebar";
-import { useTheme } from "../../contexts/theme-context";
-import "../../style/feature-style.css";
-import "../../style/job/job-dashboard.css";
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { logout } from '../../api/auth';
+import { clearToken } from '../../api/client';
+import { siteRoles, useWorkSite } from '../../api/workers';
+import JobPageLayout from '../../components/job-page-layout';
+import PasswordRules from '../../components/auth/password-rules';
+import PageHeader from '../../components/ui/page-header.jsx';
+import { Badge } from '../../components/home/panel.jsx';
+import Icon from '../../components/ui/icon.jsx';
+import StatusView, { Skeleton } from '../../components/ui/status-view.jsx';
+import { useProfile } from '../../hooks/use-profile.js';
+import { ACCOUNT_ROLE_LABELS } from '../../utils/admin-model.js';
+import { NOTIFICATION_TYPE_LABELS } from '../../utils/notification-model.js';
+import { emailBody, passwordBody, profileBody, profileForm, sameProfile } from '../../utils/profile-model.js';
+import '../../styles/home.css';
+import '../../styles/work.css';
+import '../../styles/records.css';
+import '../../styles/risk.css';
+import '../../styles/permit.css';
+import '../../styles/tbm.css';
+import '../../styles/site-settings.css';
+import '../../styles/admin.css';
+import '../../styles/profile.css';
 
-const labels = {
-  name: "이름",
-  phone: "전화번호",
-  department: "부서",
-  jobTitle: "직책",
-};
-
-const roleLabels = {
-  WRITER: "작성자",
-  APPROVER: "승인자",
-  SITE_ADMIN: "현장 관리자",
-  ADMIN: "관리자",
-};
-
+/**
+ * 내 정보 (/me). 기본 정보 · 내 현장 · 비밀번호 변경 · 이메일 변경 · 알림 받기 설정 · 로그아웃.
+ * 쓰는 API: GET·PATCH /users/me, POST /auth/password/change, POST /users/me/email-change, GET·PUT /notifications/preferences
+ * 임시 비밀번호로 로그인했을 때의 강제 변경은 /change-password (로그인 화면 틀) 가 맡는다.
+ */
 export default function Me() {
+  const context = useWorkSite();
   const navigate = useNavigate();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { darkMode, setDarkMode } = useTheme();
-  const [me, setMe] = useState(null);
-  const [message, setMessage] = useState("");
-  const [fieldErrors, setFieldErrors] = useState({});
-  const [emailMessage, setEmailMessage] = useState("");
-
-  useEffect(() => {
-    getMe()
-      .then(setMe)
-      .catch((error) => {
-        setMessage(error.message);
-      });
-  }, []);
-
-  const save = async (event) => {
-    event.preventDefault();
-    const values = new FormData(event.currentTarget);
-    setMessage("");
-    setFieldErrors({});
-
-    try {
-      setMe(await updateMe({
-        name: values.get("name"),
-        phone: values.get("phone"),
-        department: values.get("department"),
-        jobTitle: values.get("jobTitle"),
-        lockVersion: me.lockVersion,
-      }));
-      setMessage("내 정보가 저장되었습니다.");
-    } catch (error) {
-      const errors = getFieldErrors(error);
-      setFieldErrors(errors);
-      setMessage(
-        error.status === 409
-          ? "다른 변경 사항이 있습니다. 새로고침 후 다시 시도해 주세요."
-          : Object.keys(errors).length
-            ? ""
-            : getDetailMessages(error).join("\n") || error.message,
-      );
-    }
-  };
-
-  const changeEmail = async (event) => {
-    event.preventDefault();
-    const form = event.currentTarget;
-    const values = new FormData(form);
-
-    try {
-      await requestEmailChange(
-        values.get("newEmail"),
-        values.get("currentPassword"),
-      );
-      form.reset();
-      setEmailMessage(
-        "새 주소로 확인 메일을 보냈습니다. 10분 안에 링크를 눌러야 바뀝니다.",
-      );
-    } catch (error) {
-      const details = getDetailMessages(error);
-      setEmailMessage(details.length ? details.join('\n') : authErrorMessage(error));
-    }
-  };
-
+  const data = useProfile();
+  const user = data.me?.user;
   const doLogout = async () => {
-    try {
-      await logout();
-    } finally {
-      clearToken();
-      navigate("/signin", { replace: true });
-    }
+    try { await logout(); } finally { clearToken(); navigate('/signin', { replace: true }); }
   };
 
-  const user = me?.user;
-
-  const shell = (content) => (
-    <div className="dashboard-shell">
-      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} onOpen={() => setSidebarOpen(true)} />
-      <div className="dashboard-main">
-        <DashboardHeader
-          userInitial={Array.from(user?.name || user?.email || "U")[0]}
-          userName={user?.name || user?.email || "내 계정"}
-          darkMode={darkMode}
-          setDarkMode={setDarkMode}
-          doLogout={doLogout}
-          setSidebarOpen={setSidebarOpen}
-          title="내 정보"
-        />
-        {content}
-      </div>
-    </div>
-  );
-
-  if (!me) {
-    return shell(<main className="page-message">{message || "내 정보를 불러오는 중입니다..."}</main>);
-  }
-
-  return shell(
-      <main className="page-content profile-page">
-        <div className="page-heading profile-heading">
-          <div>
-            <p className="eyebrow">MY ACCOUNT</p>
-            <h1>내 정보</h1>
-          </div>
-        </div>
-        {message && <AuthAlert type="info">{message}</AuthAlert>}
-        <div className="profile-layout">
-          <aside className="profile-summary">
-            <div className="profile-avatar">
-              {(user.name || user.email || "U").slice(0, 1).toUpperCase()}
+  return (
+    <JobPageLayout title="내 정보" user={context.account?.user} contentClassName="work-page">
+      <div className="work-list rec-page site-page profile-page">
+        <PageHeader title="내 정보" description="내 기본 정보와 보안, 알림 받기 설정을 관리합니다."
+          actions={<>
+            <button type="button" className="ui-btn ui-btn--ghost" disabled={Boolean(data.busy)} onClick={data.reload}><Icon name="refresh" size={16} />새로고침</button>
+            <button type="button" className="ui-btn ui-btn--ghost" onClick={doLogout}>로그아웃</button>
+          </>} />
+        {data.loading && <section className="home-panel"><div className="home-panel__pad"><Skeleton lines={6} /></div></section>}
+        {data.error && <section className="home-panel"><StatusView kind="error" message={data.error} onRetry={data.reload} /></section>}
+        {user && (
+          <div className="profile-grid">
+            <div className="profile-col">
+              <Summary me={data.me} />
+              <Sites me={data.me} context={context} />
             </div>
-            <h2>{user.name || "사용자"}</h2>
-            <p>{user.email}</p>
-            <span className="profile-chip">계정 활성</span>
-            <dl className="profile-quick-info">
-              <div><dt>부서</dt><dd>{user.department || "미등록"}</dd></div>
-              <div><dt>직책</dt><dd>{user.jobTitle || "미등록"}</dd></div>
-            </dl>
-          </aside>
-          <div className="profile-sections">
-            <section className="profile-card">
-              <div className="card-title-row">
-                <h2>기본 정보</h2>
-                <p>연락처와 소속 정보를 수정할 수 있습니다.</p>
-              </div>
-              <form className="profile-form" onSubmit={save}>
-                <label className="profile-field profile-field--full">
-                  이메일
-                  <input value={user.email || ""} readOnly />
-                </label>
-                {["name", "phone", "department", "jobTitle"].map((name) => (
-                  <label className="profile-field" key={name}>
-                    {labels[name]}
-                    <input
-                      name={name}
-                      defaultValue={user[name] ?? ""}
-                      placeholder={`${labels[name]}을 입력하세요`}
-                      aria-invalid={!!fieldErrors[name]}
-                    />
-                    {fieldErrors[name] && (
-                      <small className="field-error">{fieldErrors[name]}</small>
-                    )}
-                  </label>
-                ))}
-                <div className="profile-form-actions">
-                  <button className="primary-button" type="submit">
-                    변경 사항 저장
-                  </button>
-                </div>
-              </form>
-            </section>
-            <section className="profile-card">
-              <div className="card-title-row">
-                <h2>소속 및 권한</h2>
-                <p>현재 접근 가능한 현장과 역할입니다.</p>
-              </div>
-              {me.sites?.length ? (
-                <ul className="site-list">
-                  {me.sites.map((site) => (
-                    <li key={site.siteId}>
-                      <span className="site-icon">⌂</span>
-                      <span><strong>{site.name}</strong><small>현장 구성원</small></span>
-                      <span className="role-badge">
-                        {roleLabels[site.role] ?? site.role}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <div className="profile-empty">등록된 현장 권한이 없습니다.</div>
-              )}
-            </section>
-            <section className="profile-card security-card">
-              <div>
-                <h2>보안 설정</h2>
-                <p>비밀번호를 주기적으로 변경하여 계정을 안전하게 보호하세요.</p>
-              </div>
-              <Link className="outline-button" to="/change-password">
-                비밀번호 변경
-              </Link>
-            </section>
-            <section className="profile-card">
-              <div className="card-title-row">
-                <h2>이메일 변경</h2>
-                <p>새 이메일로 전송된 확인 링크를 눌러야 변경이 완료됩니다.</p>
-              </div>
-              {emailMessage && <AuthAlert type="info">{emailMessage}</AuthAlert>}
-              <form className="profile-form" onSubmit={changeEmail}>
-                <label className="profile-field">
-                  새 이메일
-                  <input name="newEmail" type="email" required />
-                </label>
-                <label className="profile-field">
-                  현재 비밀번호
-                  <input name="currentPassword" type="password" required />
-                </label>
-                <div className="profile-form-actions">
-                  <button className="primary-button" type="submit">
-                    확인 메일 보내기
-                  </button>
-                </div>
-              </form>
-            </section>
+            <div className="profile-col">
+              <ProfileForm key={`${data.me.lockVersion}`} user={user} data={data} />
+              <PasswordForm data={data} />
+              <EmailForm user={user} data={data} />
+              <Preferences data={data} />
+            </div>
           </div>
+        )}
+      </div>
+    </JobPageLayout>
+  );
+}
+
+function Summary({ me }) {
+  const user = me.user;
+  return (
+    <section className="home-panel tbm-card profile-summary" aria-label="계정 요약">
+      <div className="profile-summary__top">
+        <span className="profile-avatar" aria-hidden="true">{Array.from(user.name || user.email || 'U')[0]}</span>
+        <div className="profile-summary__name">
+          <h2>{user.name}</h2>
+          <span className="rec-help">{user.email}</span>
         </div>
-      </main>
+      </div>
+      <dl className="rec-facts profile-facts">
+        <div><dt>계정 역할</dt><dd>{ACCOUNT_ROLE_LABELS[user.role] ?? user.role}</dd></div>
+        <div><dt>이메일 인증</dt><dd>{user.emailVerified ? <Badge tone="done">완료</Badge> : <Badge tone="warn">미인증</Badge>}</dd></div>
+        <div><dt>부서</dt><dd>{user.department || '미등록'}</dd></div>
+        <div><dt>직책</dt><dd>{user.jobTitle || '미등록'}</dd></div>
+      </dl>
+      {user.mustChangePassword && <p className="rec-note rec-note--block"><Icon name="lock" size={16} />임시 비밀번호를 쓰고 있습니다. 아래에서 새 비밀번호로 바꾸세요.</p>}
+    </section>
+  );
+}
+
+function Sites({ me, context }) {
+  const current = context.currentSite?.siteId ?? me.currentSiteId;
+  return (
+    <section className="home-panel tbm-card" aria-labelledby="profile-sites">
+      <header className="tbm-card__head"><div><h2 id="profile-sites">내 현장 <span className="home-panel__count">{me.sites.length}</span></h2>
+        <p className="rec-help">{me.user.role === 'ADMIN' ? '회사 관리자는 모든 현장에 접근합니다.' : '권한이 있는 현장과 역할입니다. 권한 변경은 회사 관리자에게 요청하세요.'}</p></div></header>
+      {me.sites.length ? (
+        <ul className="site-list">
+          {me.sites.map((site) => (
+            <li key={site.siteId} className={site.siteId === current ? 'is-current' : ''}>
+              <span className="site-list__main"><strong>{site.name}</strong><span className="rec-help">{siteRoles[site.role] ?? site.role}</span></span>
+              {site.siteId === current ? <Badge tone="done">지금 현장</Badge>
+                : <button type="button" className="ui-btn ui-btn--ghost site-edit" disabled={context.selecting || context.loading} onClick={() => context.selectSite(site.siteId)}>이 현장으로</button>}
+            </li>
+          ))}
+        </ul>
+      ) : <p className="rec-help site-pad">등록된 현장 권한이 없습니다.</p>}
+    </section>
+  );
+}
+
+function Field({ label, error, hint, required, onChange, ...rest }) {
+  return (
+    <label className="risk-field site-field">
+      <span className="risk-field__label">{label}{required && <span className="risk-req" aria-hidden="true">*</span>}</span>
+      <input required={required} aria-invalid={Boolean(error)} {...rest} onChange={(event) => onChange(event.target.value)} />
+      <span className={`site-field__hint${error ? ' is-error' : ''}`}>{error || hint || ''}</span>
+    </label>
+  );
+}
+
+function ProfileForm({ user, data }) {
+  const saved = profileForm(user);
+  const [form, setForm] = useState(saved);
+  const [errors, setErrors] = useState({});
+  const set = (field, value) => setForm({ ...form, [field]: value });
+  const changed = !sameProfile(form, saved);
+  return (
+    <section className="home-panel tbm-card" aria-labelledby="profile-basic">
+      <header className="tbm-card__head"><div><h2 id="profile-basic">기본 정보</h2><p className="rec-help">이름과 연락처, 소속을 고칠 수 있습니다. 이메일은 아래 "이메일 변경"에서 바꿉니다.</p></div></header>
+      <form className="site-form" onSubmit={async (event) => {
+        event.preventDefault();
+        const result = profileBody(form);
+        setErrors(result.errors ?? {});
+        if (result.errors) return;
+        const saved = await data.saveProfile(result.body);
+        if (!saved.ok) setErrors(saved.fieldErrors);
+      }}>
+        <fieldset disabled={data.busy === 'profile'}>
+          <legend className="sr-only">기본 정보</legend>
+          <Field label="이름" required maxLength={50} value={form.name} error={errors.name} autoComplete="name" onChange={(value) => set('name', value)} />
+          <Field label="전화번호" type="tel" maxLength={13} value={form.phone} error={errors.phone} hint="숫자만, 비우면 지웁니다" autoComplete="tel" placeholder="01012345678" onChange={(value) => set('phone', value)} />
+          <Field label="부서" maxLength={100} value={form.department} error={errors.department} onChange={(value) => set('department', value)} />
+          <Field label="직책" maxLength={50} value={form.jobTitle} error={errors.jobTitle} onChange={(value) => set('jobTitle', value)} />
+        </fieldset>
+        <div className="site-form__actions">
+          {changed && <button type="button" className="ui-btn ui-btn--ghost" onClick={() => { setForm(saved); setErrors({}); }}>변경 취소</button>}
+          <button type="submit" className="ui-btn ui-btn--primary" disabled={!changed || Boolean(data.busy)}>저장</button>
+        </div>
+      </form>
+    </section>
+  );
+}
+
+const EMPTY_PASSWORD = { currentPassword: '', newPassword: '', confirm: '' };
+
+function PasswordForm({ data }) {
+  const [form, setForm] = useState(EMPTY_PASSWORD);
+  const [errors, setErrors] = useState({});
+  const set = (field, value) => setForm({ ...form, [field]: value });
+  return (
+    <section className="home-panel tbm-card" aria-labelledby="profile-password">
+      <header className="tbm-card__head"><div><h2 id="profile-password">비밀번호 변경</h2><p className="rec-help">바꾸면 이 기기의 로그인은 그대로 이어집니다.</p></div></header>
+      <form className="site-form" onSubmit={async (event) => {
+        event.preventDefault();
+        const result = passwordBody(form);
+        setErrors(result.errors ?? {});
+        if (result.errors) return;
+        const saved = await data.savePassword(result.body);
+        if (saved.ok) setForm(EMPTY_PASSWORD); else setErrors(saved.fieldErrors);
+      }}>
+        <fieldset disabled={data.busy === 'password'}>
+          <legend className="sr-only">비밀번호 변경</legend>
+          <Field label="현재 비밀번호" required type="password" autoComplete="current-password" value={form.currentPassword} error={errors.currentPassword} onChange={(value) => set('currentPassword', value)} />
+          <span aria-hidden="true" className="profile-spacer" />
+          <Field label="새 비밀번호" required type="password" autoComplete="new-password" value={form.newPassword} error={errors.newPassword} onChange={(value) => set('newPassword', value)} />
+          <Field label="새 비밀번호 확인" required type="password" autoComplete="new-password" value={form.confirm} error={errors.confirm} onChange={(value) => set('confirm', value)} />
+          <div className="risk-field--wide profile-rules"><PasswordRules /></div>
+        </fieldset>
+        <div className="site-form__actions">
+          <button type="submit" className="ui-btn ui-btn--primary" disabled={Boolean(data.busy) || !form.currentPassword || !form.newPassword}>비밀번호 변경</button>
+        </div>
+      </form>
+    </section>
+  );
+}
+
+function EmailForm({ user, data }) {
+  const [form, setForm] = useState({ newEmail: '', currentPassword: '' });
+  const [errors, setErrors] = useState({});
+  const [sentTo, setSentTo] = useState('');
+  const set = (field, value) => setForm({ ...form, [field]: value });
+  return (
+    <section className="home-panel tbm-card" aria-labelledby="profile-email">
+      <header className="tbm-card__head"><div><h2 id="profile-email">이메일 변경</h2><p className="rec-help">지금 이메일: {user.email}. 새 주소로 간 확인 링크를 10분 안에 눌러야 바뀝니다.</p></div></header>
+      {sentTo && <p className="rec-note"><Icon name="info" size={16} />{sentTo} 로 확인 메일을 보냈습니다. 메일함을 확인하세요.</p>}
+      <form className="site-form" onSubmit={async (event) => {
+        event.preventDefault();
+        const result = emailBody(form, user.email);
+        setErrors(result.errors ?? {});
+        if (result.errors) return;
+        const sent = await data.sendEmailChange(result.body);
+        if (sent.ok) { setSentTo(result.body.newEmail); setForm({ newEmail: '', currentPassword: '' }); } else setErrors(sent.fieldErrors);
+      }}>
+        <fieldset disabled={data.busy === 'email'}>
+          <legend className="sr-only">이메일 변경</legend>
+          <Field label="새 이메일" required type="email" autoComplete="email" value={form.newEmail} error={errors.newEmail} onChange={(value) => set('newEmail', value)} />
+          <Field label="현재 비밀번호" required type="password" autoComplete="current-password" value={form.currentPassword} error={errors.currentPassword} onChange={(value) => set('currentPassword', value)} />
+        </fieldset>
+        <div className="site-form__actions">
+          <button type="submit" className="ui-btn ui-btn--primary" disabled={Boolean(data.busy) || !form.newEmail || !form.currentPassword}>확인 메일 보내기</button>
+        </div>
+      </form>
+    </section>
+  );
+}
+
+function Preferences({ data }) {
+  return (
+    <section className="home-panel tbm-card" aria-labelledby="profile-prefs">
+      <header className="tbm-card__head"><div><h2 id="profile-prefs">알림 받기 설정</h2><p className="rec-help">안전 필수 알림의 웹 알림은 끌 수 없습니다. 문자는 받기 희망이며 실제 발송을 보장하지 않습니다.</p></div></header>
+      {data.prefsLoading && <div className="site-pad"><Skeleton lines={4} /></div>}
+      {data.prefsError && <StatusView kind="error" compact message={data.prefsError} onRetry={data.reload} />}
+      {data.prefs && (
+        <>
+          <div className="site-table-wrap">
+            <table className="site-table profile-prefs">
+              <thead><tr><th scope="col">종류</th><th scope="col">웹</th><th scope="col">문자</th></tr></thead>
+              <tbody>{data.prefs.map((entry) => {
+                const label = NOTIFICATION_TYPE_LABELS[entry.type] ?? entry.type;
+                return (
+                  <tr key={entry.type}>
+                    <th scope="row">{label}{entry.mandatory && <span className="profile-must">필수</span>}</th>
+                    {['webEnabled', 'smsEnabled'].map((field) => (
+                      <td key={field} className="profile-prefs__cell">
+                        <label className="profile-switch">
+                          <input type="checkbox" role="switch" checked={entry[field]} disabled={Boolean(data.busy) || (field === 'webEnabled' && entry.mandatory)}
+                            aria-label={`${label} ${field === 'webEnabled' ? '웹' : '문자'} 알림`} onChange={(event) => data.togglePreference(entry.type, field, event.target.checked)} />
+                          <span aria-hidden="true" />
+                        </label>
+                      </td>
+                    ))}
+                  </tr>
+                );
+              })}</tbody>
+            </table>
+          </div>
+          <div className="site-form__actions site-pad">
+            {data.prefsChanged && <button type="button" className="ui-btn ui-btn--ghost" onClick={data.resetPreferences}>변경 취소</button>}
+            <button type="button" className="ui-btn ui-btn--primary" disabled={!data.prefsChanged || Boolean(data.busy)} onClick={data.savePreferences}>설정 저장</button>
+          </div>
+        </>
+      )}
+    </section>
   );
 }
