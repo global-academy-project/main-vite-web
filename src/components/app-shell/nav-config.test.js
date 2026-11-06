@@ -5,15 +5,15 @@ import { bottomTabsFor, effectiveRole, homePathFor, isActivePath, navFor, NAV } 
 const keys = (items) => items.map((item) => item.key);
 
 test('역할별 메뉴: 작성자도 승인함(내가 요청한 문서)이 있고, 현장 설정·관리는 없다', () => {
-  assert.deepEqual(keys(navFor('MEMBER', 'WRITER')), ['home', 'work', 'daily', 'approvals', 'work-status', 'records']);
+  assert.deepEqual(keys(navFor('MEMBER', 'WRITER')), ['home', 'work-status', 'work', 'daily', 'approvals', 'records']);
 });
 
 test('승인자 메뉴는 작성자와 같다 (승인·반려 권한은 서버가 판단)', () => {
-  assert.deepEqual(keys(navFor('MEMBER', 'APPROVER')), ['home', 'work', 'daily', 'approvals', 'work-status', 'records']);
+  assert.deepEqual(keys(navFor('MEMBER', 'APPROVER')), ['home', 'work-status', 'work', 'daily', 'approvals', 'records']);
 });
 
 test('현장 관리자는 현장 설정까지, 관리는 없다', () => {
-  assert.deepEqual(keys(navFor('MEMBER', 'SITE_ADMIN')), ['home', 'work', 'daily', 'approvals', 'work-status', 'records', 'site']);
+  assert.deepEqual(keys(navFor('MEMBER', 'SITE_ADMIN')), ['home', 'work-status', 'work', 'daily', 'approvals', 'records', 'site']);
 });
 
 test('계정 ADMIN 은 현장 역할과 상관없이 전부', () => {
