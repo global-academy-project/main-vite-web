@@ -7,7 +7,7 @@ import { Badge } from '../../components/home/panel.jsx';
 import Icon from '../../components/ui/icon.jsx';
 import StatusView, { Skeleton } from '../../components/ui/status-view.jsx';
 import { useWorkStatus } from '../../hooks/use-work-status.js';
-import { APPROVAL_TARGET_LABELS, todoTiles, todoTotal } from '../../utils/home-model.js';
+import { APPROVAL_TARGET_LABELS, tileValue, todoTiles, todoTotal } from '../../utils/home-model.js';
 import { localDate } from '../../utils/job-forms';
 import { shiftDate } from '../../utils/daily-log-model.js';
 import { clockOf, deadlineRows, entryPath, statusSegments, summaryBars, summaryTotals, teamRows } from '../../utils/status-model.js';
@@ -98,7 +98,7 @@ function StatusPage({ site, context }) {
                     <button type="button" className={`home-tile${tile.count ? ' has-count' : ''}${tile.overdue ? ' is-overdue' : ''}${open?.type === tile.type ? ' is-open' : ''}`}
                       aria-pressed={open?.type === tile.type} disabled={!tile.count} onClick={() => setOpenType(tile.type)}>
                       <span className="home-tile__label">{tile.fullLabel}</span>
-                      <span className="home-tile__row">{tile.overdue && <span className="home-tile__due">지연</span>}<span className="home-tile__count">{dashboard ? tile.count : '—'}<small>건</small></span></span>
+                      <span className="home-tile__row">{tile.overdue && <span className="home-tile__due">지연</span>}<span className={`home-tile__count${dashboard && tileValue(tile).word ? ' home-tile__count--word' : ''}`}>{dashboard ? tileValue(tile).text : '—'}{(!dashboard || tileValue(tile).unit) && <small>{dashboard ? tileValue(tile).unit : '건'}</small>}</span></span>
                     </button>
                   </li>
                 ))}
@@ -227,7 +227,7 @@ function PeriodPanel({ data }) {
             <summary>기간 합계 표 보기</summary>
             <table className="status-table">
               <thead><tr><th scope="col">항목</th><th scope="col">기간 합계</th></tr></thead>
-              <tbody>{summaryTotals(data.summary.totals).map((row) => <tr key={row.type}><th scope="row">{row.label}</th><td>{row.count}</td></tr>)}</tbody>
+              <tbody>{summaryTotals(data.summary.totals).map((row) => <tr key={row.type}><th scope="row">{row.label}</th><td>{row.count}{row.type === 'DAILY_LOG_MISSING' ? '일' : '건'}</td></tr>)}</tbody>
             </table>
             <table className="status-table">
               <thead><tr><th scope="col">날짜</th><th scope="col">작업</th><th scope="col">차단</th><th scope="col">미완료</th></tr></thead>

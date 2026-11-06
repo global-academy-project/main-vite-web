@@ -4,6 +4,24 @@ import { getAgentMessages, getAgentRun, startRecordQuery, startWorkRegister } fr
 const POLL_MS = 1500;
 const POLL_LIMIT = 80;
 
+// 마지막 대화를 기억해 두는 곳 (현장·대화 종류별). 다른 화면에 갔다 와도, 새로고침해도 같은 탭에서는 이어서 볼 수 있게.
+// 이 브라우저 탭에서만 남고(sessionStorage), 읽기·쓰기가 막힌 환경이면 그냥 기억하지 않는다.
+const storeKey = (siteId, taskType) => `agent-conversation:${siteId}:${taskType}`;
+export function readLastConversation(siteId, taskType) {
+  if (!siteId) return null;
+  try {
+    const value = JSON.parse(window.sessionStorage.getItem(storeKey(siteId, taskType)) ?? 'null');
+    return Number.isSafeInteger(value?.conversationId) && value.conversationId > 0 ? value : null;
+  } catch { return null; }
+}
+function writeLastConversation(siteId, taskType, value) {
+  if (!siteId) return;
+  try {
+    if (value) window.sessionStorage.setItem(storeKey(siteId, taskType), JSON.stringify(value));
+    else window.sessionStorage.removeItem(storeKey(siteId, taskType));
+  } catch { /* 기억 못 해도 대화는 된다 */ }
+}
+
 /**
  * AI 대화 하나 (taskType 마다 따로: WORK_REGISTER / RECORD_QUERY). 서버는 대화 종류를 섞으면 409 이므로
  * 탭마다 이 훅을 하나씩 쓴다. 홈 AI 도우미와 작업 목록 "AI 대화" 시트가 같이 쓴다.
@@ -72,10 +90,32 @@ export function useAgentConversation({ siteId, taskType = 'WORK_REGISTER' }) {
     return () => { cancelled = true; clearTimeout(timer); };
   }, [execution, polling, siteId, taskType]);
 
+  // 화면에 들어오면(또는 현장이 바뀌면) 이 현장·종류의 마지막 대화를 다시 연다.
+  // 서버에서 대화 기록과 마지막 실행을 받아 오고, 실행이 아직 처리 중이면 자동 조회를 이어 간다. 못 받으면 조용히 잊는다.
+  useEffect(() => {
+    const last = readLastConversation(siteId, taskType);
+    if (!last) return undefined;
+    let active = true;
+    Promise.all([
+      getAgentMessages(last.conversationId),
+      last.runId ? getAgentRun(last.runId, { conversationId: last.conversationId, siteId, taskType }).catch(() => null) : null,
+    ]).then(([history, lastRun]) => {
+      if (!active) return;
+      setMessages(history); setResumed(last.conversationId); setRun(lastRun);
+      setExecution(lastRun ? { runId: lastRun.runId, conversationId: last.conversationId } : null);
+      setPolling(lastRun?.status === 'PROCESSING');
+    }).catch(() => { if (active) writeLastConversation(siteId, taskType, null); });
+    return () => { active = false; };
+  }, [siteId, taskType]);
+
   const processing = polling || run?.status === 'PROCESSING' || Boolean(execution && !run && !error);
   const locked = !siteId || busy || processing || uncertain || resuming;
   // 이어 보낼 대화 번호 (React Compiler 가 의존값을 정확히 추적하도록 변수로 꺼낸다)
   const conversationId = run?.conversationId ?? resumed;
+  const lastRunId = execution?.runId ?? null;
+  useEffect(() => {
+    if (conversationId) writeLastConversation(siteId, taskType, { conversationId, runId: lastRunId });
+  }, [siteId, taskType, conversationId, lastRunId]);
 
   const send = useCallback(async (rawText, { permitId } = {}) => {
     const text = String(rawText ?? '').trim();
@@ -110,8 +150,9 @@ export function useAgentConversation({ siteId, taskType = 'WORK_REGISTER' }) {
 
   const reset = useCallback(() => {
     if (processing) return;
+    writeLastConversation(siteId, taskType, null);
     setExecution(null); setRun(null); setMessages([]); setPendingText(''); setError(''); setUncertain(false); setResumed(null);
-  }, [processing]);
+  }, [processing, siteId, taskType]);
 
   /**
    * 지난 대화 다시 열기: 메시지 기록을 받고, 마지막 실행이 있으면 그 결과(근거 기록)도 받는다.

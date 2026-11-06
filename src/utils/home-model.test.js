@@ -59,3 +59,10 @@ test('시간 표시와 초안 목록', () => {
   assert.equal(draftRemaining(docs[2], { status: 'DRAFT', lastEvaluation: null }).label, '측정·판정');
   assert.equal(draftRemaining(docs[1], { status: 'PENDING' }).done, true);
 });
+
+test('daily log tile shows written state instead of a count', async () => {
+  const { tileValue } = await import('./home-model.js');
+  assert.deepEqual(tileValue({ type: 'DAILY_LOG_MISSING', count: 1 }), { text: '미작성', unit: '', word: true });
+  assert.deepEqual(tileValue({ type: 'DAILY_LOG_MISSING', count: 0 }), { text: '없음', unit: '', word: true });
+  assert.deepEqual(tileValue({ type: 'TBM_MISSING', count: 3 }), { text: '3', unit: '건' });
+});
