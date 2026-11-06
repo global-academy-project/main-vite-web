@@ -1,81 +1,266 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useWorkSite } from '../../api/workers';
-import { getSafetyDashboard } from '../../api/dashboard';
-import JobPageLayout, { JobPageHeading } from '../../components/job-page-layout';
-import JobWorkList from '../../components/job-work-list';
+import JobPageLayout from '../../components/job-page-layout';
+import PageHeader from '../../components/ui/page-header.jsx';
+import { Badge } from '../../components/home/panel.jsx';
+import Icon from '../../components/ui/icon.jsx';
+import StatusView, { Skeleton } from '../../components/ui/status-view.jsx';
+import { useWorkStatus } from '../../hooks/use-work-status.js';
+import { APPROVAL_TARGET_LABELS, todoTiles, todoTotal } from '../../utils/home-model.js';
 import { localDate } from '../../utils/job-forms';
+import { shiftDate } from '../../utils/daily-log-model.js';
+import { clockOf, deadlineRows, entryPath, statusSegments, summaryBars, summaryTotals, teamRows } from '../../utils/status-model.js';
+import '../../styles/home.css';
+import '../../styles/work.css';
+import '../../styles/records.css';
+import '../../styles/tbm.css';
+import '../../styles/status.css';
 
+const RANGES = [7, 14, 30];
+
+/**
+ * 작업 현황. 고른 날짜의 현장 현황(작업 수·상태·마감·미완료 9종·팀별)과 그날로 끝나는 기간 추이.
+ * 값은 모두 서버 대시보드 집계이고 화면에서 새로 세지 않는다.
+ */
 export default function JobDashboard() {
   const context = useWorkSite();
-  const [dashboard, setDashboard] = useState(null);
-  const [dashboardError, setDashboardError] = useState('');
-  const [dashboardLoading, setDashboardLoading] = useState(false);
-  const workDate = localDate();
-  const currentDashboard = !dashboardLoading && !dashboardError
-    && dashboard?.siteId === context.currentSite?.siteId && dashboard?.date === workDate ? dashboard : null;
+  const site = context.currentSite;
+  return (
+    <JobPageLayout title="작업 현황" user={context.account?.user} contentClassName="work-page">
+      {site
+        ? <StatusPage key={site.siteId} site={site} context={context} />
+        : <PageHeader title="작업 현황" context={context} />}
+    </JobPageLayout>
+  );
+}
 
-  useEffect(() => {
-    const siteId = context.currentSite?.siteId;
-    if (!siteId) {
-      return undefined;
-    }
-    let cancelled = false;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setDashboardLoading(true);
-    setDashboardError('');
-    // API: GET /api/v1/sites/{siteId}/dashboard?date=YYYY-MM-DD
-    // FLOW: 현장 선택 → work_date 기준 미완료 항목 조회
-    getSafetyDashboard(siteId, workDate).then((data) => {
-      if (!cancelled) setDashboard(data);
-    }).catch((requestError) => {
-      if (!cancelled) {
-        setDashboard(null);
-        setDashboardError(requestError.status === 404
-          ? '대시보드 미완료 집계 API가 아직 연결되지 않았습니다.'
-          : requestError.message || '대시보드 집계를 불러오지 못했습니다.');
-      }
-    }).finally(() => {
-      if (!cancelled) setDashboardLoading(false);
-    });
-    return () => { cancelled = true; };
-  }, [context.currentSite?.siteId, workDate]);
+function StatusPage({ site, context }) {
+  const data = useWorkStatus({ siteId: site.siteId, initialDate: localDate(), disabled: context.selecting || context.loading });
+  const dashboard = data.dashboard;
+  const tiles = todoTiles(dashboard?.items);
+  const [openType, setOpenType] = useState(null);
+  const open = tiles.find((tile) => tile.type === openType && tile.count > 0) ?? tiles.find((tile) => tile.count > 0) ?? null;
 
   return (
-    <JobPageLayout title="작업 현황" user={context.account?.user} contentClassName="job-management job-overview">
-      <JobPageHeading title="안전 작업 현황" description={new Date().toLocaleDateString('ko-KR')} context={context} />
-      <p className="scenario-notice">선택 현장과 권한은 실제 사용자 API 정보입니다. 업무 조회 API가 없는 항목은 0건이나 가상 작업으로 대체하지 않습니다.</p>
-      <section className="stat-grid" aria-label="안전관리 요약">
-        <div className="stat-card"><span>접근 가능 현장</span><strong>{context.account ? context.account.sites.length : '미조회'}<small>곳</small></strong></div>
-        <div className="stat-card"><span>오늘 작업</span><strong>{currentDashboard?.works.total ?? '미조회'}<small>건</small></strong></div>
-        <div className="stat-card"><span>차단된 작업</span><strong>{currentDashboard?.works.blocked ?? '미조회'}<small>건</small></strong></div>
-        <div className="stat-card"><span>작업 상태별 건수</span>{currentDashboard
-          ? Object.entries(currentDashboard.works.byStatus).map(([status, count]) => <p key={status}>{status}: {count}건</p>)
-          : <strong>미조회</strong>}</div>
-      </section>
-      <section className="dashboard-panels" aria-label="현장 안전 현황">
-        <div className="panel"><h2>오늘 작업</h2><p className="job-help">아래 작업 목록에서 인원·상태와 연결된 허가서·위험성평가·TBM을 확인하세요.</p><Link className="job-link-button" to="/job/workspace">작업 등록·조회 <span aria-hidden="true">→</span></Link></div>
-        <div className="panel"><h2>현장 취급 물질</h2><p className="job-help">site_chemicals · work_materials 조회 API가 필요합니다. 물질·수량·단위는 선택 현장 및 작업 ID와 함께 조회해야 합니다.</p></div>
-        <div className="panel"><h2>아차사고·작업 경고</h2><p className="job-help">near_misses · record_tags · work_warnings 조회 API가 필요합니다. 등록된 실제 사고가 있는지는 아직 확인할 수 없습니다.</p></div>
-        <div className="panel"><h2>허가·필수 조치</h2><p className="job-help">미완료 항목은 서버 집계이며, 개별 허가서의 판정·승인 요청은 작업 목록의 허가서 링크로 진행하세요.</p></div>
-      </section>
-      <section className="panel" aria-labelledby="incomplete-items-title">
-        <div className="job-section-heading">
-          <div><span className="job-eyebrow">INCOMPLETE ITEMS</span><h2 id="incomplete-items-title">미완료 항목</h2><p className="job-help">기준일: {workDate} · work_date 기준 서버 집계</p></div>
+    <div className="work-list rec-page status-page">
+      <PageHeader title="작업 현황" description="현장의 하루 작업과 마감 전에 끝내야 할 일을 한눈에 봅니다. 숫자는 서버 집계입니다." context={context}
+        actions={<>
+          <button type="button" className="ui-btn ui-btn--ghost" onClick={data.reload}><Icon name="refresh" size={16} />새로고침</button>
+          <Link className="ui-btn ui-btn--primary" to="/job/workspace">작업 목록</Link>
+        </>} />
+
+      <section className="work-filters rec-datebar" aria-label="기준일">
+        <div className="rec-datebar__nav">
+          <button type="button" className="ui-icon-btn" aria-label="전날" onClick={() => data.changeDate(shiftDate(data.date, -1))}><Icon name="chevronLeft" size={18} /></button>
+          <label><span className="sr-only">기준일</span><input type="date" max="9999-12-31" value={data.date} onChange={(event) => data.changeDate(event.target.value)} /></label>
+          <button type="button" className="ui-icon-btn rec-datebar__next" aria-label="다음 날" onClick={() => data.changeDate(shiftDate(data.date, 1))}><Icon name="chevronLeft" size={18} /></button>
+          {data.date !== localDate() && <button type="button" className="ui-btn ui-btn--ghost" onClick={() => data.changeDate(localDate())}>오늘</button>}
         </div>
-        {dashboardLoading && <p role="status">미완료 항목을 불러오는 중입니다...</p>}
-        {dashboardError && <p className="dashboard-error" role="alert">{dashboardError}</p>}
-        {!dashboardLoading && !dashboardError && !dashboard && <p className="job-help">대시보드 API 응답이 없어 집계값을 표시하지 않습니다.</p>}
-        {currentDashboard && (
-          <div className="stat-grid" aria-label="미완료 항목 집계">
-            {currentDashboard.items.map((item) => <div className={`stat-card${item.overdue ? ' is-overdue' : ''}`} key={item.type}>
-              <span>{item.label || item.type}</span><strong>{item.count}</strong>{item.overdue && <small> 지연</small>}
-            </div>)}
-          </div>
+        {dashboard && (
+          <ul className="status-deadlines" aria-label="마감 시각">
+            {deadlineRows(dashboard.deadlines).map((row) => (
+              <li key={row.key} className={row.passed ? 'is-passed' : ''}><span>{row.label}</span><strong>{row.time || '미설정'}</strong>{row.passed && <Badge tone="block">지남</Badge>}</li>
+            ))}
+            {dashboard.now && <li className="status-deadlines__now"><span>집계 시각</span><strong>{clockOf(dashboard.now)}</strong></li>}
+          </ul>
         )}
       </section>
-      {context.currentSite && <JobWorkList key={context.currentSite.siteId} siteId={context.currentSite.siteId}
-        disabled={context.selecting || context.loading} />}
-    </JobPageLayout>
+
+      {data.dayLoading && <section className="home-panel status-skeleton"><div className="home-panel__pad"><Skeleton lines={5} /></div></section>}
+      {!data.dayLoading && data.dayError && <section className="home-panel"><StatusView kind="error" message={data.dayError} onRetry={data.reload} /></section>}
+
+      {dashboard && (
+        <>
+          <section className="status-kpis" aria-label={`${data.date} 요약`}>
+            <Kpi label="작업" value={dashboard.works.total} unit="건" hint="취소 제외" />
+            <Kpi label="차단" value={dashboard.works.blocked} unit="건" tone={dashboard.works.blocked ? 'block' : ''} hint="규칙 판정 차단" />
+            <Kpi label="미완료" value={todoTotal(tiles)} unit="건" tone={todoTotal(tiles) ? 'warn' : ''} hint="9개 항목 합계" />
+            <Kpi label="지연 항목" value={tiles.filter((tile) => tile.overdue).length} unit="종" tone={tiles.some((tile) => tile.overdue) ? 'block' : ''} hint="마감 지난 항목 종류" />
+          </section>
+
+          <section className="home-panel status-card" aria-labelledby="status-works">
+            <header className="tbm-card__head"><div><h2 id="status-works">작업 상태</h2><p className="rec-help">{data.date} · 작업 {dashboard.works.total}건</p></div></header>
+            <StatusBar byStatus={dashboard.works.byStatus} total={dashboard.works.total} />
+          </section>
+
+          <div className="status-grid">
+            <section className="home-panel status-card" aria-labelledby="status-todo">
+              <header className="tbm-card__head"><div><h2 id="status-todo">미완료 항목</h2><p className="rec-help">항목을 누르면 아래에 대상 목록이 열립니다.</p></div></header>
+              <ul className="home-tiles status-tiles">
+                {tiles.map((tile) => (
+                  <li key={tile.type}>
+                    <button type="button" className={`home-tile${tile.count ? ' has-count' : ''}${tile.overdue ? ' is-overdue' : ''}${open?.type === tile.type ? ' is-open' : ''}`}
+                      aria-pressed={open?.type === tile.type} disabled={!tile.count} onClick={() => setOpenType(tile.type)}>
+                      <span className="home-tile__label">{tile.fullLabel}</span>
+                      <span className="home-tile__row">{tile.overdue && <span className="home-tile__due">지연</span>}<span className="home-tile__count">{tile.count}<small>건</small></span></span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              {open ? <EntryList tile={open} date={data.date} /> : <p className="rec-note status-allclear"><Icon name="check" size={16} />이 날짜에 남은 미완료 항목이 없습니다.</p>}
+            </section>
+
+            <section className="home-panel status-card" aria-labelledby="status-teams">
+              <header className="tbm-card__head"><div><h2 id="status-teams">팀별</h2><p className="rec-help">미완료·차단이 많은 팀부터</p></div></header>
+              {dashboard.teams?.length ? (
+                <div className="status-table-wrap">
+                  <table className="status-table">
+                    <thead><tr><th scope="col">팀</th><th scope="col">작업</th><th scope="col">차단</th><th scope="col">미완료</th></tr></thead>
+                    <tbody>{teamRows(dashboard.teams).map((team) => (
+                      <tr key={team.teamId ?? 'none'}>
+                        <th scope="row">{team.teamName || '팀 미지정'}</th>
+                        <td>{team.works}</td>
+                        <td className={team.blocked ? 'is-block' : ''}>{team.blocked}</td>
+                        <td className={team.incomplete ? 'is-warn' : ''}>{team.incomplete}</td>
+                      </tr>
+                    ))}</tbody>
+                  </table>
+                </div>
+              ) : <p className="rec-help status-pad">이 날짜에 작업이 없습니다.</p>}
+            </section>
+          </div>
+        </>
+      )}
+
+      <PeriodPanel data={data} />
+    </div>
+  );
+}
+
+function Kpi({ label, value, unit, tone = '', hint }) {
+  return (
+    <div className={`status-kpi${tone ? ` is-${tone}` : ''}`}>
+      <span className="status-kpi__label">{label}</span>
+      <strong className="status-kpi__value">{value}<small>{unit}</small></strong>
+      <span className="status-kpi__hint">{hint}</span>
+    </div>
+  );
+}
+
+function StatusBar({ byStatus, total }) {
+  const segments = statusSegments(byStatus);
+  if (!total) return <p className="rec-help status-pad">이 날짜에 등록된 작업이 없습니다.</p>;
+  return (
+    <div className="status-bar">
+      <div className="status-bar__track" role="img" aria-label={segments.map((segment) => `${segment.label} ${segment.count}건`).join(', ')}>
+        {segments.map((segment) => (
+          <span key={segment.status} className={`status-bar__seg is-${segment.tone}`} style={{ flexGrow: segment.count }} title={`${segment.label} ${segment.count}건`} />
+        ))}
+      </div>
+      <ul className="status-bar__legend">
+        {segments.map((segment) => (
+          <li key={segment.status}><span className={`status-bar__dot is-${segment.tone}`} aria-hidden="true" />{segment.label}<strong>{segment.count}</strong></li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function EntryList({ tile, date }) {
+  return (
+    <div className="status-entries">
+      <h3>{tile.fullLabel} <span className="home-panel__count">{tile.count}</span></h3>
+      <ul>
+        {tile.entries.map((entry, index) => {
+          const path = entryPath(entry, date);
+          const body = (
+            <>
+              <span className="status-entry__main">
+                <span className="status-entry__kind">{APPROVAL_TARGET_LABELS[entry.targetType] ?? entry.targetType}{entry.targetId ? ` #${entry.targetId}` : ''}</span>
+                <span className="status-entry__title">{entry.title}</span>
+                {entry.detail && <span className="rec-help">{entry.detail}</span>}
+              </span>
+              <span className="status-entry__side">
+                {entry.dueAt && <span className="rec-help">마감 {clockOf(entry.dueAt)}</span>}
+                {entry.overdue && <Badge tone="block">지연</Badge>}
+                {path && <Icon name="chevronLeft" size={16} className="status-entry__go" />}
+              </span>
+            </>
+          );
+          return (
+            <li key={`${entry.targetType}:${entry.targetId}:${index}`}>
+              {path ? <Link className="status-entry" to={path}>{body}</Link> : <div className="status-entry">{body}</div>}
+            </li>
+          );
+        })}
+      </ul>
+      {tile.entries.some((entry) => !entryPath(entry, date)) && <p className="rec-help">개선조치는 아직 웹에 전용 화면이 없어 목록만 보여 줍니다.</p>}
+    </div>
+  );
+}
+
+function PeriodPanel({ data }) {
+  const { days } = summaryBars(data.summary);
+  const current = data.summary?.current;
+  return (
+    <section className="home-panel status-card" aria-labelledby="status-period">
+      <header className="tbm-card__head">
+        <div><h2 id="status-period">기간 추이</h2><p className="rec-help">{data.date}까지 {data.rangeDays}일 · 작업일 기준</p></div>
+        <div className="permit-check__options status-range" role="group" aria-label="기간">
+          {RANGES.map((range) => <button key={range} type="button" className="permit-check__btn is-unknown" aria-pressed={data.rangeDays === range} onClick={() => data.setRangeDays(range)}>{range}일</button>)}
+        </div>
+      </header>
+      {data.periodLoading && <div className="status-pad"><Skeleton lines={4} /></div>}
+      {!data.periodLoading && data.periodError && <StatusView kind="error" compact message={data.periodError} onRetry={data.reload} />}
+      {data.summary && (
+        <>
+          {current && (
+            <ul className="status-current" aria-label="지금 기준 현황">
+              <li className={current.correctiveOpen ? 'is-warn' : ''}><span>개선조치 미완료</span><strong>{current.correctiveOpen}</strong></li>
+              <li className={current.correctiveOverdue ? 'is-block' : ''}><span>개선조치 기한 지남</span><strong>{current.correctiveOverdue}</strong></li>
+              <li className={current.approvalOverdue ? 'is-block' : ''}><span>승인 지연</span><strong>{current.approvalOverdue}</strong></li>
+            </ul>
+          )}
+          <div className="status-charts">
+            <Chart title="날짜별 작업" days={days} value={(day) => day.works} part={(day) => day.blocked}
+              legend={[['is-primary', '작업'], ['is-block', '그중 차단']]} />
+            <Chart title="날짜별 미완료" days={days} value={(day) => day.incomplete} tone="is-warn" />
+          </div>
+          <details className="status-totals">
+            <summary>기간 합계 표 보기</summary>
+            <table className="status-table">
+              <thead><tr><th scope="col">항목</th><th scope="col">기간 합계</th></tr></thead>
+              <tbody>{summaryTotals(data.summary.totals).map((row) => <tr key={row.type}><th scope="row">{row.label}</th><td>{row.count}</td></tr>)}</tbody>
+            </table>
+            <table className="status-table">
+              <thead><tr><th scope="col">날짜</th><th scope="col">작업</th><th scope="col">차단</th><th scope="col">미완료</th></tr></thead>
+              <tbody>{days.map((day) => <tr key={day.date}><th scope="row">{day.date}</th><td>{day.works}</td><td>{day.blocked}</td><td>{day.incomplete}</td></tr>)}</tbody>
+            </table>
+          </details>
+        </>
+      )}
+    </section>
+  );
+}
+
+/** 날짜별 세로 막대 (한 축). part 가 있으면 막대 아래쪽을 그 값만큼 다른 색으로 */
+function Chart({ title, days, value, part, tone = 'is-primary', legend }) {
+  const dense = days.length > 14;
+  const max = Math.max(1, ...days.map(value));
+  return (
+    <figure className="status-chart">
+      <figcaption>
+        <span>{title}</span>
+        {legend && <span className="status-chart__legend">{legend.map(([cls, text]) => <span key={text}><i className={cls} aria-hidden="true" />{text}</span>)}</span>}
+      </figcaption>
+      <div className={`status-chart__plot${dense ? ' is-dense' : ''}`}>
+        {days.map((day) => {
+          const total = value(day);
+          const low = part ? Math.min(part(day), total) : 0;
+          const label = `${day.date} ${title.replace('날짜별 ', '')} ${total}건${part ? ` (차단 ${low}건)` : ''}`;
+          return (
+            <div key={day.date} className="status-chart__col" title={label} aria-label={label} role="img" tabIndex={0}>
+              <span className="status-chart__value">{total || ''}</span>
+              <span className="status-chart__bar" style={{ height: `${(total / max) * 100}%` }}>
+                {total > 0 && <span className={`status-chart__fill ${tone}`} style={{ flexGrow: total - low }} />}
+                {low > 0 && <span className="status-chart__fill is-block" style={{ flexGrow: low }} />}
+              </span>
+              <span className="status-chart__x">{day.label}</span>
+            </div>
+          );
+        })}
+      </div>
+    </figure>
   );
 }

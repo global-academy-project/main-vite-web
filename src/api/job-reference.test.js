@@ -72,3 +72,41 @@ test('reference API routes implement create/update, inactive lists and assignmen
   await assert.rejects(saveWorker(1, 5, { ...body, lockVersion: 2 }),
     (error) => error.code === 'CONFLICT_MODIFIED');
 });
+
+test('equipment and site settings use server paths and validate the site', async (t) => {
+  const { getEquipment, saveEquipment, getSiteSettings, saveSiteSettings } = await import('./job-reference.js');
+  const storage = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
+  Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: { getItem: () => null } });
+  t.after(() => {
+    if (storage) Object.defineProperty(globalThis, 'localStorage', storage);
+    else delete globalThis.localStorage;
+  });
+  const equipment = { equipmentId: 8, siteId: 1, zoneId: null, code: 'P-02', name: '펌프', equipmentType: 'PUMP', nextInspectionDate: null, inspectionOverdue: false, active: true };
+  const settings = { siteId: 1, name: '울산', mode: 'VERIFY', tbmDeadline: '09:30:00', dailyLogDeadline: '18:00:00', approvalDueMinutes: 120, nearMissWarnDays: 30, active: true };
+  let data = [equipment];
+  const requests = [];
+  t.mock.method(globalThis, 'fetch', async (path, options) => {
+    requests.push({ path, method: options.method, body: options.body ? JSON.parse(options.body) : undefined });
+    return new Response(JSON.stringify({ success: true, data }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+  });
+  assert.deepEqual(await getEquipment(1, true), [equipment]);
+  assert.equal(requests.at(-1).path, '/api/v1/sites/1/equipment?includeInactive=true');
+  data = equipment;
+  const body = { code: 'P-02', name: '펌프', equipmentType: 'PUMP', zoneId: null, nextInspectionDate: null, active: null };
+  await saveEquipment(1, null, body);
+  assert.deepEqual(requests.at(-1), { path: '/api/v1/sites/1/equipment', method: 'POST', body });
+  await saveEquipment(1, 8, { ...body, active: false });
+  assert.equal(requests.at(-1).path, '/api/v1/sites/1/equipment/8');
+  assert.equal(requests.at(-1).method, 'PUT');
+  data = { ...equipment, siteId: 2 };
+  await assert.rejects(saveEquipment(1, 8, body), /현장/);
+
+  data = settings;
+  assert.deepEqual(await getSiteSettings(1), settings);
+  assert.equal(requests.at(-1).path, '/api/v1/sites/1/settings');
+  const settingsBody = { tbmDeadline: '09:30', dailyLogDeadline: '18:00', approvalDueMinutes: 120, nearMissWarnDays: 30, industry: null, employeeCount: null, address: null };
+  await saveSiteSettings(1, settingsBody);
+  assert.deepEqual(requests.at(-1), { path: '/api/v1/sites/1/settings', method: 'PUT', body: settingsBody });
+  data = { ...settings, siteId: 2 };
+  await assert.rejects(getSiteSettings(1), /현장 설정/);
+});
