@@ -13,6 +13,8 @@ import { useProfile } from '../../hooks/use-profile.js';
 import { ACCOUNT_ROLE_LABELS } from '../../utils/admin-model.js';
 import { NOTIFICATION_TYPE_LABELS } from '../../utils/notification-model.js';
 import { emailBody, passwordBody, profileBody, profileForm, sameProfile } from '../../utils/profile-model.js';
+import { joinPhone, koreanOnly, NAME_MAX, NAME_MIN, phonePartsError, splitPhone } from '../../utils/auth-validation.js';
+import PhoneInput from '../../components/phone-input.jsx';
 import '../../styles/home.css';
 import '../../styles/work.css';
 import '../../styles/records.css';
@@ -52,12 +54,12 @@ export default function Me() {
             <div className="profile-col">
               <Summary me={data.me} />
               <Sites me={data.me} context={context} />
+              <Preferences data={data} />
             </div>
             <div className="profile-col">
               <ProfileForm key={`${data.me.lockVersion}`} user={user} data={data} />
               <PasswordForm data={data} />
               <EmailForm user={user} data={data} />
-              <Preferences data={data} />
             </div>
           </div>
         )}
@@ -123,7 +125,16 @@ function ProfileForm({ user, data }) {
   const saved = profileForm(user);
   const [form, setForm] = useState(saved);
   const [errors, setErrors] = useState({});
+  const [blocked, setBlocked] = useState({});
+  const [phoneParts, setPhoneParts] = useState(() => splitPhone(user.phone ?? ''));
   const set = (field, value) => setForm({ ...form, [field]: value });
+  const setPhone = (parts) => { setPhoneParts(parts); setForm((current) => ({ ...current, phone: joinPhone(parts) })); setErrors((current) => ({ ...current, phone: '' })); };
+  // 이름은 한글만: 다른 글자는 바로 걸러 내고 안내한다
+  const setOnly = (field, clean, message) => (raw) => {
+    const value = clean(raw);
+    setForm({ ...form, [field]: value });
+    setBlocked({ ...blocked, [field]: value !== raw ? message : '' });
+  };
   const changed = !sameProfile(form, saved);
   return (
     <section className="home-panel tbm-card" aria-labelledby="profile-basic">
@@ -131,6 +142,8 @@ function ProfileForm({ user, data }) {
       <form className="site-form" onSubmit={async (event) => {
         event.preventDefault();
         const result = profileBody(form);
+        const phoneError = phonePartsError(phoneParts);
+        if (phoneError) result.errors = { ...(result.errors ?? {}), phone: phoneError };
         setErrors(result.errors ?? {});
         if (result.errors) return;
         const saved = await data.saveProfile(result.body);
@@ -138,13 +151,18 @@ function ProfileForm({ user, data }) {
       }}>
         <fieldset disabled={data.busy === 'profile'}>
           <legend className="sr-only">기본 정보</legend>
-          <Field label="이름" required maxLength={50} value={form.name} error={errors.name} autoComplete="name" onChange={(value) => set('name', value)} />
-          <Field label="전화번호" type="tel" maxLength={13} value={form.phone} error={errors.phone} hint="숫자만, 비우면 지웁니다" autoComplete="tel" placeholder="01012345678" onChange={(value) => set('phone', value)} />
+          <Field label="이름" required lang="ko" value={form.name} error={errors.name || blocked.name} hint={`한글 ${NAME_MIN}~${NAME_MAX}자`} autoComplete="name"
+            onChange={setOnly('name', koreanOnly, `이름은 한글만 ${NAME_MAX}자까지 입력할 수 있습니다.`)} onBlur={() => setBlocked({ ...blocked, name: '' })} />
+          <div className="risk-field site-field">
+            <label htmlFor="profile-phone" className="risk-field__label">전화번호</label>
+            <PhoneInput id="profile-phone" className="phone-input--app" parts={phoneParts} onChange={setPhone} invalid={Boolean(errors.phone)} describedBy="profile-phone-help" />
+            <span id="profile-phone-help" className={`site-field__hint${errors.phone ? ' is-error' : ''}`}>{errors.phone || '숫자만 칸별로 · 세 칸 모두 비우면 지웁니다'}</span>
+          </div>
           <Field label="부서" maxLength={100} value={form.department} error={errors.department} onChange={(value) => set('department', value)} />
           <Field label="직책" maxLength={50} value={form.jobTitle} error={errors.jobTitle} onChange={(value) => set('jobTitle', value)} />
         </fieldset>
         <div className="site-form__actions">
-          {changed && <button type="button" className="ui-btn ui-btn--ghost" onClick={() => { setForm(saved); setErrors({}); }}>변경 취소</button>}
+          {changed && <button type="button" className="ui-btn ui-btn--ghost" onClick={() => { setForm(saved); setPhoneParts(splitPhone(user.phone ?? '')); setErrors({}); }}>변경 취소</button>}
           <button type="submit" className="ui-btn ui-btn--primary" disabled={!changed || Boolean(data.busy)}>저장</button>
         </div>
       </form>
@@ -160,7 +178,7 @@ function PasswordForm({ data }) {
   const set = (field, value) => setForm({ ...form, [field]: value });
   return (
     <section className="home-panel tbm-card" aria-labelledby="profile-password">
-      <header className="tbm-card__head"><div><h2 id="profile-password">비밀번호 변경</h2><p className="rec-help">바꾸면 이 기기의 로그인은 그대로 이어집니다.</p></div></header>
+      <header className="tbm-card__head"><div><h2 id="profile-password">비밀번호 변경</h2><p className="rec-help">바꾸면 다른 기기의 로그인은 끊기고, 이 기기는 그대로 이어집니다.</p></div></header>
       <form className="site-form" onSubmit={async (event) => {
         event.preventDefault();
         const result = passwordBody(form);

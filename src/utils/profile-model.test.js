@@ -5,7 +5,9 @@ import { changedPreferences, emailBody, passwordBody, profileBody, profileForm, 
 test('profile body follows server rules', () => {
   const form = profileForm({ name: '김안전', phone: null, department: '안전팀', jobTitle: '대리' });
   assert.deepEqual(form, { name: '김안전', phone: '', department: '안전팀', jobTitle: '대리' });
-  assert.deepEqual(profileBody({ ...form, phone: '010-1234-5678' }).body, { name: '김안전', phone: '01012345678', department: '안전팀', jobTitle: '대리' });
+  assert.deepEqual(profileBody({ ...form, phone: '01012345678' }).body, { name: '김안전', phone: '01012345678', department: '안전팀', jobTitle: '대리' });
+  assert.ok(profileBody({ ...form, phone: '010-1234-5678' }).errors.phone);
+  assert.ok(profileBody({ ...form, name: 'Kim' }).errors.name);
   assert.ok(profileBody({ ...form, name: ' ' }).errors.name);
   assert.ok(profileBody({ ...form, phone: '1234' }).errors.phone);
   assert.equal(profileBody({ ...form, phone: '' }).body.phone, '');

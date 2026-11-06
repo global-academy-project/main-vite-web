@@ -43,3 +43,10 @@
 @media (prefers-reduced-motion: reduce) {
   .profile-switch span, .profile-switch span::after { transition: none; }
 }
+
+/* 전화번호 세 칸: 앱 안 입력칸 높이에 맞춤 (모양은 auth.css 와 같은 규칙) */
+.phone-input--app { display: flex; align-items: center; min-width: 0; }
+.phone-input--app .phone-input__cell { display: flex; flex: 1 1 0; align-items: center; min-width: 0; }
+.phone-input--app .phone-input__cell:first-child { flex: 0.8 1 0; }
+.phone-input--app .phone-input__dash { flex: 0 0 auto; width: 16px; color: var(--color-text-muted); text-align: center; }
+.risk-field .phone-input--app input { min-height: 40px; padding: 0 var(--space-2); font-variant-numeric: tabular-nums; text-align: center; }
