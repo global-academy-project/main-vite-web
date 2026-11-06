@@ -59,3 +59,32 @@ export function referencePermissions(user, site) {
     manageTeams: user?.role === 'ADMIN',
   };
 }
+
+// 설비 (점검표 대상). 등록·수정은 현장 관리자 이상
+export const getEquipment = (siteId, includeInactive = false) =>
+  list(`${sitePath(siteId)}/equipment?includeInactive=${includeInactive}`, 'equipmentId', siteId);
+
+export async function saveEquipment(siteId, id, body) {
+  const path = `${sitePath(siteId)}/equipment${id == null ? '' : `/${jobId(id)}`}`;
+  return jobWrite(async () => requireEntry(await api(path, {
+    method: id == null ? 'POST' : 'PUT', body,
+  }), 'equipmentId', siteId));
+}
+
+// 현장 정보·운영 설정 (조회는 현장 권한, 변경은 현장 관리자 이상). 통째로 바꾼다
+function requireSettings(settings, siteId) {
+  if (!settings || settings.siteId !== jobId(siteId) || typeof settings.name !== 'string'
+    || typeof settings.tbmDeadline !== 'string' || typeof settings.dailyLogDeadline !== 'string'
+    || !Number.isInteger(settings.approvalDueMinutes) || !Number.isInteger(settings.nearMissWarnDays)) {
+    throw new Error('현장 설정 응답 형식 또는 현장이 올바르지 않습니다.');
+  }
+  return settings;
+}
+
+export async function getSiteSettings(siteId) {
+  return requireSettings(await api(`${sitePath(siteId)}/settings`), siteId);
+}
+
+export function saveSiteSettings(siteId, body) {
+  return jobWrite(async () => requireSettings(await api(`${sitePath(siteId)}/settings`, { method: 'PUT', body }), siteId));
+}
