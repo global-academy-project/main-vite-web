@@ -57,6 +57,11 @@ function StatusPage({ site, context }) {
           <button type="button" className="ui-icon-btn rec-datebar__next" aria-label="다음 날" onClick={() => data.changeDate(shiftDate(data.date, 1))}><Icon name="chevronLeft" size={18} /></button>
           {data.date !== localDate() && <button type="button" className="ui-btn ui-btn--ghost" onClick={() => data.changeDate(localDate())}>오늘</button>}
         </div>
+        {!dashboard && !data.dayError && (
+          <ul className="status-deadlines" aria-hidden="true">
+            {['TBM 마감', '안전일지 마감', '결재 처리 기한'].map((label) => <li key={label}><span>{label}</span><strong>—</strong></li>)}
+          </ul>
+        )}
         {dashboard && (
           <ul className="status-deadlines" aria-label="마감 시각">
             {deadlineRows(dashboard.deadlines).map((row) => (
@@ -67,21 +72,21 @@ function StatusPage({ site, context }) {
         )}
       </section>
 
-      {data.dayLoading && <section className="home-panel status-skeleton"><div className="home-panel__pad"><Skeleton lines={5} /></div></section>}
       {!data.dayLoading && data.dayError && <section className="home-panel"><StatusView kind="error" message={data.dayError} onRetry={data.reload} /></section>}
 
-      {dashboard && (
+      {/* 불러오는 동안에도 같은 틀을 그려 둔다 (숫자만 "—"). 받은 뒤 아래 칸이 밀리지 않게 */}
+      {!data.dayError && (
         <>
-          <section className="status-kpis" aria-label={`${data.date} 요약`}>
-            <Kpi label="작업" value={dashboard.works.total} unit="건" hint="취소 제외" />
-            <Kpi label="차단" value={dashboard.works.blocked} unit="건" tone={dashboard.works.blocked ? 'block' : ''} hint="규칙 판정 차단" />
-            <Kpi label="미완료" value={todoTotal(tiles)} unit="건" tone={todoTotal(tiles) ? 'warn' : ''} hint="9개 항목 합계" />
-            <Kpi label="지연 항목" value={tiles.filter((tile) => tile.overdue).length} unit="종" tone={tiles.some((tile) => tile.overdue) ? 'block' : ''} hint="마감 지난 항목 종류" />
+          <section className="status-kpis" aria-label={`${data.date} 요약`} aria-busy={!dashboard}>
+            <Kpi label="작업" value={dashboard?.works.total} unit="건" hint="취소 제외" />
+            <Kpi label="차단" value={dashboard?.works.blocked} unit="건" tone={dashboard?.works.blocked ? 'block' : ''} hint="규칙 판정 차단" />
+            <Kpi label="미완료" value={dashboard ? todoTotal(tiles) : undefined} unit="건" tone={dashboard && todoTotal(tiles) ? 'warn' : ''} hint="9개 항목 합계" />
+            <Kpi label="지연 항목" value={dashboard ? tiles.filter((tile) => tile.overdue).length : undefined} unit="종" tone={tiles.some((tile) => tile.overdue) ? 'block' : ''} hint="마감 지난 항목 종류" />
           </section>
 
           <section className="home-panel status-card" aria-labelledby="status-works">
-            <header className="tbm-card__head"><div><h2 id="status-works">작업 상태</h2><p className="rec-help">{data.date} · 작업 {dashboard.works.total}건</p></div></header>
-            <StatusBar byStatus={dashboard.works.byStatus} total={dashboard.works.total} />
+            <header className="tbm-card__head"><div><h2 id="status-works">작업 상태</h2><p className="rec-help">{data.date} · 작업 {dashboard ? dashboard.works.total : '—'}건</p></div></header>
+            {dashboard ? <StatusBar byStatus={dashboard.works.byStatus} total={dashboard.works.total} /> : <div className="status-bar status-bar--wait"><Skeleton lines={2} /></div>}
           </section>
 
           <div className="status-grid">
@@ -93,17 +98,18 @@ function StatusPage({ site, context }) {
                     <button type="button" className={`home-tile${tile.count ? ' has-count' : ''}${tile.overdue ? ' is-overdue' : ''}${open?.type === tile.type ? ' is-open' : ''}`}
                       aria-pressed={open?.type === tile.type} disabled={!tile.count} onClick={() => setOpenType(tile.type)}>
                       <span className="home-tile__label">{tile.fullLabel}</span>
-                      <span className="home-tile__row">{tile.overdue && <span className="home-tile__due">지연</span>}<span className="home-tile__count">{tile.count}<small>건</small></span></span>
+                      <span className="home-tile__row">{tile.overdue && <span className="home-tile__due">지연</span>}<span className="home-tile__count">{dashboard ? tile.count : '—'}<small>건</small></span></span>
                     </button>
                   </li>
                 ))}
               </ul>
-              {open ? <EntryList tile={open} date={data.date} /> : <p className="rec-note status-allclear"><Icon name="check" size={16} />이 날짜에 남은 미완료 항목이 없습니다.</p>}
+              {!dashboard ? <div className="status-entries status-entries--wait"><Skeleton lines={3} /></div>
+                : open ? <EntryList tile={open} date={data.date} /> : <p className="rec-note status-allclear"><Icon name="check" size={16} />이 날짜에 남은 미완료 항목이 없습니다.</p>}
             </section>
 
             <section className="home-panel status-card" aria-labelledby="status-teams">
               <header className="tbm-card__head"><div><h2 id="status-teams">팀별</h2><p className="rec-help">미완료·차단이 많은 팀부터</p></div></header>
-              {dashboard.teams?.length ? (
+              {!dashboard ? <div className="status-pad"><Skeleton lines={3} /></div> : dashboard.teams?.length ? (
                 <div className="status-table-wrap">
                   <table className="status-table">
                     <thead><tr><th scope="col">팀</th><th scope="col">작업</th><th scope="col">차단</th><th scope="col">미완료</th></tr></thead>
@@ -132,7 +138,7 @@ function Kpi({ label, value, unit, tone = '', hint }) {
   return (
     <div className={`status-kpi${tone ? ` is-${tone}` : ''}`}>
       <span className="status-kpi__label">{label}</span>
-      <strong className="status-kpi__value">{value}<small>{unit}</small></strong>
+      <strong className="status-kpi__value">{value ?? '—'}<small>{unit}</small></strong>
       <span className="status-kpi__hint">{hint}</span>
     </div>
   );

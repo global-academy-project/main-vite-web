@@ -121,3 +121,6 @@ a.status-entry:hover { background: var(--color-surface-accent); }
   .status-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .status-entry__title { white-space: normal; }
 }
+/* 불러오는 동안 자리 잡기 (받은 뒤 높이가 크게 바뀌지 않게) */
+.status-bar--wait { min-height: 44px; }
+.status-entries--wait { min-height: 150px; border-top: 1px solid var(--color-border-soft); }

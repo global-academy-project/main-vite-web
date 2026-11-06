@@ -4,6 +4,11 @@
  * .dashboard-sidebar 의 위치·너비 기본값은 style/job/job-dashboard.css 에 있다.
  */
 
+/* 스크롤바 자리를 미리 잡는다: 내용을 받아 페이지가 길어질 때 스크롤바가 생기며 화면 전체가 옆으로 밀리지 않게.
+   스크롤 없는 고정 홈은 자리를 비우지 않는다 */
+html { scrollbar-gutter: stable; }
+html:has(.dashboard-shell--fixed) { scrollbar-gutter: auto; }
+
 .app-nav { font-family: var(--font-sans); background: var(--color-surface); border-right-color: var(--color-border); }
 .app-nav__inner { display: flex; flex-direction: column; gap: var(--space-4); min-height: 100%; padding: var(--space-5) var(--space-3) var(--space-4); box-sizing: border-box; }
 .app-nav__brand { display: flex; align-items: center; gap: var(--space-3); padding: 0 var(--space-2); font-size: var(--text-xl); font-weight: var(--weight-bold); color: var(--color-text-strong); }
@@ -60,7 +65,7 @@ button.app-nav__link {
 }
 a.app-nav__link:hover,
 button.app-nav__link:hover:not(:disabled) { background: var(--color-surface-muted); color: var(--color-text-strong); transform: none; }
-a.app-nav__link.is-active { background: var(--color-primary-soft); color: var(--color-primary-hover); font-weight: var(--weight-bold); }
+a.app-nav__link.is-active { background: var(--color-primary-soft); color: var(--color-primary-hover); font-weight: 700; }
 button.app-nav__link.is-within { color: var(--color-text-strong); font-weight: var(--weight-bold); }
 .dark-mode a.app-nav__link.is-active { color: var(--color-primary); }
 .app-nav__chevron { margin-left: auto; color: var(--color-text-muted); }
@@ -76,7 +81,7 @@ a.app-nav__sublink {
   text-decoration: none;
 }
 a.app-nav__sublink:hover { background: var(--color-surface-muted); color: var(--color-text-strong); }
-a.app-nav__sublink.is-active { background: var(--color-primary-soft); color: var(--color-primary-hover); font-weight: var(--weight-bold); }
+a.app-nav__sublink.is-active { background: var(--color-primary-soft); color: var(--color-primary-hover); font-weight: 700; }
 .dark-mode a.app-nav__sublink.is-active { color: var(--color-primary); }
 .app-nav__link:focus-visible,
 .app-nav__sublink:focus-visible,
@@ -139,7 +144,7 @@ button.app-nav__close { display: none; }
     cursor: pointer;
   }
   button.app-tabs__tab:hover:not(:disabled) { background: transparent; transform: none; }
-  a.app-tabs__tab.is-active { color: var(--color-primary); font-weight: var(--weight-bold); }
+  a.app-tabs__tab.is-active { color: var(--color-primary); font-weight: 700; }
 
   /* 하단 탭에 가리지 않도록 */
   .dashboard-main { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
