@@ -52,3 +52,44 @@ test('admin list, approval and site replacement follow server contracts and prop
     await assert.rejects(approveUser(7, { role: 'MEMBER', sites }), (error) => error.status === code);
   }
 });
+
+test('admin account actions and sites use server paths', async (t) => {
+  const { changeUserRole, unlockUser, verifyUserEmail, deactivateUser, reactivateUser, issueTemporaryPassword, getAdminSites, saveAdminSite } = await import('./admin.js');
+  const member = { userId: 7, name: '회원', email: 'a@example.invalid', role: 'MEMBER', status: 'ACTIVE', emailVerified: true, sites: [] };
+  const site = { siteId: 3, name: '여수', mode: 'VERIFY', active: true };
+  let data = member;
+  const requests = [];
+  const storage = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
+  Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: { getItem: () => null } });
+  t.after(() => {
+    if (storage) Object.defineProperty(globalThis, 'localStorage', storage);
+    else delete globalThis.localStorage;
+  });
+  t.mock.method(globalThis, 'fetch', async (path, options) => {
+    requests.push({ path, method: options.method, body: options.body ? JSON.parse(options.body) : undefined });
+    return new Response(JSON.stringify({ success: true, data }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+  });
+  await changeUserRole(7, 'ADMIN');
+  assert.deepEqual(requests.at(-1), { path: '/api/v1/admin/users/7/role', method: 'PUT', body: { role: 'ADMIN' } });
+  for (const [call, action] of [[unlockUser, 'unlock'], [verifyUserEmail, 'verify-email'], [deactivateUser, 'deactivate'], [reactivateUser, 'reactivate']]) {
+    await call(7);
+    assert.deepEqual(requests.at(-1), { path: `/api/v1/admin/users/7/${action}`, method: 'POST', body: undefined });
+  }
+  await assert.rejects(changeUserRole(7, 'WRITER'), /역할/);
+  data = { temporaryPassword: 'Tmp-1234' };
+  assert.equal(await issueTemporaryPassword(7), 'Tmp-1234');
+  assert.equal(requests.at(-1).path, '/api/v1/admin/users/7/temporary-password');
+  data = {};
+  await assert.rejects(issueTemporaryPassword(7), /형식/);
+
+  data = [site];
+  assert.deepEqual(await getAdminSites(), [site]);
+  data = site;
+  await saveAdminSite(null, { name: ' 여수 ', mode: 'VERIFY', active: false });
+  assert.deepEqual(requests.at(-1), { path: '/api/v1/admin/sites', method: 'POST', body: { name: '여수', mode: 'VERIFY', active: null } });
+  await saveAdminSite(3, { name: '여수', mode: 'GUIDE', active: false });
+  assert.deepEqual(requests.at(-1), { path: '/api/v1/admin/sites/3', method: 'PUT', body: { name: '여수', mode: 'GUIDE', active: false } });
+  await assert.rejects(saveAdminSite(3, { name: '', mode: 'VERIFY' }), /이름/);
+  data = { ...site, mode: 'X' };
+  await assert.rejects(getAdminSites(), /형식/);
+});
