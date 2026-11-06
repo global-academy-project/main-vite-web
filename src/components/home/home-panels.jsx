@@ -4,7 +4,7 @@ import StatusView, { Skeleton } from '../ui/status-view.jsx';
 import Icon from '../ui/icon.jsx';
 import Panel, { Badge } from './panel.jsx';
 import {
-  APPROVAL_TARGET_LABELS, nextAction, timeRange, todoTiles, todoTotal, toneOf, typeCounts, WORK_STATUS_LABELS, WORK_TYPE_LABELS, workStages,
+  tileValue, APPROVAL_TARGET_LABELS, nextAction, timeRange, todoTiles, todoTotal, toneOf, typeCounts, WORK_STATUS_LABELS, WORK_TYPE_LABELS, workStages,
 } from '../../utils/home-model.js';
 
 const hm = (value) => (typeof value === 'string' && value.length >= 16 ? value.slice(11, 16) : '');
@@ -28,7 +28,7 @@ export function TodoPanel({ section, onRetry }) {
               <span className="home-tile__label">{tile.label}</span>
               <span className="home-tile__row">
                 {tile.overdue && <span className="home-tile__due"><Icon name="clock" size={12} />지남</span>}
-                <span className="home-tile__count">{tile.count}<small>건</small></span>
+                <span className={`home-tile__count${tileValue(tile).word ? ' home-tile__count--word' : ''}`}>{tileValue(tile).text}{tileValue(tile).unit && <small>{tileValue(tile).unit}</small>}</span>
               </span>
             </Link>
           </li>

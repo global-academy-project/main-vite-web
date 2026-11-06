@@ -48,11 +48,22 @@ export function todoTiles(items = []) {
     const item = byType.get(type);
     const first = item?.entries?.[0];
     const target = first ? jobRecordPath(first.targetType, first.targetId) : null;
-    return { type, label, fullLabel: item?.label || label, count: item?.count ?? 0, overdue: Boolean(item?.overdue), path: target ?? path, entries: item?.entries ?? [] };
+    // 안전일지는 값이 "미작성"으로 보이므로 이름은 "안전일지"만 (같은 말 두 번 안 보이게)
+    const name = type === 'DAILY_LOG_MISSING' ? '안전일지' : null;
+    return { type, label: name ?? label, fullLabel: name ?? (item?.label || label), count: item?.count ?? 0, overdue: Boolean(item?.overdue), path: target ?? path, entries: item?.entries ?? [] };
   });
 }
 
 export const todoTotal = (tiles) => tiles.reduce((sum, tile) => sum + tile.count, 0);
+
+/**
+ * 칸에 보일 값. 안전일지는 현장·날짜마다 한 건이라(작업·허가 수와 무관) 숫자 대신 "미작성"으로 보인다.
+ * 0 은 그날 작업이 없거나 이미 작성한 경우.
+ */
+export function tileValue(tile) {
+  if (tile.type === 'DAILY_LOG_MISSING') return tile.count ? { text: '미작성', unit: '', word: true } : { text: '없음', unit: '', word: true };
+  return { text: String(tile.count), unit: '건' };
+}
 
 const latestPermits = (work) => (work.permits ?? []).filter((permit) => permit.status !== 'SUPERSEDED');
 
