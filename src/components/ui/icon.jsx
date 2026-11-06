@@ -10,6 +10,8 @@ const paths = {
   info: ['M12 8h.01', 'M11 12h1v5h1'],
   close: ['M6 6l12 12', 'M18 6L6 18'],
   clock: ['M12 7v5l3 2'],
+  calendar: ['M4 6h16v14H4z', 'M4 10h16', 'M8 3v4', 'M16 3v4'],
+  chart: ['M4 20h16', 'M7 16v-5', 'M12 16V7', 'M17 16v-8'],
   lock: ['M6 11h12v9H6z', 'M8 11V8a4 4 0 0 1 8 0v3'],
   inbox: ['M4 13l2-9h12l2 9', 'M4 13v7h16v-7', 'M4 13h5l1 3h4l1-3h5'],
   external: ['M14 4h6v6', 'M20 4l-9 9', 'M18 14v6H4V6h6'],

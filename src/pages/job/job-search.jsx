@@ -9,6 +9,8 @@ import Sheet from '../../components/ui/sheet.jsx';
 import StatusView, { Skeleton } from '../../components/ui/status-view.jsx';
 import { useSiteSettings } from '../../hooks/use-site-settings.js';
 import { localDate } from '../../utils/job-forms';
+import { joinPhone, phonePartsError } from '../../utils/auth-validation.js';
+import PhoneInput from '../../components/phone-input.jsx';
 import {
   EMPLOYMENT_LABELS, EMPTY_TEAM, EMPTY_ZONE, equipmentBody, equipmentForm, matches, settingsBody, settingsForm,
   SITE_MODE_LABELS, SITE_TABS, tabOf, TEAM_TYPE_LABELS, teamBody, zoneBody,
@@ -21,7 +23,7 @@ import '../../styles/permit.css';
 import '../../styles/tbm.css';
 import '../../styles/site-settings.css';
 
-const EMPTY_WORKER = { name: '', phone: '', clearPhone: false, jobType: '', employmentType: 'DIRECT', teamId: '', assignedFrom: '' };
+const EMPTY_WORKER = { name: '', phone: '', phoneParts: ['', '', ''], clearPhone: false, jobType: '', employmentType: 'DIRECT', teamId: '', assignedFrom: '' };
 
 /**
  * 현장 설정 (/job/list). 탭: 현장 정보 · 구역 · 설비 · 작업자 · 팀·협력업체. 주소 ?tab= 로 탭을 연다.
@@ -73,7 +75,7 @@ function SettingsPage({ site, context }) {
       {tab === 'zones' && <ZonesTab data={data} onEdit={(entry) => open('zones', entry ? { ...entry, zoneType: entry.zoneType ?? '', hazardNote: entry.hazardNote ?? '' } : { ...EMPTY_ZONE })} />}
       {tab === 'equipment' && <EquipmentTab data={data} onEdit={(entry) => open('equipment', equipmentForm(entry))} />}
       {tab === 'workers' && <WorkersTab data={data} onEdit={(entry) => open('workers', entry
-        ? { ...EMPTY_WORKER, ...entry, phone: '', jobType: entry.jobType ?? '', teamId: entry.teamId == null ? '' : String(entry.teamId) }
+        ? { ...EMPTY_WORKER, ...entry, phone: '', phoneParts: ['', '', ''], jobType: entry.jobType ?? '', teamId: entry.teamId == null ? '' : String(entry.teamId) }
         : { ...EMPTY_WORKER })} />}
       {tab === 'teams' && <TeamsTab data={data} onEdit={(entry) => open('teams', entry ? { ...entry, businessNo: entry.businessNo ?? '' } : { ...EMPTY_TEAM })} />}
 
@@ -317,7 +319,12 @@ function EditSheet({ edit, setEdit, data, onClose }) {
   const close = () => { setLeaving(null); onClose(); };
   const submit = async (event) => {
     event.preventDefault();
-    if (kind === 'workers') { if (await data.saveWorker(form)) close(); return; }
+    if (kind === 'workers') {
+      const phoneError = form.clearPhone ? '' : phonePartsError(form.phoneParts);
+      if (phoneError) { setEdit({ ...edit, errors: { phone: phoneError } }); return; }
+      if (await data.saveWorker(form)) close();
+      return;
+    }
     const result = { zones: zoneBody, equipment: equipmentBody, teams: teamBody }[kind](form);
     if (result.errors) { setEdit({ ...edit, errors: result.errors }); return; }
     const save = { zones: data.saveZone, equipment: data.saveEquipment, teams: data.saveTeam }[kind];
@@ -357,7 +364,12 @@ function EditSheet({ edit, setEdit, data, onClose }) {
           </>}
           {kind === 'workers' && <>
             <Input label="이름" required maxLength={50} value={form.name} onChange={(value) => set('name', value)} />
-            <Input label={id ? '연락처 (비우면 기존 값 유지)' : '연락처'} type="tel" maxLength={20} value={form.phone} disabled={form.clearPhone} placeholder="010-0000-0000" onChange={(value) => set('phone', value)} />
+            <div className="risk-field site-field">
+              <label htmlFor="worker-phone" className="risk-field__label">{id ? '연락처 (비우면 기존 값 유지)' : '연락처'}</label>
+              <PhoneInput id="worker-phone" className="phone-input--app" parts={form.phoneParts} disabled={form.clearPhone} invalid={Boolean(errors.phone)} describedBy="worker-phone-help"
+                onChange={(parts) => setEdit({ ...edit, errors: { ...errors, phone: '' }, form: { ...form, phoneParts: parts, phone: joinPhone(parts) } })} />
+              <span id="worker-phone-help" className={`site-field__hint${errors.phone ? ' is-error' : ''}`}>{errors.phone || '숫자만 칸별로 입력하세요.'}</span>
+            </div>
             {id && <Check label="기존 연락처 지우기" checked={form.clearPhone} onChange={(value) => set('clearPhone', value)} />}
             <Input label="직종" maxLength={50} value={form.jobType ?? ''} placeholder="예: 용접공" onChange={(value) => set('jobType', value)} />
             <label className="risk-field site-field"><span className="risk-field__label">고용 형태</span>

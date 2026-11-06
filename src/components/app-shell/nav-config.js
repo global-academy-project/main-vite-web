@@ -8,25 +8,32 @@ const MANAGERS = ['ADMIN', 'SITE_ADMIN'];
 
 export const NAV = Object.freeze([
   { key: 'home', label: '홈', icon: 'home', path: '/dashboard', roles: ALL },
+  // 작업 흐름 순서: 작업 등록 → 위험성평가 → 작업허가(결재) → TBM
   {
     key: 'work', label: '작업', icon: 'work', roles: ALL,
     children: [
       { key: 'work-list', label: '작업 목록', path: '/job/workspace' },
-      { key: 'work-status', label: '작업 현황', path: '/job/dashboard' },
       { key: 'risk', label: '위험성평가', path: '/job/risk-assessment' },
       { key: 'permit', label: '작업허가', path: '/job/permits' },
       { key: 'tbm', label: 'TBM', path: '/job/tbm' },
     ],
   },
+  // 하루 단위: 점검표(작업 중) → 안전일지(하루 마감, 현장·날짜당 1건)
+  {
+    key: 'daily', label: '일일 안전', icon: 'calendar', roles: ALL,
+    children: [
+      { key: 'checklist', label: '점검표', path: '/job/dailey-checklist' },
+      { key: 'daily-safety', label: '안전일지', path: '/job/daily-safety' },
+    ],
+  },
   // 승인함은 모든 역할: 승인자는 "결재 대기", 작성자는 "내 요청"을 주로 본다 (승인·반려 권한은 서버가 canDecide 로 판단)
   { key: 'approvals', label: '승인함', icon: 'inbox', path: '/approvals', roles: ALL },
+  { key: 'work-status', label: '작업 현황', icon: 'chart', path: '/job/dashboard', roles: ALL },
   {
     key: 'records', label: '기록', icon: 'records', roles: ALL,
     children: [
       { key: 'incidents', label: '아차사고', path: '/job/incidents' },
       { key: 'record-search', label: '기록 검색', path: '/records/search' },
-      { key: 'daily-safety', label: '안전일지', path: '/job/daily-safety' },
-      { key: 'checklist', label: '점검표', path: '/job/dailey-checklist' },
     ],
   },
   { key: 'site', label: '현장 설정', icon: 'site', path: '/job/list', roles: MANAGERS },

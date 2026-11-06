@@ -84,3 +84,10 @@ button.site-leave__danger:hover:not(:disabled) { background: var(--color-danger-
   .site-leave__confirm .risk-field { width: 100%; }
 }
 .ui-btn.site-edit { min-height: 32px; padding: 0 var(--space-3); }
+
+/* 전화번호 세 칸 (components/phone-input.jsx): 앱 안 입력칸 높이에 맞춤. 현장 설정·내 정보 공통 */
+.phone-input--app { display: flex; align-items: center; min-width: 0; }
+.phone-input--app .phone-input__cell { display: flex; flex: 1 1 0; align-items: center; min-width: 0; }
+.phone-input--app .phone-input__cell:first-child { flex: 0.8 1 0; }
+.phone-input--app .phone-input__dash { flex: 0 0 auto; width: 16px; color: var(--color-text-muted); text-align: center; }
+.risk-field .phone-input--app input { min-height: 40px; padding: 0 var(--space-2); font-variant-numeric: tabular-nums; text-align: center; }
