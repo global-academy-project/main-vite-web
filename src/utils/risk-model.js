@@ -58,7 +58,7 @@ export function levelCounts(items = []) {
 export function riskSteps(risk) {
   const status = risk?.status;
   return [
-    { key: 'write', label: '작성', state: !risk ? 'current' : status === 'DRAFT' ? 'current' : status === 'REJECTED' ? 'problem' : 'done', hint: !risk ? '새 평가' : status === 'REJECTED' ? '반려 · 새 판 작성' : status === 'DRAFT' ? '작성 중' : '' },
+    { key: 'write', label: '작성', state: !risk ? 'current' : status === 'DRAFT' ? 'current' : status === 'REJECTED' ? 'problem' : 'done', hint: !risk ? '새 평가' : status === 'REJECTED' ? '반려 · 수정 후 다시 제출' : status === 'DRAFT' ? '작성 중' : '' },
     { key: 'submit', label: '승인 요청', state: ['PENDING', 'APPROVED'].includes(status) ? 'done' : 'todo', hint: status === 'PENDING' ? '요청함' : '' },
     { key: 'approve', label: '승인', state: status === 'APPROVED' ? 'done' : status === 'PENDING' ? 'current' : status === 'REJECTED' ? 'problem' : 'todo', hint: status === 'APPROVED' ? '완료' : status === 'PENDING' ? '대기' : status === 'REJECTED' ? '반려' : '' },
   ];

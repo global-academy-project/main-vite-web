@@ -76,29 +76,34 @@ function TbmPage({ site, context, initialDate, initialTbmId, presetWorkId, back 
           <button type="button" className="ui-icon-btn rec-datebar__next" aria-label="다음 날" disabled={data.busy} onClick={() => data.changeDate(shiftDate(data.date, 1))}><Icon name="chevronLeft" size={18} /></button>
           {data.date !== localDate() && <button type="button" className="ui-btn ui-btn--ghost" onClick={() => data.changeDate(localDate())}>오늘</button>}
         </div>
+        <div className="work-period" role="group" aria-label="목록 기간">
+          {data.spans.map((days) => (
+            <button key={days} type="button" className="work-chip" aria-pressed={data.span === days} disabled={data.busy} onClick={() => data.setSpan(days)}>{days === 1 ? '하루' : `${days}일`}</button>
+          ))}
+        </div>
         <span className="rec-help">연결 작업은 같은 현장·같은 날짜여야 하고, 다른 TBM과 겹쳐 연결할 수 없습니다.</span>
       </section>
 
       {data.needsReload && (
-        <div className="work-form__error" role="alert"><Icon name="warning" size={16} /><span>저장 결과나 최신 판을 확인해야 합니다. 새로고침으로 서버 반영 여부를 확인한 뒤 계속하세요.</span>
+        <div className="work-form__error" role="alert"><Icon name="warning" size={16} /><span>저장 결과나 최신 내용을 확인해야 합니다. 새로고침으로 서버 반영 여부를 확인한 뒤 계속하세요.</span>
           <button type="button" className="ui-btn ui-btn--ghost" disabled={data.busy} onClick={data.reload}>새로고침</button></div>
       )}
       {data.error && !data.editing && <p className="work-form__error" role="alert"><Icon name="alert" size={16} />{data.error}</p>}
 
       <div className="tbm-layout">
         <section className="home-panel tbm-list" aria-label={`${data.date} TBM 목록`}>
-          <header className="home-panel__head"><h2 className="home-panel__title">이날 TBM{!data.loading && <span className="home-panel__count">{data.records.length}</span>}</h2></header>
+          <header className="home-panel__head"><h2 className="home-panel__title">{data.span === 1 ? '이날 TBM' : `${data.span}일 TBM`}{!data.loading && <span className="home-panel__count">{data.records.length}</span>}</h2></header>
           <div className="home-panel__body">
             {data.loading && <div className="home-panel__pad"><Skeleton lines={4} /></div>}
             {!data.loading && data.listError && <StatusView kind="error" compact message={data.listError} onRetry={data.reload} />}
-            {!data.loading && !data.listError && !data.records.length && <StatusView kind="empty" compact title="이 날짜의 TBM이 없습니다" action={{ label: '새 TBM 작성', onClick: () => data.openNew([]) }} />}
+            {!data.loading && !data.listError && !data.records.length && <StatusView kind="empty" compact title={data.span === 1 ? '이 날짜의 TBM이 없습니다' : '이 기간의 TBM이 없습니다'} action={{ label: '새 TBM 작성', onClick: () => data.openNew([]) }} />}
             {!data.loading && data.records.length > 0 && (
               <ul className="home-list">
                 {data.records.map((record) => (
                   <li key={record.tbmId}>
                     <button type="button" className={`home-list__item tbm-list__item${String(record.tbmId) === String(tbm?.tbmId) ? ' is-active' : ''}`} aria-pressed={String(record.tbmId) === String(tbm?.tbmId)} onClick={() => data.select(record)}>
                       <span className="home-list__main">
-                        <span className="home-list__kind">TBM #{record.tbmId} · 진행 {record.leaderName || '미입력'}</span>
+                        <span className="home-list__kind">{data.span > 1 && `${record.tbmDate?.slice(5).replace('-', '/')} · `}TBM #{record.tbmId} · 진행 {record.leaderName || '미입력'}</span>
                         <span className="home-list__title">{record.works.map((work) => work.title).join(', ') || '연결 작업 없음'}</span>
                       </span>
                       <Badge tone={tone(record)}>{tbmStatusLabel(record)}</Badge>

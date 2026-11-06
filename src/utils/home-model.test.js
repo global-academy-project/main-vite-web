@@ -40,6 +40,16 @@ test('평가·허가 다 됐는데 TBM 없으면 TBM 작성, 모두 승인 대�
   assert.equal(nextAction({ ...ready, tbm: { tbmId: 4, status: 'DONE' } }).label, '승인 대기');
 });
 
+test('평가·허가·TBM 이 모두 승인되면 작업 준비 완료 (서버에 작업 승인·종료가 없어서)', () => {
+  const done = work({ riskAssessment: { riskAssessmentId: 3, status: 'APPROVED' }, permits: [{ permitId: 8, status: 'APPROVED' }], tbm: { tbmId: 4, status: 'APPROVED' } });
+  assert.deepEqual(nextAction(done), { label: '작업 준비 완료', tone: 'done', path: null });
+  assert.deepEqual(workStages(done).map((stage) => stage.key), ['work', 'risk', 'permit', 'tbm', 'ready']);
+  assert.equal(workStages(done).at(-1).state, 'done');
+  const tbmWaiting = { ...done, tbm: { tbmId: 4, status: 'DONE' } };
+  assert.equal(nextAction(tbmWaiting).label, 'TBM 확인 요청·승인 확인');
+  assert.equal(workStages(tbmWaiting).at(-1).state, 'current');
+});
+
 test('종류별 건수는 0건 종류도 자리를 둔다', () => {
   assert.deepEqual(typeCounts([work(), work({ workType: 'HOT' }), work()]).map((item) => item.count), [0, 1, 2, 0]);
 });
@@ -62,7 +72,10 @@ test('시간 표시와 초안 목록', () => {
 
 test('daily log tile shows written state instead of a count', async () => {
   const { tileValue } = await import('./home-model.js');
-  assert.deepEqual(tileValue({ type: 'DAILY_LOG_MISSING', count: 1 }), { text: '미작성', unit: '', word: true });
-  assert.deepEqual(tileValue({ type: 'DAILY_LOG_MISSING', count: 0 }), { text: '없음', unit: '', word: true });
+  const dashboard = { works: { total: 3 }, deadlines: { dailyLogDeadline: '2026-11-06T18:00:00' } };
+  assert.deepEqual(tileValue({ type: 'DAILY_LOG_MISSING', count: 1 }, dashboard), { text: '미작성', unit: '', word: true });
+  assert.deepEqual(tileValue({ type: 'DAILY_LOG_MISSING', count: 1, overdue: true }, dashboard), { text: '미작성', unit: '', word: true });
+  assert.deepEqual(tileValue({ type: 'DAILY_LOG_MISSING', count: 0 }, dashboard), { text: '작성 완료', unit: '', word: true });
+  assert.deepEqual(tileValue({ type: 'DAILY_LOG_MISSING', count: 0 }, { works: { total: 0 } }), { text: '작업 없음', unit: '', word: true });
   assert.deepEqual(tileValue({ type: 'TBM_MISSING', count: 3 }), { text: '3', unit: '건' });
 });

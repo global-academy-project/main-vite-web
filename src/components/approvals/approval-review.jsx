@@ -131,6 +131,13 @@ export default function ApprovalReview({ approvalId, onDecided, layout = 'sheet'
           <span><strong>{APPROVAL_STATUS_LABELS[summary.status]}</strong>{summary.comment ? ` · ${summary.comment}` : ''}</span>
         </div>
       )}
+      {/* 반려 알림에서 열었을 때: 읽기 화면에서 끝나지 않고 그 문서 작성 화면으로 바로 */}
+      {!detail.canDecide && summary.status === 'REJECTED' && docPath && (
+        <div className="appr-revise">
+          <Link className="ui-btn ui-btn--primary ui-btn--lg" to={docPath}>수정 후 다시 제출</Link>
+          <Link className="ui-btn ui-btn--ghost" to={`/approvals/${approvalId}/revision`}>반려 사유·누락 항목 보기</Link>
+        </div>
+      )}
       {!detail.canDecide && summary.status === 'PENDING' && next && (
         <div className="appr-result appr-result--wait" role="status"><Icon name="clock" size={18} /><span><strong>{next.label}</strong> 결재를 기다리고 있습니다 ({APPROVER_ROLE_LABELS[next.requiredRole] ?? next.requiredRole})</span></div>
       )}

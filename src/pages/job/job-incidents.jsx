@@ -126,7 +126,7 @@ function ReportList({ data, onOpen, onCreate, openId }) {
     <>
       <ul className="work-stats" aria-label="보고 건수">
         {[
-          { key: '', label: '전체 (최근 50건)', value: stats.total, tone: 'neutral' },
+          { key: '', label: '전체', value: stats.total, tone: 'neutral' },
           { key: 'week', label: '최근 7일', value: stats.week, tone: 'wait' },
           { key: 'untagged', label: '태그 없음', value: stats.untagged, tone: 'block' },
         ].map((stat) => (
@@ -214,7 +214,7 @@ function IncidentDetail({ data, openId, onOpen }) {
         <div><dt>발생 일시</dt><dd>{incident.occurredAt?.replace('T', ' ').slice(0, 16) ?? '-'}</dd></div>
         <div><dt>구역</dt><dd>{zone ? `${zone.code} · ${zone.name}` : '구역 미지정'}</dd></div>
         <div><dt>관련 작업</dt><dd>{incident.workId ? <Link to={`/job/workspace?workId=${incident.workId}`}>작업 #{incident.workId}</Link> : '없음'}</dd></div>
-        <div><dt>상태</dt><dd>{INCIDENT_STATUS_LABELS[incident.status] ?? incident.status ?? '-'} · 판 {incident.lockVersion}</dd></div>
+        <div><dt>상태</dt><dd>{INCIDENT_STATUS_LABELS[incident.status] ?? incident.status ?? '-'} · 버전 {incident.lockVersion}</dd></div>
       </dl>
       <section className="rec-block">
         <h3 className="rec-block__title">발생 상황</h3>
@@ -227,7 +227,7 @@ function IncidentDetail({ data, openId, onOpen }) {
           <h3 className="rec-block__title">태그 검토</h3>
           {data.tagsDirty && <Badge tone="warn">저장 안 됨</Badge>}
         </div>
-        <p className="rec-help">태그 저장은 전체 교체입니다. 다른 사용자가 먼저 저장해 판이 바뀌면 "최신 보고 다시 받기" 후 다시 검토하세요. 중대도는 하나만 고를 수 있습니다.</p>
+        <p className="rec-help">태그 저장은 전체 교체입니다. 다른 사용자가 먼저 저장해 내용이 바뀌면 "최신 보고 다시 받기" 후 다시 검토하세요. 중대도는 하나만 고를 수 있습니다.</p>
         <div className="rec-tags"><TagEditor tags={data.tags} codes={codes} disabled={data.locked} onChange={data.setTags} /></div>
         <div className="rec-actions">
           <button type="button" className="ui-btn ui-btn--ghost" disabled={data.locked} onClick={() => onOpen(incident.nearMissId)}><Icon name="refresh" size={16} />최신 보고 다시 받기</button>

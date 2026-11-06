@@ -28,7 +28,7 @@ export function TodoPanel({ section, onRetry }) {
               <span className="home-tile__label">{tile.label}</span>
               <span className="home-tile__row">
                 {tile.overdue && <span className="home-tile__due"><Icon name="clock" size={12} />지남</span>}
-                <span className={`home-tile__count${tileValue(tile).word ? ' home-tile__count--word' : ''}`}>{tileValue(tile).text}{tileValue(tile).unit && <small>{tileValue(tile).unit}</small>}</span>
+                <span className={`home-tile__count${tileValue(tile, section.data).word ? ' home-tile__count--word' : ''}`}>{tileValue(tile, section.data).text}{tileValue(tile, section.data).unit && <small>{tileValue(tile, section.data).unit}</small>}</span>
               </span>
             </Link>
           </li>

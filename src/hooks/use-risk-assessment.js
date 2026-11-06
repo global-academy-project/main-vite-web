@@ -114,6 +114,6 @@ export function useRiskAssessment({ siteId, initialRiskId, initialWorkId, disabl
     items, updateItem, addItem, removeItem, busy, loading, error, dirty, needsReload, locked,
     load, save, startNew,
     submit: () => risk && run(() => submitRiskAssessment(risk.riskAssessmentId, siteId), '승인 요청을 보냈습니다. 결과는 승인함 "내 요청"에서 볼 수 있습니다.'),
-    revise: () => risk && run(() => reviseRiskAssessment(risk.riskAssessmentId, siteId), '반려된 평가를 복사해 새 작성 판을 만들었습니다.'),
+    revise: () => risk && run(() => reviseRiskAssessment(risk.riskAssessmentId, siteId), '반려된 내용을 옮긴 수정본을 열었습니다. 고친 뒤 다시 승인 요청하세요.'),
   };
 }

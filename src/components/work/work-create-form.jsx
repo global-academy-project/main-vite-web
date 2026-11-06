@@ -6,6 +6,13 @@ import Icon from '../ui/icon.jsx';
 import { useToast } from '../ui/toast-context.js';
 
 const workZoneEnabled = import.meta.env.VITE_ENABLE_WORK_ZONE_API !== 'false';
+const pad = (value) => String(value).padStart(2, '0');
+// 새 작업 기본값: 작업일은 오늘, 시작 일시는 지금 (브라우저 시간 기준, 분 단위)
+const nowDefaults = () => {
+  const now = new Date();
+  const date = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+  return { date, start: `${date}T${pad(now.getHours())}:${pad(now.getMinutes())}` };
+};
 
 /**
  * 작업 직접 등록 (POST /works). 기존 job-workspace.jsx 의 등록 폼과 검사·문구·중복 방지를 그대로 옮겼다.
@@ -19,6 +26,7 @@ export default function WorkCreateForm({ site, disabled = false, onCreated }) {
   const [error, setError] = useState('');
   const [uncertain, setUncertain] = useState(false);
   const pending = useRef(false);
+  const [defaults] = useState(nowDefaults);
 
   const create = async (event) => {
     event.preventDefault();
@@ -65,11 +73,11 @@ export default function WorkCreateForm({ site, disabled = false, onCreated }) {
       <fieldset className="work-form__fields" disabled={disabled || busy || uncertain}>
         <legend className="sr-only">{site.name} 작업 등록</legend>
         <label className="work-form__wide"><span className="work-form__label">작업명<span aria-hidden="true">*</span></span><input name="title" required maxLength={200} placeholder="예: 저장탱크 주변 용접 작업" /></label>
-        <label><span className="work-form__label">작업일<span aria-hidden="true">*</span></span><input name="workDate" type="date" max="9999-12-31" required /></label>
+        <label><span className="work-form__label">작업일<span aria-hidden="true">*</span></span><input name="workDate" type="date" max="9999-12-31" required defaultValue={defaults.date} /></label>
         <label>작업 유형<select name="workType">{Object.entries(workTypes).map(([code, label]) => <option key={code} value={code}>{label}</option>)}</select></label>
         {workZoneEnabled && <JobReferenceSelectors siteId={site.siteId} zoneId={zoneId} onChange={(_, value) => setZoneId(value)} disabled={disabled || busy} showTeams={false} />}
         <label>작업 인원<input name="workerCount" type="number" min="1" step="1" inputMode="numeric" /></label>
-        <label>시작 일시<input name="startAt" type="datetime-local" max="9999-12-31T23:59" /></label>
+        <label>시작 일시<input name="startAt" type="datetime-local" max="9999-12-31T23:59" defaultValue={defaults.start} /></label>
         <label>종료 일시<input name="endAt" type="datetime-local" max="9999-12-31T23:59" /></label>
         <label className="work-form__wide">작업 내용<textarea name="description" rows={3} placeholder="작업 범위와 확인할 사항을 입력해 주세요." /></label>
       </fieldset>

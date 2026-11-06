@@ -21,4 +21,27 @@
   .doc-side { position: static; }
   .home-panel { border: 0 !important; box-shadow: none !important; }
   body { background: #fff; }
+  /* A4 한 장에 맞추기: 화면용 머리(문서 제목과 겹침)·안내 문구를 빼고 간격을 줄인다 */
+  .work-page .page-head-wrap, .doc-side .rec-help { display: none !important; }
+  .work-page, .doc-grid { gap: 8px !important; }
+  .doc-sheet, .doc-side .tbm-card { padding: 0 !important; }
+  .doc-sheet { font-size: 11px; }
+  .doc-sheet__head { padding-bottom: 6px; }
+  .doc-sheet__head h2 { font-size: 16px; }
+  .doc-sheet .appr-facts { grid-template-columns: repeat(4, minmax(0, 1fr)); padding: 6px 8px; gap: 4px 12px; }
+  .doc-sheet .appr-facts dd { font-size: 11px; }
+  .doc-sheet .appr-sub { margin-top: 6px; font-size: 11px; }
+  .doc-sheet .appr-checks { gap: 2px; }
+  .doc-sheet .appr-check { min-height: 22px; padding: 0 8px; font-size: 11px; break-inside: avoid; }
+  .doc-sheet .appr-table th, .doc-sheet .appr-table td { padding: 3px 8px; font-size: 11px; }
+  .doc-sheet section, .doc-sheet table { break-inside: avoid; }
+  /* 결재란: 세로 목록 대신 가로 한 줄 */
+  .doc-side .tbm-card__head { padding: 6px 0 !important; }
+  .doc-side .tbm-card__head h2 { font-size: 13px; }
+  .doc-approval { flex-direction: row; flex-wrap: wrap; align-items: flex-start; gap: 8px 16px; padding: 0; font-size: 11px; break-inside: avoid; }
+  .doc-approval .rec-facts { display: flex; gap: 16px; margin: 0; }
+  .doc-approval .appr-line { display: flex; flex-wrap: wrap; gap: 8px 16px; }
+  .doc-approval .appr-line__step { padding: 0; }
+  .doc-approval .appr-line__step::before, .doc-approval .appr-line__step::after { display: none; }
 }
+@page { size: A4; margin: 12mm; }

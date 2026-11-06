@@ -90,6 +90,7 @@ button.work-chip[aria-pressed='true'] { border-color: var(--color-primary); back
 .work-table-panel .home-table thead th { position: static; }
 .work-table td { padding-top: var(--space-3); padding-bottom: var(--space-3); }
 .work-table__date { color: var(--color-text-muted); font-variant-numeric: tabular-nums; }
+.home-table td.work-table__date, .home-table th.work-table__date { width: 1%; white-space: nowrap; }
 .work-table__id { font-size: var(--text-xs); color: var(--color-text-muted); }
 .work-badges { display: inline-flex; flex-wrap: wrap; gap: 4px; }
 .work-none { font-size: var(--text-xs); color: var(--color-text-muted); }
@@ -114,7 +115,7 @@ button.work-chip[aria-pressed='true'] { border-color: var(--color-primary); back
 .work-doc__meta { margin: 0; min-height: 18px; font-size: var(--text-xs); color: var(--color-text-muted); }
 .work-doc__actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
 .work-desc { margin: 0; padding: var(--space-3) var(--space-4); border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface); font-size: var(--text-sm); line-height: 1.6; white-space: pre-wrap; }
-.work-warnings { padding: var(--space-4); overflow: visible; }
+.work-warnings { padding: var(--space-4) var(--space-5, 20px); overflow: visible; }
 
 /* 등록 폼 (드로어 안) */
 .work-form { display: flex; flex-direction: column; gap: var(--space-3); font-family: var(--font-sans); }
@@ -183,11 +184,12 @@ button.work-chip[aria-pressed='true'] { border-color: var(--color-primary); back
   .work-hub { padding-bottom: 76px; }
 }
 
+/* job-pages.css 의 .job-page-content .panel(·h2) 과 우선순위가 같으면 CSS 불러오는 순서에 따라 카드가 두 겹으로 보여서, 한 단계 더 붙인다 */
 /* 아차사고 경고 (기존 work-incident-warnings 부품, 로직은 그대로 두고 모양만): 작업 허브 · 아차사고 > 작업 경고 탭 */
-.work-warnings > .panel { margin: 0; padding: 0; border: 0; background: transparent; box-shadow: none; }
+.work-warnings > .panel.incident-warnings { margin: 0; padding: 0; border: 0; background: transparent; box-shadow: none; }
 .work-warnings .incident-warnings__head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-3); margin-bottom: var(--space-3); }
 .work-warnings .incident-warnings__titles { min-width: 0; }
-.work-warnings h2 { margin: 0 0 2px; font-size: var(--text-md); font-weight: var(--weight-bold); color: var(--color-text-strong); }
+.work-warnings .panel.incident-warnings h2 { margin: 0 0 2px; font-size: var(--text-md); font-weight: var(--weight-bold); color: var(--color-text-strong); }
 .work-warnings .job-help { margin: 0; font-size: var(--text-xs); color: var(--color-text-muted); line-height: 1.5; word-break: keep-all; }
 .work-warnings fieldset { display: flex; flex-direction: column; gap: var(--space-3); margin: 0; padding: 0; border: 0; min-width: 0; }
 .work-warnings fieldset > p:first-child { display: none; }

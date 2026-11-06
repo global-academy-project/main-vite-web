@@ -8,9 +8,9 @@ export const WORK_STATUS_LABELS = Object.freeze({
 });
 export const PERMIT_STATUS_LABELS = Object.freeze({
   DRAFT: '작성 중', CHECKING: '판정 중', BLOCKED: '판정 차단', PENDING: '승인 대기', APPROVED: '승인',
-  SUSPENDED: '중지', REJECTED: '반려', CLOSED: '종료', SUPERSEDED: '이전 판',
+  SUSPENDED: '중지', REJECTED: '반려', CLOSED: '종료', SUPERSEDED: '이전 버전',
 });
-export const RISK_STATUS_LABELS = Object.freeze({ DRAFT: '작성 중', PENDING: '승인 대기', APPROVED: '승인', REJECTED: '반려', SUPERSEDED: '이전 판' });
+export const RISK_STATUS_LABELS = Object.freeze({ DRAFT: '작성 중', PENDING: '승인 대기', APPROVED: '승인', REJECTED: '반려', SUPERSEDED: '이전 버전' });
 export const RISK_LEVEL_LABELS = Object.freeze({ HIGH: '높음', MEDIUM: '보통', LOW: '낮음' });
 export const TBM_STATUS_LABELS = Object.freeze({ DRAFT: '작성 중', DONE: '완료', APPROVED: '승인' });
 export const APPROVAL_TARGET_LABELS = Object.freeze({
@@ -57,18 +57,25 @@ export function todoTiles(items = []) {
 export const todoTotal = (tiles) => tiles.reduce((sum, tile) => sum + tile.count, 0);
 
 /**
- * 칸에 보일 값. 안전일지는 현장·날짜마다 한 건이라(작업·허가 수와 무관) 숫자 대신 "미작성"으로 보인다.
- * 0 은 그날 작업이 없거나 이미 작성한 경우.
+ * 칸에 보일 값. 안전일지는 현장·날짜마다 한 건이라(작업·허가 수와 무관) 숫자 대신 글로 보인다.
+ * 서버 기준: 그날 작업이 있는데 일지가 없으면 바로 "미작성"(마감 전이어도), 마감이 지나면 overdue(칸에 "지남" 표시).
+ * 0 이면 작업이 있었으면 "작성 완료", 작업이 없었으면 "작업 없음". dashboard 는 /sites/{id}/dashboard 응답.
  */
-export function tileValue(tile) {
-  if (tile.type === 'DAILY_LOG_MISSING') return tile.count ? { text: '미작성', unit: '', word: true } : { text: '없음', unit: '', word: true };
+export function tileValue(tile, dashboard = null) {
+  if (tile.type === 'DAILY_LOG_MISSING') {
+    // 마감 시각은 칸 위 "안전일지 18:00" 줄에 있고, 지나면 칸에 "지남"이 붙는다 (칸 안에 또 쓰면 이름이 잘린다)
+    if (tile.count) return { text: '미작성', unit: '', word: true };
+    return { text: (dashboard?.works?.total ?? 0) > 0 ? '작성 완료' : '작업 없음', unit: '', word: true };
+  }
   return { text: String(tile.count), unit: '건' };
 }
 
 const latestPermits = (work) => (work.permits ?? []).filter((permit) => permit.status !== 'SUPERSEDED');
 
 /**
- * 작업 하나의 단계 (작업 → 위험성평가 → 허가 → TBM → 승인 → 종료).
+ * 작업 하나의 단계 (작업 → 위험성평가 → 허가 → TBM → 작업 준비).
+ * 서버에는 작업 자체를 승인·시작·종료하는 API 가 없어 작업 상태가 바뀌지 않는다. 그래서 "승인·종료" 대신
+ * 문서(평가·허가·TBM)가 모두 승인되면 "작업 준비 완료"로 본다.
  * 점검표는 작업과 직접 연결된 서버 값이 없어 작업 단계에서 빼고 현장 할 일(점검 미제출)로 보인다.
  * state: done | current | problem | todo | skip(해당 없음)
  */
@@ -90,16 +97,16 @@ export function workStages(work) {
   }
   const tbm = work.tbm;
   const tbmState = !tbm ? 'todo' : tbm.status === 'DRAFT' ? 'current' : 'done';
-  const approvalState = ['APPROVED', 'IN_PROGRESS', 'DONE'].includes(work.status) ? 'done'
-    : work.status === 'PENDING' ? 'current' : work.status === 'REJECTED' ? 'problem' : 'todo';
-  const endState = work.status === 'DONE' ? 'done' : work.status === 'IN_PROGRESS' ? 'current' : 'todo';
+  const ready = workReady(work);
+  const anyProblem = [riskState, permitState].includes('problem') || work.status === 'BLOCKED';
+  // 문서를 다 쓰고(TBM 실시까지) 승인만 남았으면 진행 중으로 보인다
+  const readyState = ready ? 'done' : !anyProblem && tbmState === 'done' ? 'current' : 'todo';
   return [
-    { key: 'work', label: '작업', state: work.status === 'BLOCKED' ? 'problem' : 'done', hint: WORK_STATUS_LABELS[work.status] ?? '' },
+    { key: 'work', label: '작업', state: work.status === 'BLOCKED' ? 'problem' : 'done', hint: work.status === 'BLOCKED' ? '차단' : work.status === 'CANCELED' ? '취소' : '등록' },
     { key: 'risk', label: '위험성평가', state: riskState, hint: risk ? RISK_STATUS_LABELS[risk.status] : '작성 전' },
     { key: 'permit', label: '허가', state: permitState, hint: permitHint },
     { key: 'tbm', label: 'TBM', state: tbmState, hint: tbm ? TBM_STATUS_LABELS[tbm.status] : '작성 전' },
-    { key: 'approval', label: '승인', state: approvalState, hint: approvalState === 'done' ? '승인' : approvalState === 'current' ? '승인 대기' : approvalState === 'problem' ? '반려' : '' },
-    { key: 'end', label: '종료', state: endState, hint: endState === 'done' ? '완료' : endState === 'current' ? '진행 중' : '' },
+    { key: 'ready', label: '작업 준비', state: readyState, hint: ready ? '준비 완료' : readyState === 'current' ? '승인 확인 중' : '' },
   ];
 }
 
@@ -117,8 +124,19 @@ export function nextAction(work) {
   if (!work.tbm) return { label: 'TBM 작성', tone: 'todo', path: `/job/tbm?date=${encodeURIComponent(work.workDate ?? '')}&workId=${work.workId}` };
   if (work.tbm.status === 'DRAFT') return { label: 'TBM 완료 처리', tone: 'todo', path: jobRecordPath('TBM', work.tbm.tbmId) };
   if (risk.status === 'PENDING' || permits.some((permit) => permit.status === 'PENDING') || work.status === 'PENDING') return { label: '승인 대기', tone: 'wait', path: null };
+  // TBM 실시 완료(DONE) 뒤 확인 요청·승인이 남았다 (목록 응답에는 TBM 결재 진행 여부가 없어 TBM 화면에서 확인)
+  if (work.tbm.status !== 'APPROVED') return { label: 'TBM 확인 요청·승인 확인', tone: 'wait', path: jobRecordPath('TBM', work.tbm.tbmId) };
   if (work.status === 'DONE') return { label: '완료', tone: 'done', path: null };
-  return { label: '진행 중', tone: 'active', path: null };
+  return { label: '작업 준비 완료', tone: 'done', path: null };
+}
+
+/** 작업 준비 완료: 위험성평가 승인 + 허가서 모두 승인(일반 작업은 허가 없음) + TBM 승인 */
+export function workReady(work) {
+  const permits = latestPermits(work);
+  const needsPermit = work.workType && work.workType !== 'GENERAL';
+  return work.status !== 'BLOCKED' && work.riskAssessment?.status === 'APPROVED'
+    && (needsPermit ? permits.length > 0 && permits.every((permit) => ['APPROVED', 'CLOSED'].includes(permit.status)) : permits.every((permit) => ['APPROVED', 'CLOSED'].includes(permit.status)))
+    && work.tbm?.status === 'APPROVED';
 }
 
 /** 작업 종류별 건수 (막대용). 0건 종류도 자리를 둔다 */

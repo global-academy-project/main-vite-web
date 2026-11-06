@@ -22,7 +22,7 @@ test('계정 ADMIN 은 현장 역할과 상관없이 전부', () => {
 });
 
 test('현장 역할을 모르면 공통 메뉴만, 현장 역할로 ADMIN 이 와도 계정 ADMIN 이 아니면 인정하지 않는다', () => {
-  assert.deepEqual(keys(navFor('MEMBER', null)), ['home', 'work', 'daily', 'approvals', 'work-status', 'records']);
+  assert.deepEqual(keys(navFor('MEMBER', null)), ['home', 'work-status', 'work', 'daily', 'approvals', 'records']);
   assert.equal(effectiveRole('MEMBER', 'ADMIN'), null);
 });
 

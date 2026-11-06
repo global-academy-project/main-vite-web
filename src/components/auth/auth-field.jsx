@@ -26,7 +26,7 @@ export function AuthField({ label, error, hint, required, optional, type = 'text
           onBlur={password ? () => setCaps(false) : undefined}
           {...rest} />
         {password && (
-          <button type="button" className="auth-field2__eye" aria-label={shown ? '비밀번호 숨기기' : '비밀번호 보기'} aria-pressed={shown} onClick={() => setShown((value) => !value)}>
+          <button type="button" className="auth-field2__eye" tabIndex={-1} aria-label={shown ? '비밀번호 숨기기' : '비밀번호 보기'} aria-pressed={shown} onClick={() => setShown((value) => !value)}>
             <Icon name={shown ? 'eyeOff' : 'eye'} size={18} />
           </button>
         )}
