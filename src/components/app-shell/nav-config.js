@@ -8,6 +8,7 @@ const MANAGERS = ['ADMIN', 'SITE_ADMIN'];
 
 export const NAV = Object.freeze([
   { key: 'home', label: '홈', icon: 'home', path: '/dashboard', roles: ALL },
+  { key: 'work-status', label: '작업 현황', icon: 'chart', path: '/job/dashboard', roles: ALL },
   // 작업 흐름 순서: 작업 등록 → 위험성평가 → 작업허가(결재) → TBM
   {
     key: 'work', label: '작업', icon: 'work', roles: ALL,
@@ -28,7 +29,6 @@ export const NAV = Object.freeze([
   },
   // 승인함은 모든 역할: 승인자는 "결재 대기", 작성자는 "내 요청"을 주로 본다 (승인·반려 권한은 서버가 canDecide 로 판단)
   { key: 'approvals', label: '승인함', icon: 'inbox', path: '/approvals', roles: ALL },
-  { key: 'work-status', label: '작업 현황', icon: 'chart', path: '/job/dashboard', roles: ALL },
   {
     key: 'records', label: '기록', icon: 'records', roles: ALL,
     children: [
