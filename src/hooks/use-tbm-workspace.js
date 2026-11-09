@@ -3,13 +3,9 @@ import { completeTbm, createTbm, getSiteTbms, getSiteWorkers, getTbm, reopenTbm,
 import { reloadJobConflict } from '../api/jobs';
 import { completeTbmBody, tbmContentBody, tbmHeldAt, tbmPermissions } from '../utils/job-forms';
 import { useToast } from '../components/ui/toast-context.js';
-import { datesBetween, presetRange } from '../utils/period-model.js';
+import { datesBetween } from '../utils/period-model.js';
+import { useDateRange } from './use-date-range.js';
 
-const SPANS = [1, 7, 30];
-const spanKey = (siteId) => `tbm-span:${siteId}`;
-const readSpan = (siteId) => {
-  try { const value = Number(window.sessionStorage.getItem(spanKey(siteId))); return SPANS.includes(value) ? value : 1; } catch { return 1; }
-};
 // TBM 목록 API 는 하루씩만 받는다: 여러 날은 날짜마다 조회하되 한 번에 6개까지만 보낸다
 async function tbmsOfDays(siteId, dates) {
   const lists = [];
@@ -29,11 +25,12 @@ const EMPTY_CONTENT = { leaderName: '', workIds: '', points: '', healthCheck: ''
  *  - 작성 중(DRAFT)이고 확인 요청 중이 아닐 때만 고칠 수 있고, 실시 완료(DONE)면 확인 요청·되돌리기
  * 달라진 점: 날짜를 바꾸면 그날 TBM 을 바로 조회한다(예전에는 "날짜별 조회"를 눌러야 했다).
  */
-export function useTbmWorkspace({ siteId, disabled, initialTbmId, initialDate, presetWorkId = null }) {
+export function useTbmWorkspace({ siteId, disabled, initialTbmId, initialDate, presetWorkId = null, fixedDay = false }) {
   const toast = useToast();
-  const [date, setDate] = useState(initialDate);
-  // 목록 기간: 고른 날짜까지 하루·7일·30일 (같은 탭 동안 남는다). 작업 허브에서 날짜를 정해 오면 그날 하루
-  const [span, setSpanState] = useState(() => (initialTbmId ? 1 : readSpan(siteId)));
+  // 목록 기간 from~to (같은 탭 동안 남는다). 끝 날짜가 기준 날짜(새 TBM 기본 날짜). 주소로 날짜·TBM 을 정해 오면 그날 하루
+  const range = useDateRange(`tbm:${siteId}`, initialDate, { fixed: fixedDay || Boolean(initialTbmId) });
+  const { from, to: date } = range;
+  const setDate = range.include;
   const [records, setRecords] = useState([]);
   const [tbmId, setTbmId] = useState(initialTbmId ?? '');
   const [workers, setWorkers] = useState([]);
@@ -58,7 +55,7 @@ export function useTbmWorkspace({ siteId, disabled, initialTbmId, initialDate, p
 
   const selectedTbm = records.find((record) => String(record.tbmId) === String(tbmId)) ?? null;
   const { editable, pending: approvalPending, canRequest } = tbmPermissions(selectedTbm);
-  const listKey = `${siteId}:${date}:${span}:${revision}`;
+  const listKey = `${siteId}:${from}:${date}:${revision}`;
   const loading = listState.key !== listKey;
 
   const selectTbm = useCallback((record) => {
@@ -83,7 +80,7 @@ export function useTbmWorkspace({ siteId, disabled, initialTbmId, initialDate, p
   const preset = useRef(presetWorkId);
   useEffect(() => {
     let active = true;
-    tbmsOfDays(siteId, datesBetween(presetRange(span, date).from, date)).then((list) => {
+    tbmsOfDays(siteId, datesBetween(from, date)).then((list) => {
       if (!active) return;
       setRecords(list);
       const current = list.find((record) => String(record.tbmId) === String(wanted.current));
@@ -98,7 +95,7 @@ export function useTbmWorkspace({ siteId, disabled, initialTbmId, initialDate, p
       setListState({ key: listKey, error: '' });
     }).catch((requestError) => { if (active) setListState({ key: listKey, error: requestError.message || 'TBM 목록을 불러오지 못했습니다.' }); });
     return () => { active = false; };
-  }, [siteId, date, span, listKey, selectTbm]);
+  }, [siteId, from, date, listKey, selectTbm]);
 
   const updateRecord = (saved) => setRecords((current) => current.map((record) => (record.tbmId === saved.tbmId ? saved : record)));
 
@@ -195,8 +192,9 @@ export function useTbmWorkspace({ siteId, disabled, initialTbmId, initialDate, p
   };
 
   return {
-    span, spans: SPANS, setSpan: (next) => { if (!SPANS.includes(next)) return; setSpanState(next); try { window.sessionStorage.setItem(spanKey(siteId), String(next)); } catch { /* 저장 못 해도 화면은 그대로 */ } },
-    date, changeDate: (next) => { if (next) { wanted.current = ''; setDate(next); } }, records, loading, listError: loading ? '' : listState.error,
+    period: { ...range.period, setPeriod: (nextFrom, nextTo) => { wanted.current = ''; range.setPeriod(nextFrom, nextTo); }, pick: (days) => { wanted.current = ''; range.period.pick(days); } },
+    from, multiDay: from !== date,
+    date, records, loading, listError: loading ? '' : listState.error,
     reload: () => { wanted.current = tbmId; setRevision((value) => value + 1); },
     selectedTbm, select: (record) => { wanted.current = String(record.tbmId); selectTbm(record); },
     editable, approvalPending, canRequest,

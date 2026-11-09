@@ -9,8 +9,10 @@ import StatusView, { Skeleton } from '../../components/ui/status-view.jsx';
 import StepIndicator from '../../components/ui/step-indicator.jsx';
 import { useToast } from '../../components/ui/toast-context.js';
 import { useDailySafety } from '../../hooks/use-daily-safety.js';
+import { useDateRange } from '../../hooks/use-date-range.js';
+import PeriodBar from '../../components/period-bar.jsx';
 import {
-  checksTotal, DAILY_LOG_APPROVER_ROLES, DAILY_LOG_STATUS_LABELS, DAILY_LOG_TONES, dailyLogSteps, deadlineOf, shiftDate, teamRow,
+  checksTotal, DAILY_LOG_APPROVER_ROLES, DAILY_LOG_STATUS_LABELS, DAILY_LOG_TONES, dailyLogSteps, deadlineOf, teamRow,
 } from '../../utils/daily-log-model.js';
 import { jobRecordPath, localDate } from '../../utils/job-forms';
 import '../../styles/home.css';
@@ -27,16 +29,23 @@ export default function JobDailySafety() {
   const context = useWorkSite();
   const site = context.currentSite;
   const toast = useToast();
-  const [date, setDate] = useState(localDate);
-  const data = useDailySafety(site?.siteId, date);
+  // 기간(from~to, 같은 탭 유지, 서버 한도 92일). 일지는 날짜당 1건이라 보는 날짜는 기간 안의 하루: 기본은 끝 날짜
+  const range = useDateRange('daily-log', localDate(), { maxDays: 92 });
+  const [picked, setPicked] = useState(null);
+  const date = picked && picked >= range.from && picked <= range.to ? picked : range.to;
+  const data = useDailySafety(site?.siteId, date, range);
   const canApprove = DAILY_LOG_APPROVER_ROLES.includes(roleOf(site));
   const deadline = deadlineOf(data.dashboard);
-  const today = localDate();
 
+  const confirmLeave = () => !data.dirty || window.confirm('저장하지 않은 요약이 있습니다. 날짜를 바꾸면 사라집니다. 바꿀까요?');
   const changeDate = (next) => {
-    if (!next || next === date) return;
-    if (data.dirty && !window.confirm('저장하지 않은 요약이 있습니다. 날짜를 바꾸면 사라집니다. 바꿀까요?')) return;
-    setDate(next);
+    if (!next || next === date || !confirmLeave()) return;
+    setPicked(next);
+  };
+  const period = {
+    ...range.period,
+    setPeriod: (from, to) => { if (confirmLeave()) { setPicked(null); range.setPeriod(from, to); } },
+    pick: (days) => { if (confirmLeave()) { setPicked(null); range.period.pick(days); } },
   };
 
   return (
@@ -51,19 +60,44 @@ export default function JobDailySafety() {
           </>} />
 
         <section className="work-filters rec-datebar" aria-label="기준 날짜">
-          <div className="rec-datebar__nav">
-            <button type="button" className="ui-icon-btn" aria-label="전날" disabled={data.busy} onClick={() => changeDate(shiftDate(date, -1))}><Icon name="chevronLeft" size={18} /></button>
-            <label><span className="sr-only">기준 날짜</span><input type="date" max="9999-12-31" value={date} disabled={data.busy} onChange={(event) => changeDate(event.target.value)} /></label>
-            <button type="button" className="ui-icon-btn rec-datebar__next" aria-label="다음 날" disabled={data.busy} onClick={() => changeDate(shiftDate(date, 1))}><Icon name="chevronLeft" size={18} /></button>
-            {date !== today && <button type="button" className="ui-btn ui-btn--ghost" disabled={data.busy} onClick={() => changeDate(today)}>오늘</button>}
-          </div>
+          <PeriodBar period={period} label="일지 기간" disabled={data.busy} />
+          {period.error && <span className="work-filters__help" role="alert">{period.error}</span>}
           {data.log && <Badge tone={DAILY_LOG_TONES[data.log.status] ?? 'neutral'}>{DAILY_LOG_STATUS_LABELS[data.log.status] ?? data.log.status}</Badge>}
         </section>
+        {site && data.multiDay && <RangeLogs data={data} date={date} onPick={changeDate} />}
 
         {!site ? <StatusView kind="empty" title="현장을 선택해 주세요" />
           : canApprove ? <ManagerView data={data} /> : <WriterView data={data} />}
       </div>
     </JobPageLayout>
+  );
+}
+
+/** 기간 일지 목록: 날짜를 누르면 그날 일지로 (일지는 현장·날짜당 1건) */
+function RangeLogs({ data, date, onPick }) {
+  return (
+    <section className="home-panel rec-range" aria-labelledby="daily-range-title">
+      <header className="home-panel__head">
+        <h2 id="daily-range-title" className="home-panel__title">기간 일지{!data.rangeLoading && <span className="home-panel__count">{data.rangeLogs.length}</span>}</h2>
+        <span className="rec-help">{data.rangeFrom.slice(5).replace('-', '/')} ~ {data.rangeTo.slice(5).replace('-', '/')} · 날짜를 누르면 그날 일지를 엽니다 · 지금 {date.slice(5).replace('-', '/')}</span>
+      </header>
+      {data.rangeLoading && <div className="home-panel__pad"><Skeleton lines={1} /></div>}
+      {!data.rangeLoading && data.rangeError && <StatusView kind="error" compact message={data.rangeError} onRetry={data.reload} />}
+      {!data.rangeLoading && !data.rangeError && !data.rangeLogs.length && <p className="rec-pad rec-help">이 기간에 만든 일지가 없습니다.</p>}
+      {!data.rangeLoading && data.rangeLogs.length > 0 && (
+        <ul className="rec-range__list">
+          {data.rangeLogs.map((log) => (
+            <li key={log.dailyLogId}>
+              <button type="button" className={`rec-range__item${log.date === date ? ' is-active' : ''}`} aria-pressed={log.date === date} disabled={data.busy} onClick={() => onPick(log.date)}>
+                <strong>{log.date.slice(5).replace('-', '/')}</strong>
+                <Badge tone={DAILY_LOG_TONES[log.status] ?? 'neutral'}>{DAILY_LOG_STATUS_LABELS[log.status] ?? log.status}</Badge>
+                {log.writerName && <span className="rec-help">{log.writerName}</span>}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }
 

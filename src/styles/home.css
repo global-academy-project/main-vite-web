@@ -250,36 +250,27 @@ button.home-composer__grip:hover:not(:disabled)::before, button.home-composer__g
 .home-composer__help.is-error { color: var(--color-warning-text); }
 
 /* ── 초안 카드 ─────────────────────────────────────── */
-.draft-card { align-self: stretch; border: 1px solid var(--color-border-accent); border-radius: var(--radius-lg); background: var(--color-surface); overflow: hidden; }
-.draft-card__head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); padding: var(--space-3) var(--space-4); background: var(--color-surface-accent); border-bottom: 1px solid var(--color-border); }
-.draft-card__title { display: inline-flex; align-items: center; gap: var(--space-2); font-size: var(--text-md); font-weight: var(--weight-bold); color: var(--color-text-strong); }
+.draft-card { flex-shrink: 0; align-self: stretch; border: 1px solid var(--color-border-accent); border-radius: var(--radius-lg); background: var(--color-surface); overflow: hidden; } /* 대화창(세로 flex)에서 눌려 줄어들지 않게 */
+.draft-card__head { display: flex; align-items: center; gap: var(--space-2) var(--space-3); padding: var(--space-2) var(--space-3); }
+.draft-card__title { display: inline-flex; align-items: center; gap: 6px; font-size: var(--text-sm); font-weight: var(--weight-bold); color: var(--color-text-strong); }
 .draft-card__title svg { color: var(--color-primary); }
-.draft-card__left { display: inline-flex; align-items: center; gap: 4px; font-size: var(--text-sm); color: var(--color-text-muted); }
+.draft-card__left { display: inline-flex; align-items: center; gap: 4px; font-size: var(--text-xs); color: var(--color-text-muted); }
 .draft-card__left strong { color: var(--color-primary); }
-.draft-card__note { display: flex; align-items: center; gap: 6px; margin: 0; padding: var(--space-2) var(--space-4); background: var(--color-warning-soft); color: var(--color-warning-text); font-size: var(--text-xs); }
-.draft-card__tabs { display: flex; overflow-x: auto; padding: 0 var(--space-2); border-bottom: 1px solid var(--color-border-soft); scrollbar-width: none; }
-button.draft-tab {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
-  min-height: 44px;
-  padding: 0 var(--space-3);
-  border: 0;
-  border-bottom: 2px solid transparent;
-  border-radius: 0;
-  background: transparent;
-  color: var(--color-text-sub);
-  font-size: var(--text-sm);
-  font-weight: var(--weight-medium);
-  cursor: pointer;
-}
-button.draft-tab:hover:not(:disabled) { background: transparent; transform: none; color: var(--color-text-strong); }
-button.draft-tab.is-active { border-bottom-color: var(--color-primary); color: var(--color-primary); font-weight: var(--weight-bold); }
-.draft-tab:focus-visible { outline: 3px solid var(--color-focus); outline-offset: -3px; }
-.draft-tab__state { padding: 0 6px; border-radius: var(--radius-pill); background: var(--color-warning-soft); color: var(--color-warning-text); font-size: 11px; line-height: 18px; font-weight: var(--weight-bold); }
-.draft-tab__state.is-done { display: inline-flex; align-items: center; background: var(--color-success-soft); color: var(--color-success-text); }
-.draft-card__body { padding: var(--space-3) var(--space-4) var(--space-4); }
+a.draft-card__hub { display: inline-flex; align-items: center; gap: 4px; margin-left: auto; padding: 4px var(--space-2); border-radius: var(--radius-sm); color: var(--color-primary); font-size: var(--text-xs); font-weight: var(--weight-bold); text-decoration: none; white-space: nowrap; }
+a.draft-card__hub:hover { background: var(--color-primary-soft); }
+a.draft-card__hub:focus-visible { outline: 3px solid var(--color-focus); }
+.draft-card__note { display: flex; align-items: center; gap: 6px; margin: 0; padding: var(--space-2) var(--space-3); background: var(--color-warning-soft); color: var(--color-warning-text); font-size: var(--text-xs); }
+/* 문서 칩: 누르면 그 문서를 펼친다 */
+.draft-card__chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 var(--space-3) var(--space-3); }
+button.draft-chip { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0 6px 0 var(--space-3); border: 1px solid var(--color-border); border-radius: var(--radius-pill); background: var(--color-surface); color: var(--color-text-sub); font-size: var(--text-sm); font-weight: var(--weight-medium); cursor: pointer; }
+button.draft-chip:hover:not(:disabled) { border-color: var(--color-primary); background: var(--color-surface); color: var(--color-text-strong); transform: none; }
+button.draft-chip.is-active, button.draft-chip.is-active:hover:not(:disabled) { border-color: var(--color-primary); background: var(--color-primary-soft); color: var(--color-primary); font-weight: var(--weight-bold); }
+.draft-chip:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 1px; }
+.draft-chip__state { padding: 0 6px; border-radius: var(--radius-pill); background: var(--color-warning-soft); color: var(--color-warning-text); font-size: 11px; line-height: 20px; font-weight: var(--weight-bold); }
+.draft-chip.is-done .draft-chip__state { display: inline-flex; align-items: center; padding: 0 5px; background: var(--color-success-soft); color: var(--color-success-text); }
+.draft-card__body { display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-3); border-top: 1px solid var(--color-border-soft); background: var(--color-surface-accent); }
+button.draft-card__fold { display: inline-flex; align-self: center; align-items: center; gap: 4px; min-height: 28px; padding: 0 var(--space-3); border: 0; background: transparent; color: var(--color-text-muted); font-size: var(--text-xs); cursor: pointer; }
+button.draft-card__fold:hover:not(:disabled) { background: transparent; color: var(--color-text-strong); transform: none; }
 .draft-panel { display: flex; flex-direction: column; gap: var(--space-3); }
 .draft-panel__status { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2); font-size: var(--text-sm); color: var(--color-text-sub); }
 .draft-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-2) var(--space-4); margin: 0; }
