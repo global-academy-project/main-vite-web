@@ -76,8 +76,8 @@ const TYPE_KEYS = Object.keys(WORK_TYPE_LABELS);
 
 function WorkList({ site, context, onCreate, onAgent }) {
   const navigate = useNavigate();
-  // 고른 기간은 다른 메뉴에 다녀와도 남는다 (같은 탭 동안)
-  const period = usePeriod(`works:${site.siteId}`, { maxDays: 0 });
+  // 고른 기간은 다른 메뉴에 다녀와도 남는다 (같은 탭 동안). 서버 작업 목록은 한 번에 31일까지
+  const period = usePeriod(`works:${site.siteId}`);
   const { from, to } = period;
   const [types, setTypes] = useState([]);
   const [status, setStatus] = useState('');

@@ -10,7 +10,6 @@ import StatusView, { Skeleton } from '../../components/ui/status-view.jsx';
 import StepIndicator from '../../components/ui/step-indicator.jsx';
 import { useInspection } from '../../hooks/use-inspection.js';
 import { localDate } from '../../utils/job-forms';
-import { shiftDate } from '../../utils/daily-log-model.js';
 import {
   groupItems, INSPECTION_RESULT_LABELS, INSPECTION_RESULT_TONES, INSPECTION_STATUS_LABELS, INSPECTION_STATUS_TONES,
   inspectionSteps, ITEM_RESULT_OPTIONS, NOTE_MAX, TARGET_LABELS, targetName,
@@ -22,6 +21,7 @@ import '../../styles/risk.css';
 import '../../styles/permit.css';
 import '../../styles/tbm.css';
 import '../../styles/inspection.css';
+import PeriodBar from '../../components/period-bar.jsx';
 
 /**
  * 점검표 (구역·설비). 날짜 하나에 점검표 여러 건 — 왼쪽 목록, 오른쪽 고른 점검표의 항목 점검 · 저장 · 제출.
@@ -36,15 +36,15 @@ export default function DailyChecklist() {
   return (
     <JobPageLayout title="점검표" user={context.account?.user} contentClassName="work-page">
       {site
-        ? <ChecklistPage key={`${site.siteId}:${inspectionId}:${date}`} site={site} context={context} initialDate={date} initialId={inspectionId}
+        ? <ChecklistPage key={`${site.siteId}:${inspectionId}:${date}`} site={site} context={context} initialDate={date} initialId={inspectionId} fixedDay={params.has('date')}
           workId={/^\d+$/.test(params.get('workId') ?? '') ? params.get('workId') : null} />
         : <PageHeader title="점검표" context={context} />}
     </JobPageLayout>
   );
 }
 
-function ChecklistPage({ site, context, initialDate, initialId, workId }) {
-  const data = useInspection({ siteId: site.siteId, disabled: context.selecting || context.loading, initialId, initialDate });
+function ChecklistPage({ site, context, initialDate, initialId, workId, fixedDay }) {
+  const data = useInspection({ siteId: site.siteId, disabled: context.selecting || context.loading, initialId, initialDate, fixedDay });
   const [creating, setCreatingState] = useState(false);
   const setCreating = (open) => { if (open) data.clearError(); setCreatingState(open); };
   const item = data.selected;
@@ -59,12 +59,8 @@ function ChecklistPage({ site, context, initialDate, initialId, workId }) {
         </>} />
 
       <section className="work-filters rec-datebar" aria-label="점검일">
-        <div className="rec-datebar__nav">
-          <button type="button" className="ui-icon-btn" aria-label="전날" disabled={data.busy} onClick={() => data.changeDate(shiftDate(data.date, -1))}><Icon name="chevronLeft" size={18} /></button>
-          <label><span className="sr-only">점검일</span><input type="date" max="9999-12-31" value={data.date} disabled={data.busy} onChange={(event) => data.changeDate(event.target.value)} /></label>
-          <button type="button" className="ui-icon-btn rec-datebar__next" aria-label="다음 날" disabled={data.busy} onClick={() => data.changeDate(shiftDate(data.date, 1))}><Icon name="chevronLeft" size={18} /></button>
-          {data.date !== localDate() && <button type="button" className="ui-btn ui-btn--ghost" onClick={() => data.changeDate(localDate())}>오늘</button>}
-        </div>
+        <PeriodBar period={data.period} label="점검일 기간" disabled={data.busy} />
+        {data.period.error && <span className="work-filters__help" role="alert">{data.period.error}</span>}
         <span className="rec-help">같은 날짜·대상·양식의 점검표는 하나만 만들 수 있습니다.</span>
       </section>
 
@@ -75,11 +71,11 @@ function ChecklistPage({ site, context, initialDate, initialId, workId }) {
 
       <div className="tbm-layout">
         <section className="home-panel tbm-list" aria-label={`${data.date} 점검표 목록`}>
-          <header className="home-panel__head"><h2 className="home-panel__title">이날 점검표{!data.loading && <span className="home-panel__count">{data.records.length}</span>}</h2></header>
+          <header className="home-panel__head"><h2 className="home-panel__title">{data.multiDay ? '기간 점검표' : '이날 점검표'}{!data.loading && <span className="home-panel__count">{data.records.length}</span>}</h2></header>
           <div className="home-panel__body">
             {data.loading && <div className="home-panel__pad"><Skeleton lines={4} /></div>}
             {!data.loading && data.listError && <StatusView kind="error" compact message={data.listError} onRetry={data.reload} />}
-            {!data.loading && !data.listError && !data.records.length && <StatusView kind="empty" compact title="이 날짜의 점검표가 없습니다" action={{ label: '새 점검표 만들기', onClick: () => setCreating(true) }} />}
+            {!data.loading && !data.listError && !data.records.length && <StatusView kind="empty" compact title={data.multiDay ? '이 기간의 점검표가 없습니다' : '이 날짜의 점검표가 없습니다'} action={{ label: '새 점검표 만들기', onClick: () => setCreating(true) }} />}
             {!data.loading && data.records.length > 0 && (
               <ul className="home-list">
                 {data.records.map((record) => {
@@ -88,7 +84,7 @@ function ChecklistPage({ site, context, initialDate, initialId, workId }) {
                     <li key={record.inspectionId}>
                       <button type="button" className={`home-list__item tbm-list__item${active ? ' is-active' : ''}`} aria-pressed={active} onClick={() => data.select(record)}>
                         <span className="home-list__main">
-                          <span className="home-list__kind">{TARGET_LABELS[record.targetType]} · {targetName(record)}</span>
+                          <span className="home-list__kind">{data.multiDay && `${record.inspectDate?.slice(5).replace('-', '/')} · `}{TARGET_LABELS[record.targetType]} · {targetName(record)}</span>
                           <span className="home-list__title">{record.templateName ?? record.templateCode}</span>
                           <span className="insp-list__progress"><span style={{ width: `${record.total ? Math.round((record.answered / record.total) * 100) : 0}%` }} /></span>
                         </span>

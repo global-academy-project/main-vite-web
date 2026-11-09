@@ -17,7 +17,7 @@ export function dailyLogError(error) {
  *  - 초안 만들기는 서버 집계, 요약 저장은 lockVersion 으로 충돌 검사, 승인 요청 전 고친 요약이 있으면 먼저 저장
  *  - 변경은 한 번에 하나
  */
-export function useDailySafety(siteId, date) {
+export function useDailySafety(siteId, date, period = null) {
   const toast = useToast();
   const [state, setState] = useState({ key: null, log: null, error: '' });
   const [dash, setDash] = useState({ key: null, data: null });
@@ -57,6 +57,21 @@ export function useDailySafety(siteId, date) {
     return () => { active = false; };
   }, [siteId, date, dashKey]);
 
+  // 기간(from~to, 이틀 이상)으로 볼 때 그 기간의 일지 목록 (날짜를 고르는 용도). 하루면 부르지 않는다
+  const from = period?.from ?? date;
+  const to = period?.to ?? date;
+  const multiDay = Boolean(from && to && from !== to);
+  const rangeKey = `${siteId}:${from}:${to}:${revision}`;
+  const [range, setRange] = useState({ key: null, logs: [], error: '' });
+  useEffect(() => {
+    if (!siteId || !multiDay) return undefined;
+    let active = true;
+    getDailySafetyLogs(siteId, { from, to })
+      .then((logs) => { if (active) setRange({ key: rangeKey, logs: [...(Array.isArray(logs) ? logs : [])].sort((a, b) => String(b.date).localeCompare(String(a.date))), error: '' }); })
+      .catch((requestError) => { if (active) setRange({ key: rangeKey, logs: [], error: dailyLogError(requestError) }); });
+    return () => { active = false; };
+  }, [siteId, from, to, multiDay, rangeKey]);
+
   const reload = useCallback(() => setRevision((value) => value + 1), []);
 
   const run = async (action, success) => {
@@ -89,6 +104,7 @@ export function useDailySafety(siteId, date) {
   return {
     loading, loadError: state.key === key ? state.error : '', log, summary, setSummary, dirty, busy, error,
     dashboard: dash.key === dashKey ? dash.data : null, dashboardLoading: Boolean(siteId && date) && dash.key !== dashKey,
+    rangeLogs: range.key === rangeKey ? range.logs : [], rangeLoading: multiDay && range.key !== rangeKey, rangeError: range.key === rangeKey ? range.error : '', rangeFrom: from, rangeTo: to, multiDay,
     reload, createDraft, saveSummary, submit,
   };
 }

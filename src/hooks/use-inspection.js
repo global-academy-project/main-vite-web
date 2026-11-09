@@ -4,6 +4,7 @@ import { getJobZones } from '../api/job-reference';
 import { reloadJobConflict } from '../api/jobs';
 import { answerCounts, answersOf, changedAnswers, diffCodes, expectedResult } from '../utils/inspection-model.js';
 import { useToast } from '../components/ui/toast-context.js';
+import { useDateRange } from './use-date-range.js';
 
 /**
  * 점검표 상태와 동작.
@@ -12,9 +13,12 @@ import { useToast } from '../components/ui/toast-context.js';
  *  - 409·응답 불명이면 새로고침 전까지 쓰기를 막고, 버전 충돌이면 최신 점검표로 바꿔 알린다(자동 재저장 없음)
  *  - 작성 중(DRAFT)일 때만 고칠 수 있다. 반려되면 서버가 작성 중으로 되돌린다
  */
-export function useInspection({ siteId, disabled, initialId, initialDate }) {
+export function useInspection({ siteId, disabled, initialId, initialDate, fixedDay = false }) {
   const toast = useToast();
-  const [date, setDate] = useState(initialDate);
+  // 목록 기간 from~to (같은 탭 유지, 서버 한도 31일). 끝 날짜가 기준 날짜(새 점검표 기본 날짜). 주소로 날짜·점검표를 정해 오면 그날 하루
+  const range = useDateRange(`inspection:${siteId}`, initialDate, { fixed: fixedDay || Boolean(initialId) });
+  const { from, to: date } = range;
+  const setDate = range.include;
   const [records, setRecords] = useState([]);
   const [selectedId, setSelectedId] = useState(initialId ?? '');
   const [answers, setAnswers] = useState({});
@@ -28,7 +32,7 @@ export function useInspection({ siteId, disabled, initialId, initialDate }) {
   const wanted = useRef(initialId ?? '');
   const jump = useRef(Boolean(initialId));
 
-  const listKey = `${siteId}:${date}:${revision}`;
+  const listKey = `${siteId}:${from}:${date}:${revision}`;
   const loading = listState.key !== listKey;
   const selected = records.find((record) => String(record.inspectionId) === String(selectedId)) ?? null;
   const editable = selected?.status === 'DRAFT';
@@ -66,9 +70,10 @@ export function useInspection({ siteId, disabled, initialId, initialDate }) {
       if (jump.current) {
         jump.current = false;
         const target = await getInspection(wanted.current, siteId);
-        if (target.inspectDate !== date) return { moveTo: target.inspectDate };
+        if (target.inspectDate > date || target.inspectDate < from) return { moveTo: target.inspectDate };
       }
-      return { list: await getSiteInspections(siteId, date) };
+      // 서버는 오래된 날짜부터 준다: 기간으로 볼 때는 최근 날짜가 위로
+      return { list: [...await getSiteInspections(siteId, from, date)].reverse() };
     };
     load().then((result) => {
       if (!active) return;
@@ -80,7 +85,7 @@ export function useInspection({ siteId, disabled, initialId, initialDate }) {
       setListState({ key: listKey, error: '' });
     }).catch((requestError) => { if (active) setListState({ key: listKey, error: requestError.message || '점검표 목록을 불러오지 못했습니다.' }); });
     return () => { active = false; };
-  }, [siteId, date, listKey, pick]);
+  }, [siteId, date, from, listKey, pick]);
 
   const showWriteError = async (requestError, fallback) => {
     if (requestError.status === 409 || requestError.code === 'WRITE_OUTCOME_UNKNOWN') setNeedsReload(true);
@@ -164,7 +169,9 @@ export function useInspection({ siteId, disabled, initialId, initialDate }) {
   };
 
   return {
-    date, changeDate: (next) => guard(() => { if (next) { wanted.current = ''; setDate(next); } }),
+    from, multiDay: from !== date,
+    period: { ...range.period, setPeriod: (nextFrom, nextTo) => guard(() => { wanted.current = ''; range.setPeriod(nextFrom, nextTo); }), pick: (days) => guard(() => { wanted.current = ''; range.period.pick(days); }) },
+    date,
     records, loading, listError: loading ? '' : listState.error,
     reload: () => guard(() => { wanted.current = selectedId; setRevision((value) => value + 1); }),
     selected, select: (record) => guard(() => { wanted.current = String(record.inspectionId); pick(record); }),

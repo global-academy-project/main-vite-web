@@ -14,7 +14,6 @@ import StepIndicator from '../../components/ui/step-indicator.jsx';
 import { useTbmWorkspace } from '../../hooks/use-tbm-workspace.js';
 import { WORK_TYPE_LABELS } from '../../utils/home-model.js';
 import { localDate } from '../../utils/job-forms';
-import { shiftDate } from '../../utils/daily-log-model.js';
 import { healthCounts, parseWorkIds, tbmStatusLabel, tbmSteps, toggleWorkId } from '../../utils/tbm-model.js';
 import { backToHubPath } from '../../utils/work-list-model.js';
 import '../../styles/home.css';
@@ -23,6 +22,7 @@ import '../../styles/records.css';
 import '../../styles/risk.css';
 import '../../styles/permit.css';
 import '../../styles/tbm.css';
+import PeriodBar from '../../components/period-bar.jsx';
 
 const tone = (tbm) => (!tbm ? 'todo' : tbm.approvalStatus === 'PENDING' ? 'wait' : tbm.status === 'APPROVED' ? 'done' : tbm.status === 'DONE' ? 'info' : 'todo');
 
@@ -38,7 +38,7 @@ export default function JobTbm() {
   return (
     <JobPageLayout title="TBM" user={context.account?.user} contentClassName="work-page">
       {site
-        ? <TbmPage key={`${site.siteId}:${params.get('tbmId')}:${date}`} site={site} context={context} initialDate={date}
+        ? <TbmPage key={`${site.siteId}:${params.get('tbmId')}:${date}`} site={site} context={context} initialDate={date} fixedDay={params.has('date')}
           initialTbmId={/^\d+$/.test(params.get('tbmId') ?? '') ? params.get('tbmId') : null}
           presetWorkId={/^\d+$/.test(params.get('workId') ?? '') ? params.get('workId') : null} back={backToHubPath(params.get('back'))} />
         : <PageHeader title="TBM" context={context} />}
@@ -46,8 +46,8 @@ export default function JobTbm() {
   );
 }
 
-function TbmPage({ site, context, initialDate, initialTbmId, presetWorkId, back }) {
-  const data = useTbmWorkspace({ siteId: site.siteId, disabled: context.selecting || context.loading, initialTbmId, initialDate, presetWorkId });
+function TbmPage({ site, context, initialDate, initialTbmId, presetWorkId, back, fixedDay }) {
+  const data = useTbmWorkspace({ siteId: site.siteId, disabled: context.selecting || context.loading, initialTbmId, initialDate, presetWorkId, fixedDay });
   const [works, setWorks] = useState({ key: null, items: [] });
   const worksKey = `${site.siteId}:${data.editing ? data.contentDate : data.date}`;
   const worksDate = data.editing ? data.contentDate : data.date;
@@ -70,17 +70,8 @@ function TbmPage({ site, context, initialDate, initialTbmId, presetWorkId, back 
         </>} />
 
       <section className="work-filters rec-datebar" aria-label="TBM 날짜">
-        <div className="rec-datebar__nav">
-          <button type="button" className="ui-icon-btn" aria-label="전날" disabled={data.busy} onClick={() => data.changeDate(shiftDate(data.date, -1))}><Icon name="chevronLeft" size={18} /></button>
-          <label><span className="sr-only">TBM 날짜</span><input type="date" max="9999-12-31" value={data.date} disabled={data.busy} onChange={(event) => data.changeDate(event.target.value)} /></label>
-          <button type="button" className="ui-icon-btn rec-datebar__next" aria-label="다음 날" disabled={data.busy} onClick={() => data.changeDate(shiftDate(data.date, 1))}><Icon name="chevronLeft" size={18} /></button>
-          {data.date !== localDate() && <button type="button" className="ui-btn ui-btn--ghost" onClick={() => data.changeDate(localDate())}>오늘</button>}
-        </div>
-        <div className="work-period" role="group" aria-label="목록 기간">
-          {data.spans.map((days) => (
-            <button key={days} type="button" className="work-chip" aria-pressed={data.span === days} disabled={data.busy} onClick={() => data.setSpan(days)}>{days === 1 ? '하루' : `${days}일`}</button>
-          ))}
-        </div>
+        <PeriodBar period={data.period} label="TBM 기간" disabled={data.busy} />
+        {data.period.error && <span className="work-filters__help" role="alert">{data.period.error}</span>}
         <span className="rec-help">연결 작업은 같은 현장·같은 날짜여야 하고, 다른 TBM과 겹쳐 연결할 수 없습니다.</span>
       </section>
 
@@ -92,18 +83,18 @@ function TbmPage({ site, context, initialDate, initialTbmId, presetWorkId, back 
 
       <div className="tbm-layout">
         <section className="home-panel tbm-list" aria-label={`${data.date} TBM 목록`}>
-          <header className="home-panel__head"><h2 className="home-panel__title">{data.span === 1 ? '이날 TBM' : `${data.span}일 TBM`}{!data.loading && <span className="home-panel__count">{data.records.length}</span>}</h2></header>
+          <header className="home-panel__head"><h2 className="home-panel__title">{data.multiDay ? '기간 TBM' : '이날 TBM'}{!data.loading && <span className="home-panel__count">{data.records.length}</span>}</h2></header>
           <div className="home-panel__body">
             {data.loading && <div className="home-panel__pad"><Skeleton lines={4} /></div>}
             {!data.loading && data.listError && <StatusView kind="error" compact message={data.listError} onRetry={data.reload} />}
-            {!data.loading && !data.listError && !data.records.length && <StatusView kind="empty" compact title={data.span === 1 ? '이 날짜의 TBM이 없습니다' : '이 기간의 TBM이 없습니다'} action={{ label: '새 TBM 작성', onClick: () => data.openNew([]) }} />}
+            {!data.loading && !data.listError && !data.records.length && <StatusView kind="empty" compact title={data.multiDay ? '이 기간의 TBM이 없습니다' : '이 날짜의 TBM이 없습니다'} action={{ label: '새 TBM 작성', onClick: () => data.openNew([]) }} />}
             {!data.loading && data.records.length > 0 && (
               <ul className="home-list">
                 {data.records.map((record) => (
                   <li key={record.tbmId}>
                     <button type="button" className={`home-list__item tbm-list__item${String(record.tbmId) === String(tbm?.tbmId) ? ' is-active' : ''}`} aria-pressed={String(record.tbmId) === String(tbm?.tbmId)} onClick={() => data.select(record)}>
                       <span className="home-list__main">
-                        <span className="home-list__kind">{data.span > 1 && `${record.tbmDate?.slice(5).replace('-', '/')} · `}TBM #{record.tbmId} · 진행 {record.leaderName || '미입력'}</span>
+                        <span className="home-list__kind">{data.multiDay && `${record.tbmDate?.slice(5).replace('-', '/')} · `}TBM #{record.tbmId} · 진행 {record.leaderName || '미입력'}</span>
                         <span className="home-list__title">{record.works.map((work) => work.title).join(', ') || '연결 작업 없음'}</span>
                       </span>
                       <Badge tone={tone(record)}>{tbmStatusLabel(record)}</Badge>
