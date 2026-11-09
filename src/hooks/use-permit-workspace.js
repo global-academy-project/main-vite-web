@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   checkPermit, createPermit, editablePermitStatuses, getPermit, getWork, hasMeasurementItems, measurementItems,
-  requireWork, saveMeasurements, stepForPermit, submitPermit, updatePermit, validatePeriod,
+  requireWork, saveMeasurements, stepForPermit, submitPermit, updatePermit, validatePeriod, applyPermitExtraction, extractRuleInput, measurementFields,
 } from '../api/jobs';
 import { useToast } from '../components/ui/toast-context.js';
+import { extractFill } from '../utils/extract-model.js';
 
 const EMPTY_FORM = { validFrom: '', validTo: '', watcherName: '', supervisorName: '', form: {} };
 
@@ -102,7 +103,7 @@ export function usePermitWorkspace({ siteId, disabled, initialWorkId, initialPer
     if (!confirmReplacement()) return undefined;
     return run(async () => {
       const saved = await getPermit(id, siteId);
-      if (mounted.current) { apply(saved); setStep(stepForPermit(saved)); say('서버의 허가서를 불러왔습니다. 이어서 할 단계로 이동했습니다.'); }
+      if (mounted.current) { apply(saved); setFill(null); setStep(stepForPermit(saved)); say('서버의 허가서를 불러왔습니다. 이어서 할 단계로 이동했습니다.'); }
     });
   };
   const goTo = (next) => { setError(''); setStep(next); };
@@ -113,9 +114,30 @@ export function usePermitWorkspace({ siteId, disabled, initialWorkId, initialPer
   };
   const changeType = (next) => {
     if (!confirmReplacement()) return;
-    setChosenType(next); update('form', {}); setValues({});
+    setChosenType(next); update('form', {}); setValues({}); setFill(null);
   };
   const setMeasurement = (code, value) => { setValues((current) => ({ ...current, [code]: value })); setError(''); };
+
+  // 말·문장으로 채우기: 서버가 뽑은 값으로 칸을 채우고(저장 전), 무엇이 빠졌는지는 서버 미리 판정을 그대로 보여 준다
+  const [fill, setFill] = useState(null); // extractFill 결과 + text
+  const [extracting, setExtracting] = useState(false);
+  const fillFromText = async (text) => {
+    const clean = String(text ?? '').trim();
+    if (!clean || extracting || disabled) return null;
+    setExtracting(true); setError('');
+    try {
+      const result = extractFill(await extractRuleInput({ siteId, text: clean, workType: type }), type, measurementFields[type] ?? []);
+      if (!mounted.current) return null;
+      setValues((current) => ({ ...current, ...result.values }));
+      setFill({ ...result, text: clean });
+      return result;
+    } catch (requestError) {
+      if (mounted.current) setError(requestError.message || '문장에서 값을 뽑지 못했습니다. 칸에 직접 입력해 주세요.');
+      return null;
+    } finally {
+      if (mounted.current) setExtracting(false);
+    }
+  };
 
   const hasMeasurements = hasMeasurementItems(type);
   const editable = !permit || editablePermitStatuses.includes(permit.status);
@@ -161,8 +183,11 @@ export function usePermitWorkspace({ siteId, disabled, initialWorkId, initialPer
     }
     void run(async () => {
       const items = measurementItems(type, values);
-      const result = await saveMeasurements(permit.permitId, items, siteId);
-      if (mounted.current) { apply(result); setStep(3); say('측정값을 저장했습니다. 기존 측정값은 이력으로 남고 최근 판정은 무효가 되었습니다. 규칙 판정을 실행하세요.'); }
+      // 문장으로 채운 경우: 원문·추출값 기록이 함께 남도록 추출 반영 API 로 저장 (측정값 저장은 같다)
+      const result = fill?.text
+        ? await applyPermitExtraction(permit.permitId, { lockVersion: permit.lockVersion, text: fill.text, measurements: items }, siteId)
+        : await saveMeasurements(permit.permitId, items, siteId);
+      if (mounted.current) { apply(result); setFill(null); setStep(3); say('측정값을 저장했습니다. 기존 측정값은 이력으로 남고 최근 판정은 무효가 되었습니다. 규칙 판정을 실행하세요.'); }
     });
   };
 
@@ -185,7 +210,7 @@ export function usePermitWorkspace({ siteId, disabled, initialWorkId, initialPer
 
   const startNew = () => {
     if (!confirmReplacement()) return false;
-    setPermit(null); setForm(EMPTY_FORM); setValues({}); setDirty(false);
+    setPermit(null); setForm(EMPTY_FORM); setValues({}); setFill(null); setDirty(false);
     setConflict(false); setCreationUncertain(false); setEvaluation(null); setError('');
     setStep(1);
     return true;
@@ -194,7 +219,7 @@ export function usePermitWorkspace({ siteId, disabled, initialWorkId, initialPer
   return {
     workId, setWorkId: (value) => { setWorkId(value); setDirty(true); }, type, changeType,
     form, update, permit, values, setMeasurement,
-    discardMeasurements: () => setValues({}), dirty, measurementDirty, conflict, evaluation, currentEvaluation, visibleChecks,
+    discardMeasurements: () => { setValues({}); setFill(null); }, fill, fillFromText, extracting, clearFill: () => setFill(null), dirty, measurementDirty, conflict, evaluation, currentEvaluation, visibleChecks,
     noApplicableRules, serverDisallowsSubmit, submitted, reachable, blocked, error, busy, loading, creationUncertain,
     unlockCreation: () => { setCreationUncertain(false); setError(''); },
     step, goTo, hasMeasurements, editable, locked: busy || disabled,

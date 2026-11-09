@@ -204,6 +204,29 @@ export function requireRuleEvaluation(evaluation) {
   return evaluation;
 }
 
+/**
+ * 문장 → 측정값 추출 + 미리 판정 (POST /api/v1/extract/rule-input). 저장하지 않는다.
+ * 서버가 사전(규칙)으로 뽑고, 설정되어 있으면 LLM 으로 보강한다. 못 찾거나 애매한 값은 비우고 notes 로 이유를 준다.
+ * workType: 허가 종류(HOT·CONFINED·HEIGHT) — 그 종류 규칙으로만 미리 판정한다.
+ */
+export async function extractRuleInput({ siteId, text, workType }) {
+  const result = await api('/api/v1/extract/rule-input', { method: 'POST', body: { siteId: jobId(siteId), text, workType } });
+  const extraction = result?.extraction;
+  if (!extraction || !Array.isArray(extraction.measurements) || !Array.isArray(extraction.notes)
+    || !extraction.measurements.every((value) => value && typeof value.item === 'string' && Number.isFinite(Number(value.value)))
+    || !Array.isArray(result.previews) || !result.previews.every((preview) => preview && typeof preview.workType === 'string')) {
+    throw new Error('문장 추출 응답 형식이 올바르지 않습니다. 갱신된 서버가 적용되었는지 확인해 주세요.');
+  }
+  result.previews.forEach((preview) => requireRuleEvaluation(preview.check));
+  return result;
+}
+
+/** 확인한 추출값을 허가서에 넣기 (POST /permits/{id}/extraction). 원문·추출값 기록이 남고, 측정값은 작업 전 측정으로 추가된다 */
+export async function applyPermitExtraction(id, { lockVersion, text, measurements }, siteId) {
+  const path = `/api/v1/permits/${jobId(id)}/extraction`;
+  return jobWrite(async () => requirePermit(await api(path, { method: 'POST', body: { lockVersion, text, measurements, form: {} } }), siteId));
+}
+
 export async function checkPermit(id) {
   const permitId = jobId(id);
   return jobWrite(async () => {
