@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getSafetyDashboard, getSafetyDashboardSummary } from '../api/dashboard';
+import { getSiteWorks } from '../api/jobs';
 import { rangeEnding } from '../utils/status-model.js';
 
 const message = (error, fallback) => (error?.status === 404 ? '현황 집계 API가 연결되지 않았습니다.' : error?.message || fallback);
@@ -14,6 +15,7 @@ export function useWorkStatus({ siteId, initialDate, disabled }) {
   const [revision, setRevision] = useState(0);
   const [day, setDay] = useState({ key: null, data: null, error: '' });
   const [period, setPeriod] = useState({ key: null, data: null, error: '' });
+  const [works, setWorks] = useState({ key: null, data: null, error: '' });
   const dayKey = `${siteId}:${date}:${revision}`;
   const periodKey = `${siteId}:${date}:${rangeDays}:${revision}`;
 
@@ -23,6 +25,16 @@ export function useWorkStatus({ siteId, initialDate, disabled }) {
     getSafetyDashboard(siteId, date)
       .then((data) => { if (active) setDay({ key: dayKey, data, error: '' }); })
       .catch((error) => { if (active) setDay({ key: dayKey, data: null, error: message(error, '현황을 불러오지 못했습니다.') }); });
+    return () => { active = false; };
+  }, [siteId, date, dayKey, disabled]);
+
+  // 작업 상태 막대용 그날 작업 목록 (진행 칸은 위험성평가·허가·TBM 상태로 웹에서 센다)
+  useEffect(() => {
+    if (disabled) return undefined;
+    let active = true;
+    getSiteWorks(siteId, date)
+      .then((data) => { if (active) setWorks({ key: dayKey, data, error: '' }); })
+      .catch((error) => { if (active) setWorks({ key: dayKey, data: null, error: message(error, '작업 목록을 불러오지 못했습니다.') }); });
     return () => { active = false; };
   }, [siteId, date, dayKey, disabled]);
 
@@ -43,6 +55,7 @@ export function useWorkStatus({ siteId, initialDate, disabled }) {
     rangeDays, setRangeDays,
     reload: () => setRevision((value) => value + 1),
     dashboard: dayLoading ? null : day.data, dayError: dayLoading ? '' : day.error, dayLoading,
+    works: works.key === dayKey ? works.data : null, worksError: works.key === dayKey ? works.error : '',
     summary: periodLoading ? null : period.data, periodError: periodLoading ? '' : period.error, periodLoading,
   };
 }

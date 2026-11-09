@@ -4,8 +4,9 @@ import StatusView, { Skeleton } from '../ui/status-view.jsx';
 import Icon from '../ui/icon.jsx';
 import Panel, { Badge } from './panel.jsx';
 import {
-  tileValue, APPROVAL_TARGET_LABELS, nextAction, timeRange, todoTiles, todoTotal, toneOf, typeCounts, WORK_STATUS_LABELS, WORK_TYPE_LABELS, workStages,
+  tileValue, APPROVAL_TARGET_LABELS, nextAction, timeRange, todoTiles, todoTotal, toneOf, typeCounts, WORK_TYPE_LABELS, workStages,
 } from '../../utils/home-model.js';
+import { workStats } from '../../utils/work-list-model.js';
 
 const hm = (value) => (typeof value === 'string' && value.length >= 16 ? value.slice(11, 16) : '');
 
@@ -38,21 +39,20 @@ export function TodoPanel({ section, onRetry }) {
   );
 }
 
-const STATUS_ORDER = ['DRAFT', 'PENDING', 'APPROVED', 'IN_PROGRESS', 'BLOCKED', 'DONE'];
-
-/** 작업 현황: 상태별 건수 + 종류별 막대 */
+/** 작업 현황: 진행 칸별 건수(작업 목록과 같은 기준) + 종류별 막대 */
 export function WorkStatusPanel({ dashboard, works, onRetry }) {
-  const byStatus = dashboard.data?.works?.byStatus ?? {};
+  // 서버 작업 상태(byStatus)는 작업 승인·종료 API 가 없어 "작성 중"에서 바뀌지 않아, 오늘 작업 목록으로 진행 칸을 센다
+  const stages = workStats(works.data ?? []).filter((stat) => stat.key !== 'ALL');
   const counts = typeCounts(works.data ?? []);
   const max = Math.max(1, ...counts.map((item) => item.count));
   return (
     <Panel id="status" title="작업 현황" tag="오늘" count={dashboard.data?.works?.total} section={dashboard.status !== 'ready' ? dashboard : works} onRetry={onRetry} link="/job/dashboard" className="home-status">
       <div className="home-status__grid">
       <ul className="home-stats">
-        {STATUS_ORDER.map((status) => (
-          <li key={status} className={`home-stat home-stat--${toneOf(status)}`}>
-            <span className="home-stat__label">{WORK_STATUS_LABELS[status]}</span>
-            <strong className="home-stat__value">{byStatus[status] ?? 0}</strong>
+        {stages.map((stat) => (
+          <li key={stat.key} className={`home-stat home-stat--${stat.tone}`}>
+            <span className="home-stat__label">{stat.label}</span>
+            <strong className="home-stat__value">{stat.value}</strong>
           </li>
         ))}
       </ul>

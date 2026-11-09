@@ -80,13 +80,13 @@ function WorkList({ site, context, onCreate, onAgent }) {
   const period = usePeriod(`works:${site.siteId}`);
   const { from, to } = period;
   const [types, setTypes] = useState([]);
-  const [status, setStatus] = useState('');
+  const [stage, setStage] = useState(''); // 위 숫자 칸으로 고른 진행 칸 (utils/work-list-model.workStage)
   const [query, setQuery] = useState('');
   const [actionOnly, setActionOnly] = useState(false);
   const [lookup, setLookup] = useState('');
   const list = useWorkList(site.siteId, from, to);
   const all = useMemo(() => list.works.data ?? [], [list.works.data]);
-  const rows = useMemo(() => sortWorks(filterWorks(all, { types, status, query, actionOnly })), [all, types, status, query, actionOnly]);
+  const rows = useMemo(() => sortWorks(filterWorks(all, { types, stage, query, actionOnly })), [all, types, stage, query, actionOnly]);
   const stats = workStats(all);
   const zoneName = (id) => list.zones.data?.find((zone) => zone.zoneId === id)?.name ?? (id ? `구역 #${id}` : '구역 미지정');
 
@@ -102,11 +102,11 @@ function WorkList({ site, context, onCreate, onAgent }) {
 
       <ul className="work-stats" aria-label="작업 상태별 건수">
         {stats.map((stat) => {
-          const active = stat.key === 'ALL' ? !status : status === stat.key;
+          const active = stat.key === 'ALL' ? !stage : stage === stat.key;
           return (
             <li key={stat.key}>
               <button type="button" aria-pressed={active} className={`work-stat work-stat--${stat.tone}${active ? ' is-active' : ''}`}
-                onClick={() => setStatus(stat.key === 'ALL' || status === stat.key ? '' : stat.key)}>
+                onClick={() => setStage(stat.key === 'ALL' || stage === stat.key ? '' : stat.key)}>
                 <span className="work-stat__label">{stat.label}</span>
                 <strong className="work-stat__value">{list.works.status === 'ready' ? stat.value : '–'}</strong>
               </button>
@@ -146,7 +146,7 @@ function WorkList({ site, context, onCreate, onAgent }) {
         {list.works.status === 'ready' && !rows.length && (
           <StatusView kind="empty" title={all.length ? '조건에 맞는 작업이 없습니다' : '이 기간에 등록된 작업이 없습니다'}
             message={all.length ? '검색 조건을 바꿔 보세요.' : '대화로 만들거나 직접 등록하세요.'}
-            action={all.length ? { label: '조건 초기화', onClick: () => { setTypes([]); setStatus(''); setQuery(''); setActionOnly(false); } } : { label: '작업 직접 등록', onClick: onCreate }} />
+            action={all.length ? { label: '조건 초기화', onClick: () => { setTypes([]); setStage(''); setQuery(''); setActionOnly(false); } } : { label: '작업 직접 등록', onClick: onCreate }} />
         )}
         {list.works.status === 'ready' && rows.length > 0 && (
           <table className="home-table work-table">
@@ -170,8 +170,8 @@ function WorkList({ site, context, onCreate, onAgent }) {
                     <td data-label="허가">{permits.length ? <span className="work-badges">{permits.map((permit) => <Badge key={permit.permitId} tone={toneOf(permit.status)}>{PERMIT_STATUS_LABELS[permit.status]}</Badge>)}</span> : <span className="work-none">{work.workType === 'GENERAL' ? '해당 없음' : '없음'}</span>}</td>
                     <td data-label="TBM">{work.tbm ? <Badge tone={toneOf(work.tbm.status)}>{TBM_STATUS_LABELS[work.tbm.status]}</Badge> : <span className="work-none">없음</span>}</td>
                     <td data-label="진행">
-                      <span className="home-dots" role="img" aria-label={stages.map((stage) => `${stage.label} ${stage.hint || stage.state}`).join(', ')}>
-                        {stages.map((stage) => <span key={stage.key} className={`home-dot home-dot--${stage.state}`} title={`${stage.label} · ${stage.hint || ''}`} />)}
+                      <span className="home-dots" role="img" aria-label={stages.map((step) => `${step.label} ${step.hint || step.state}`).join(', ')}>
+                        {stages.map((step) => <span key={step.key} className={`home-dot home-dot--${step.state}`} title={`${step.label} · ${step.hint || ''}`} />)}
                       </span>
                     </td>
                     <td data-label="지금 할 일">{next.path ? <Link to={`/job/workspace?workId=${work.workId}`} className={`home-next home-next--${next.tone}`}>{next.label}</Link> : <Badge tone={next.tone}>{next.label}</Badge>}</td>

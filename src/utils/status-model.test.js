@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { clockOf, deadlineRows, entryPath, rangeEnding, statusSegments, summaryBars, summaryTotals, teamRows } from './status-model.js';
+import { clockOf, deadlineRows, entryPath, rangeEnding, stageSegments, statusSegments, summaryBars, summaryTotals, teamRows } from './status-model.js';
 
 test('status segments keep a fixed order and skip zero', () => {
   const segments = statusSegments({ DONE: 1, BLOCKED: 2, DRAFT: 0, APPROVED: 1 });
@@ -28,4 +28,15 @@ test('teams, summary bars, totals and range', () => {
   assert.equal(summaryBars(null).max, 1);
   assert.deepEqual(summaryTotals({ TBM_MISSING: 2, MEASUREMENT_MISSING: 1 }).map((row) => row.type), ['MEASUREMENT_MISSING', 'TBM_MISSING']);
   assert.deepEqual(rangeEnding('2026-11-06', 7), { from: '2026-10-31', to: '2026-11-06' });
+});
+
+test('진행 칸 막대: 작업 목록과 같은 기준, 0건 칸은 뺀다', () => {
+  const approved = { riskAssessment: { riskAssessmentId: 1, status: 'APPROVED' }, permits: [], tbm: { tbmId: 2, status: 'APPROVED' } };
+  const works = [
+    { workId: 1, workType: 'GENERAL', status: 'DRAFT', permits: [], riskAssessment: null, tbm: null },
+    { workId: 2, workType: 'GENERAL', status: 'DRAFT', ...approved },
+    { workId: 3, workType: 'GENERAL', status: 'DRAFT', ...approved },
+  ];
+  assert.deepEqual(stageSegments(works).map((segment) => [segment.status, segment.count]), [['TODO', 1], ['READY', 2]]);
+  assert.deepEqual(stageSegments([]), []);
 });

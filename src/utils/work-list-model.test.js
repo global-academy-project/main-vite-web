@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { backToHubPath, filterWorks, hubDocs, parseDocParam, sortWorks, withBack, workStats } from './work-list-model.js';
+import { backToHubPath, filterWorks, hubDocs, parseDocParam, sortWorks, withBack, workStage, workStats } from './work-list-model.js';
 
 const w = (patch) => ({ workId: 1, workDate: '2026-11-05', title: '탱크 청소', workType: 'CONFINED', status: 'DRAFT', permits: [], riskAssessment: null, tbm: null, ...patch });
 const list = [
@@ -11,7 +11,8 @@ const list = [
 
 test('거르기: 종류·상태·검색·할 일 있음', () => {
   assert.deepEqual(filterWorks(list, { types: ['HOT', 'GENERAL'] }).map((x) => x.workId), [2, 3]);
-  assert.deepEqual(filterWorks(list, { status: 'BLOCKED' }).map((x) => x.workId), [2]);
+  assert.deepEqual(filterWorks(list, { stage: 'BLOCKED' }).map((x) => x.workId), [2]);
+  assert.deepEqual(filterWorks(list, { stage: 'TODO' }).map((x) => x.workId), [1]);
   assert.deepEqual(filterWorks(list, { query: '용접' }).map((x) => x.workId), [2]);
   assert.deepEqual(filterWorks(list, { actionOnly: true }).map((x) => x.workId), [1, 2]);
 });
@@ -20,6 +21,20 @@ test('숫자 카드: 허가가 차단돼도 차단으로 센다', () => {
   const stats = workStats([...list, w({ workId: 4, permits: [{ permitId: 7, status: 'BLOCKED' }] })]);
   assert.equal(stats.find((s) => s.key === 'ALL').value, 4);
   assert.equal(stats.find((s) => s.key === 'BLOCKED').value, 2);
+});
+
+test('진행 칸: 문서 상태로 정하고 작업 하나는 한 칸에만', () => {
+  const approved = { riskAssessment: { riskAssessmentId: 9, status: 'APPROVED' }, permits: [{ permitId: 7, status: 'APPROVED' }], tbm: { tbmId: 4, status: 'APPROVED' } };
+  assert.equal(workStage(w(approved)), 'READY');
+  assert.equal(workStage(w({ ...approved, riskAssessment: { riskAssessmentId: 9, status: 'PENDING' } })), 'WAIT');
+  assert.equal(workStage(w({ ...approved, tbm: { tbmId: 4, status: 'DONE' } })), 'WAIT');
+  // 승인 대기 문서가 있어도 쓸 게 남았으면 할 일 있음
+  assert.equal(workStage(w({ ...approved, riskAssessment: { riskAssessmentId: 9, status: 'PENDING' }, tbm: null })), 'TODO');
+  assert.equal(workStage(w({ ...approved, riskAssessment: { riskAssessmentId: 9, status: 'REJECTED' } })), 'TODO');
+  assert.equal(workStage(w({ ...approved, permits: [{ permitId: 7, status: 'BLOCKED' }] })), 'BLOCKED');
+  assert.equal(workStage(w({ status: 'CANCELED' })), null);
+  const stats = workStats([w({}), w(approved), w({ ...approved, tbm: { tbmId: 4, status: 'DONE' } })]);
+  assert.deepEqual(stats.map((stat) => [stat.key, stat.value]), [['ALL', 3], ['BLOCKED', 0], ['TODO', 1], ['WAIT', 1], ['READY', 1]]);
 });
 
 test('정렬: 최근 날짜 먼저, 같은 날은 시작 시각순', () => {

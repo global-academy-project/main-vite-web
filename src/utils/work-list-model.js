@@ -1,29 +1,40 @@
 // 작업 목록 화면의 검색 조건·건수 (서버 목록 응답 WorkListItem 만 쓴다)
-import { nextAction } from './home-model.js';
+import { nextAction, workReady } from './home-model.js';
 
-/** 검색 조건: 종류(여러 개), 상태, 제목 검색, "지금 할 일 있음"만 */
-export function filterWorks(works = [], { types = [], status = '', query = '', actionOnly = false } = {}) {
+/**
+ * 작업 하나의 진행 칸. 서버에는 작업 자체를 승인·시작·종료하는 API 가 없어 작업 상태(status)가 처음 값에서 바뀌지 않으므로,
+ * 위험성평가·허가·TBM 상태로 정한다 (작업 허브의 "지금 할 일"과 같은 순서). 작업 하나는 한 칸에만 든다.
+ *  BLOCKED 차단(작업·허가 판정 차단) → TODO 할 일 있음(작성·측정·판정·TBM 실시·반려 수정) → WAIT 승인 대기 → READY 준비 완료(모두 승인)
+ * 취소된 작업은 어느 칸에도 들지 않는다(전체에만).
+ */
+export function workStage(work) {
+  if (work.status === 'CANCELED') return null;
+  if (work.status === 'BLOCKED' || (work.permits ?? []).some((permit) => permit.status === 'BLOCKED')) return 'BLOCKED';
+  if (workReady(work) || work.status === 'DONE') return 'READY';
+  return nextAction(work).tone === 'wait' ? 'WAIT' : 'TODO';
+}
+
+/** 검색 조건: 종류(여러 개), 진행 칸(workStage), 제목 검색, "지금 할 일 있음"만 */
+export function filterWorks(works = [], { types = [], stage = '', query = '', actionOnly = false } = {}) {
   const q = query.trim().toLowerCase();
   return works.filter((work) => {
     if (types.length && !types.includes(work.workType)) return false;
-    if (status && work.status !== status) return false;
+    if (stage && workStage(work) !== stage) return false;
     if (q && !String(work.title ?? '').toLowerCase().includes(q)) return false;
     if (actionOnly && !nextAction(work).path) return false;
     return true;
   });
 }
 
-/** 위 숫자 카드: 전체 / 차단 / 승인 대기 / 작성 중 / 진행 중 / 완료 */
+/** 위 숫자 카드: 전체 / 차단 / 할 일 있음 / 승인 대기 / 준비 완료 (workStage 기준) */
 export function workStats(works = []) {
-  const count = (status) => works.filter((work) => work.status === status).length;
-  const blocked = works.filter((work) => work.status === 'BLOCKED' || (work.permits ?? []).some((permit) => permit.status === 'BLOCKED')).length;
+  const count = (stage) => works.filter((work) => workStage(work) === stage).length;
   return [
     { key: 'ALL', label: '전체', value: works.length, tone: 'neutral' },
-    { key: 'BLOCKED', label: '차단', value: blocked, tone: 'block' },
-    { key: 'PENDING', label: '승인 대기', value: count('PENDING'), tone: 'wait' },
-    { key: 'DRAFT', label: '작성 중', value: count('DRAFT'), tone: 'todo' },
-    { key: 'IN_PROGRESS', label: '진행 중', value: count('IN_PROGRESS'), tone: 'active' },
-    { key: 'DONE', label: '완료', value: count('DONE'), tone: 'done' },
+    { key: 'BLOCKED', label: '차단', value: count('BLOCKED'), tone: 'block' },
+    { key: 'TODO', label: '할 일 있음', value: count('TODO'), tone: 'todo' },
+    { key: 'WAIT', label: '승인 대기', value: count('WAIT'), tone: 'wait' },
+    { key: 'READY', label: '준비 완료', value: count('READY'), tone: 'done' },
   ];
 }
 

@@ -10,7 +10,7 @@ import { useWorkStatus } from '../../hooks/use-work-status.js';
 import { APPROVAL_TARGET_LABELS, tileValue, todoTiles, todoTotal } from '../../utils/home-model.js';
 import { localDate } from '../../utils/job-forms';
 import { shiftDate } from '../../utils/daily-log-model.js';
-import { clockOf, deadlineRows, entryPath, statusSegments, summaryBars, summaryTotals, teamRows } from '../../utils/status-model.js';
+import { clockOf, deadlineRows, entryPath, stageSegments, summaryBars, summaryTotals, teamRows } from '../../utils/status-model.js';
 import '../../styles/home.css';
 import '../../styles/work.css';
 import '../../styles/records.css';
@@ -86,7 +86,7 @@ function StatusPage({ site, context }) {
 
           <section className="home-panel status-card" aria-labelledby="status-works">
             <header className="tbm-card__head"><div><h2 id="status-works">작업 상태</h2><p className="rec-help">{data.date} · 작업 {dashboard ? dashboard.works.total : '—'}건</p></div></header>
-            {dashboard ? <StatusBar byStatus={dashboard.works.byStatus} total={dashboard.works.total} /> : <div className="status-bar status-bar--wait"><Skeleton lines={2} /></div>}
+            {data.works ? <StatusBar works={data.works} /> : data.worksError ? <p className="rec-help status-pad" role="alert">{data.worksError}</p> : <div className="status-bar status-bar--wait"><Skeleton lines={2} /></div>}
           </section>
 
           <div className="status-grid">
@@ -144,9 +144,10 @@ function Kpi({ label, value, unit, tone = '', hint }) {
   );
 }
 
-function StatusBar({ byStatus, total }) {
-  const segments = statusSegments(byStatus);
-  if (!total) return <p className="rec-help status-pad">이 날짜에 등록된 작업이 없습니다.</p>;
+/** 작업 상태 막대: 작업 목록과 같은 진행 칸(차단·할 일 있음·승인 대기·준비 완료) */
+function StatusBar({ works }) {
+  const segments = stageSegments(works);
+  if (!segments.length) return <p className="rec-help status-pad">이 날짜에 등록된 작업이 없습니다.</p>;
   return (
     <div className="status-bar">
       <div className="status-bar__track" role="img" aria-label={segments.map((segment) => `${segment.label} ${segment.count}건`).join(', ')}>

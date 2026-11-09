@@ -1,5 +1,6 @@
-// 작업 현황 화면용 계산 (서버 대시보드 응답만 쓴다)
+// 작업 현황 화면용 계산 (서버 대시보드 응답 + 작업 목록)
 import { jobRecordPath } from './job-forms.js';
+import { workStats } from './work-list-model.js';
 import { TODO_TYPES, WORK_STATUS_LABELS, toneOf } from './home-model.js';
 
 const STATUS_ORDER = ['DRAFT', 'PENDING', 'APPROVED', 'IN_PROGRESS', 'BLOCKED', 'REJECTED', 'DONE'];
@@ -11,6 +12,18 @@ export function statusSegments(byStatus = {}) {
   return keys.filter((key) => byStatus[key] > 0).map((status) => ({
     status, label: WORK_STATUS_LABELS[status] ?? status, count: byStatus[status], tone: toneOf(status),
     ratio: total ? byStatus[status] / total : 0,
+  }));
+}
+
+/**
+ * 작업 목록 → 진행 칸 막대 조각 [{ status, label, count, tone, ratio }] (0건 제외).
+ * 서버 작업 상태(byStatus)는 작업 승인·종료 API 가 없어 "작성 중"에서 바뀌지 않으므로, 작업 목록 화면과 같은 기준(차단·할 일 있음·승인 대기·준비 완료)으로 센다.
+ */
+export function stageSegments(works = []) {
+  const stats = workStats(works).filter((stat) => stat.key !== 'ALL');
+  const total = stats.reduce((sum, stat) => sum + stat.value, 0);
+  return stats.filter((stat) => stat.value > 0).map((stat) => ({
+    status: stat.key, label: stat.label, count: stat.value, tone: stat.tone, ratio: total ? stat.value / total : 0,
   }));
 }
 
