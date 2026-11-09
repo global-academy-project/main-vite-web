@@ -20,6 +20,8 @@ import '../../styles/risk.css';
 import '../../styles/permit.css';
 import { usePeriod } from '../../hooks/use-period.js';
 import PeriodBar from '../../components/period-bar.jsx';
+import SpeakFill from '../../components/permit/speak-fill.jsx';
+import { fieldHint } from '../../utils/extract-model.js';
 
 // TODO: BACKEND CONTRACT REQUIRED: POST /api/v1/permits/{permitId}/signatures
 // EVENT: SUPERVISOR 서명은 approval.steps에 추가하지 않고 별도 이벤트로 저장한다.
@@ -310,12 +312,14 @@ function StepMeasurements({ data }) {
       {data.editable && (
         <fieldset className="permit-step__body" disabled={data.locked || data.conflict}>
           <legend className="sr-only">측정값</legend>
+          <SpeakFill data={data} fields={measurementFields[data.type]} />
           <div className="permit-measures">
             {measurementFields[data.type].map(({ code, label }) => (
               <div key={code} className="permit-measure">
                 <label className="risk-field">{label}
                   <input type="number" min="0" max={['O2', 'CO2', 'LEL'].includes(code) ? 100 : undefined} step="any" inputMode="decimal" value={data.values[code] ?? ''} onChange={(event) => data.setMeasurement(code, event.target.value)} />
                 </label>
+                <FillHint hint={fieldHint(data.fill, code, data.values[code])} />
                 <FieldChecks data={data} target={`measurement.${code}`} />
               </div>
             ))}
@@ -342,6 +346,14 @@ function StepMeasurements({ data }) {
       </div>
     </section>
   );
+}
+
+/** 문장으로 채운 칸 표시 (서버 미리 판정 그대로): 문장에서 / 입력 필요 / 기준 밖 */
+function FillHint({ hint }) {
+  if (!hint) return null;
+  if (hint.kind === 'filled') return <span className="fill-hint is-filled">문장에서 채움</span>;
+  if (hint.kind === 'missing') return <span className="fill-hint is-missing">입력 필요</span>;
+  return <span className="fill-hint is-out">기준 밖 · 기준 {hint.expected}{hint.message ? ` · ${hint.message}` : ''}</span>;
 }
 
 function StepCheck({ data }) {
