@@ -40,7 +40,8 @@
 .is-block.status-bar__seg, .is-block.status-bar__dot { background: var(--color-danger); }
 .is-wait.status-bar__seg, .is-wait.status-bar__dot { background: var(--color-primary); }
 .is-active.status-bar__seg, .is-active.status-bar__dot { background: var(--color-primary-hover); }
-.is-todo.status-bar__seg, .is-todo.status-bar__dot, .is-neutral.status-bar__seg, .is-neutral.status-bar__dot { background: var(--color-border-input); }
+.is-todo.status-bar__seg, .is-todo.status-bar__dot { background: var(--color-warning); }
+.is-neutral.status-bar__seg, .is-neutral.status-bar__dot { background: var(--color-border-input); }
 
 /* 미완료 + 팀 */
 .status-grid { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: var(--space-4); align-items: start; }

@@ -117,11 +117,12 @@ button.home-more { display: none; } /* 펼치기 버튼은 모바일에서만 */
 
 /* ── 작업 현황 ─────────────────────────────────────── */
 .home-status__grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-4); align-items: center; padding: var(--space-3) var(--space-4); }
-.home-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
+.home-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
 .home-stat { display: flex; flex-direction: column; gap: 0; padding: 6px var(--space-1); border-radius: var(--radius-md); background: var(--color-surface-muted); text-align: center; }
 .home-stat__label { font-size: var(--text-xs); color: var(--color-text-muted); white-space: nowrap; }
 .home-stat__value { font-size: 20px; color: var(--color-text-strong); }
 .home-stat--block .home-stat__value { color: var(--color-danger-text); }
+.home-stat--todo .home-stat__value { color: var(--color-warning-text); }
 .home-stat--wait .home-stat__value { color: var(--color-primary); }
 .home-stat--done .home-stat__value { color: var(--color-success-text); }
 .home-bars { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; list-style: none; }
