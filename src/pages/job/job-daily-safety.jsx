@@ -11,10 +11,12 @@ import { useToast } from '../../components/ui/toast-context.js';
 import { useDailySafety } from '../../hooks/use-daily-safety.js';
 import { useDateRange } from '../../hooks/use-date-range.js';
 import PeriodBar from '../../components/period-bar.jsx';
+import SafetyInspectionLogForm from '../../components/daily-safety/safety-inspection-log-form.jsx';
 import {
   checksTotal, DAILY_LOG_APPROVER_ROLES, DAILY_LOG_STATUS_LABELS, DAILY_LOG_TONES, dailyLogSteps, deadlineOf, teamRow,
 } from '../../utils/daily-log-model.js';
 import { jobRecordPath, localDate } from '../../utils/job-forms';
+import { missingDailyLogDocumentFields, normalizeDailyLogDocument } from '../../utils/daily-log-document.js';
 import '../../styles/home.css';
 import '../../styles/work.css';
 import '../../styles/records.css';
@@ -47,6 +49,14 @@ export default function JobDailySafety() {
     setPeriod: (from, to) => { if (confirmLeave()) { setPicked(null); range.setPeriod(from, to); } },
     pick: (days) => { if (confirmLeave()) { setPicked(null); range.period.pick(days); } },
   };
+  const handlePrint = () => {
+    const missing = missingDailyLogDocumentFields(normalizeDailyLogDocument(data.log));
+    if (missing.length > 0) {
+      toast.show({ tone: 'warning', message: `인쇄 전에 확인해 주세요: ${missing.join(', ')}` });
+      return;
+    }
+    window.print();
+  };
 
   return (
     <JobPageLayout title="안전일지" user={context.account?.user} contentClassName="work-page">
@@ -56,6 +66,7 @@ export default function JobDailySafety() {
           badges={deadline && <Badge tone={deadline.passed ? 'block' : 'neutral'}><Icon name="clock" size={12} />{deadline.text}</Badge>}
           actions={<>
             <button type="button" className="ui-btn ui-btn--ghost" disabled={data.busy || data.loading} onClick={data.reload}><Icon name="refresh" size={16} />새로고침</button>
+            <button type="button" className="ui-btn ui-btn--ghost" disabled={!data.log || data.busy || data.loading} onClick={handlePrint}><Icon name="print" size={16} />인쇄</button>
             {data.log?.dailyLogId && <Link className="ui-btn ui-btn--ghost" to={`/records/DAILY_LOG/${data.log.dailyLogId}`}>문서 보기</Link>}
           </>} />
 
@@ -69,6 +80,7 @@ export default function JobDailySafety() {
         {!site ? <StatusView kind="empty" title="현장을 선택해 주세요" />
           : canApprove ? <ManagerView data={data} /> : <WriterView data={data} />}
       </div>
+      <SafetyInspectionLogForm log={normalizeDailyLogDocument(data.log)} />
     </JobPageLayout>
   );
 }
@@ -183,6 +195,10 @@ function LogPanel({ data, editable = false }) {
                 <button type="button" className="ui-btn ui-btn--primary" disabled={data.busy || !data.summary.trim()} onClick={data.submit}>승인 요청</button>
               </div>
             )}
+            <section className="rec-log__json" aria-labelledby="daily-log-json-title">
+              <span id="daily-log-json-title" className="rec-block__title">안전일지 초안 JSON</span>
+              <pre>{JSON.stringify({ ...log, summary: data.summary }, null, 2)}</pre>
+            </section>
             {log.status === 'PENDING' && <p className="rec-note"><Icon name="clock" size={16} />승인 대기 중입니다. 승인 또는 회수는 승인함에서 처리합니다.</p>}
             {log.status === 'APPROVED' && <p className="rec-note rec-note--done"><Icon name="check" size={16} />승인 완료된 안전일지는 수정할 수 없습니다.</p>}
             {log.status === 'REJECTED' && <p className="rec-note rec-note--block"><Icon name="alert" size={16} />반려된 일지입니다. 승인함에서 반려 사유를 확인하세요.</p>}

@@ -3,6 +3,7 @@ import { Link, Navigate, useParams } from 'react-router-dom';
 import { getDocumentPreview, PREVIEW_TYPES } from '../../api/records';
 import { useWorkSite } from '../../api/workers';
 import ApprovalPreview from '../../components/approvals/approval-preview.jsx';
+import SafetyInspectionLogForm from '../../components/daily-safety/safety-inspection-log-form.jsx';
 import JobPageLayout from '../../components/job-page-layout';
 import PageHeader from '../../components/ui/page-header.jsx';
 import { Badge } from '../../components/home/panel.jsx';
@@ -13,6 +14,7 @@ import {
 } from '../../utils/approval-model.js';
 import { APPROVAL_TARGET_LABELS } from '../../utils/home-model.js';
 import { jobRecordPath } from '../../utils/job-forms.js';
+import { normalizeDailyLogDocument } from '../../utils/daily-log-document.js';
 import '../../styles/home.css';
 import '../../styles/work.css';
 import '../../styles/records.css';
@@ -57,6 +59,7 @@ function DocumentPage({ type, id }) {
 
   const loading = supported && state.key !== key;
   const preview = loading ? null : state.data;
+  const dailyLogContent = normalizeDailyLogDocument(preview);
   const label = APPROVAL_TARGET_LABELS[type] ?? type;
   const summary = preview?.approval?.summary;
   const steps = preview?.approval?.steps ?? [];
@@ -90,7 +93,9 @@ function DocumentPage({ type, id }) {
                 </div>
                 <span className="rec-help doc-sheet__time">생성 {shortDateTime(preview.generatedAt)}</span>
               </header>
-              <ApprovalPreview preview={preview} />
+              {type === 'DAILY_LOG'
+                ? <SafetyInspectionLogForm log={dailyLogContent} preview />
+                : <ApprovalPreview preview={preview} />}
             </section>
 
             <aside className="doc-side">

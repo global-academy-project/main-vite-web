@@ -41,7 +41,11 @@ export function useDailySafety(siteId, date, period = null) {
         const list = Array.isArray(logs) ? logs : [];
         const selected = list.find((item) => item.date === date) || list[0];
         const detail = selected?.dailyLogId ? await getDailySafetyLog(selected.dailyLogId) : null;
-        if (active) { setState({ key, log: detail, error: '' }); setSummary(detail?.summary || ''); setError(''); }
+        if (active) {
+          setState({ key, log: detail, error: '' });
+          setSummary(detail?.summary || '');
+          setError('');
+        }
       } catch (requestError) {
         if (active) { setState({ key, log: null, error: dailyLogError(requestError) }); setSummary(''); }
       }
