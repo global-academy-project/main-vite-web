@@ -122,6 +122,8 @@ button.rec-warn__work.is-active { background: var(--color-primary-soft); box-sha
 .rec-log__actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--space-2); }
 .rec-log__state { margin-right: auto; color: var(--color-text-muted); font-size: var(--text-xs); }
 .rec-log__state.is-dirty { color: var(--color-warning-text); font-weight: var(--weight-bold); }
+.rec-log__json { display: flex; flex-direction: column; gap: var(--space-2); }
+.rec-log__json pre { max-height: 420px; margin: 0; padding: var(--space-3); overflow: auto; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface-muted); color: var(--color-text); font: 12px/1.6 ui-monospace, SFMono-Regular, Consolas, monospace; white-space: pre; }
 .rec-note { display: flex; align-items: center; gap: 6px; margin: 0; padding: var(--space-2) var(--space-3); border-radius: var(--radius-md); background: var(--color-primary-soft); color: var(--color-primary-hover); font-size: var(--text-sm); }
 .rec-note--done { background: var(--color-success-soft); color: var(--color-success-text); }
 .rec-note--block { background: var(--color-danger-soft); color: var(--color-danger-text); }

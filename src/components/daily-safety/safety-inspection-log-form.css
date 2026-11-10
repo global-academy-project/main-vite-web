@@ -1,0 +1,233 @@
+.safety-inspection-log {
+  display: none;
+}
+
+.safety-inspection-log--preview {
+  display: block;
+  width: min(100%, 210mm);
+  min-height: 297mm;
+  margin: 0 auto;
+  padding: 14mm;
+  box-sizing: border-box;
+  color: #000;
+  background: #fff;
+  font-family: Arial, 'Malgun Gothic', sans-serif;
+  font-size: 10pt;
+  line-height: 1.45;
+  box-shadow: 0 2px 10px rgb(0 0 0 / 12%);
+}
+
+.safety-inspection-log--preview h1 {
+  margin: 0 0 9mm;
+  text-align: center;
+  font-size: 20pt;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.safety-inspection-log--preview .safety-inspection-log__section {
+  margin: 0 0 5mm;
+}
+
+.safety-inspection-log--preview .safety-inspection-log__section h2 {
+  margin: 0 0 2mm;
+  font-size: 11pt;
+  font-weight: 700;
+}
+
+.safety-inspection-log--preview table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.safety-inspection-log--preview th,
+.safety-inspection-log--preview td,
+.safety-inspection-log--preview .safety-inspection-log__label,
+.safety-inspection-log--preview .safety-inspection-log__value {
+  box-sizing: border-box;
+  border: 1px solid #000;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.safety-inspection-log--preview th {
+  width: 18%;
+  padding: 2.2mm 2mm;
+  background: #d9d9d9;
+  text-align: center;
+  vertical-align: middle;
+  font-weight: 700;
+}
+
+.safety-inspection-log--preview td {
+  min-height: 9mm;
+  padding: 2.2mm 2.5mm;
+  vertical-align: middle;
+  white-space: pre-wrap;
+}
+
+.safety-inspection-log--preview .safety-inspection-log__narrative {
+  display: block;
+  border-top: 1px solid #000;
+}
+
+.safety-inspection-log--preview .safety-inspection-log__narrative-row {
+  display: grid;
+  grid-template-columns: 28mm 1fr;
+  min-height: 18mm;
+}
+
+.safety-inspection-log--preview .safety-inspection-log__label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2.5mm 2mm;
+  background: #d9d9d9;
+  font-weight: 700;
+  text-align: center;
+}
+
+.safety-inspection-log--preview .safety-inspection-log__value {
+  min-height: 18mm;
+  padding: 2.5mm 3mm;
+  white-space: pre-wrap;
+}
+
+@media (max-width: 760px) {
+  .safety-inspection-log--preview {
+    width: 100%;
+    min-height: auto;
+    padding: 20px;
+    overflow-x: auto;
+    box-shadow: none;
+  }
+}
+
+@media print {
+  @page {
+    size: A4;
+    margin: 14mm;
+  }
+
+  html,
+  body {
+    width: 210mm;
+    min-height: 297mm;
+    margin: 0;
+    background: #fff;
+  }
+
+  body * {
+    visibility: hidden !important;
+  }
+
+  .safety-inspection-log,
+  .safety-inspection-log * {
+    visibility: visible !important;
+  }
+
+  .safety-inspection-log {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 182mm;
+    min-height: 269mm;
+    box-sizing: border-box;
+    padding: 0;
+    color: #000;
+    background: #fff;
+    font-family: Arial, 'Malgun Gothic', sans-serif;
+    font-size: 10pt;
+    line-height: 1.45;
+  }
+
+  .safety-inspection-log--preview {
+    width: 182mm;
+    min-height: 269mm;
+    margin: 0;
+    padding: 0;
+    box-shadow: none;
+  }
+
+  .safety-inspection-log h1 {
+    margin: 0 0 9mm;
+    text-align: center;
+    font-size: 20pt;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+  }
+
+  .safety-inspection-log__section {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    margin: 0 0 5mm;
+  }
+
+  .safety-inspection-log__section h2 {
+    margin: 0 0 2mm;
+    font-size: 11pt;
+    font-weight: 700;
+  }
+
+  .safety-inspection-log table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+  }
+
+  .safety-inspection-log th,
+  .safety-inspection-log td,
+  .safety-inspection-log__label,
+  .safety-inspection-log__value {
+    box-sizing: border-box;
+    border: 1px solid #000;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .safety-inspection-log th {
+    width: 18%;
+    padding: 2.2mm 2mm;
+    background: #d9d9d9;
+    text-align: center;
+    vertical-align: middle;
+    font-weight: 700;
+  }
+
+  .safety-inspection-log td {
+    min-height: 9mm;
+    padding: 2.2mm 2.5mm;
+    vertical-align: middle;
+    white-space: pre-wrap;
+  }
+
+  .safety-inspection-log__narrative {
+    display: block;
+    border-top: 1px solid #000;
+  }
+
+  .safety-inspection-log__narrative-row {
+    display: grid;
+    grid-template-columns: 28mm 1fr;
+    min-height: 18mm;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .safety-inspection-log__label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2.5mm 2mm;
+    background: #d9d9d9;
+    font-weight: 700;
+    text-align: center;
+  }
+
+  .safety-inspection-log__value {
+    min-height: 18mm;
+    padding: 2.5mm 3mm;
+    white-space: pre-wrap;
+  }
+}

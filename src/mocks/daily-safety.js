@@ -37,3 +37,4 @@ export const dailySafetyDraft = {
     '전날 지적사항 2건',
   ],
 };
+

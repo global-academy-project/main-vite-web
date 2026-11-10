@@ -57,12 +57,17 @@ export function getDailySafetyLog(logId) {
   return api(`/api/v1/daily-safety-logs/${logId}`);
 }
 
-export function updateDailySafetyLog(logId, { lockVersion, summary }) {
+export function updateDailySafetyLog(logId, { lockVersion, summary, content }) {
   if (!logId || !Number.isSafeInteger(lockVersion) || !summary?.trim()) {
     throw new Error('안전일지 버전과 요약을 확인하세요.');
   }
   return api(`/api/v1/daily-safety-logs/${logId}`, {
-    method: 'PUT', body: { lockVersion, summary: summary.trim() },
+    method: 'PUT',
+    body: {
+      lockVersion,
+      summary: summary.trim(),
+      ...(content ? { content } : {}),
+    },
   });
 }
 
