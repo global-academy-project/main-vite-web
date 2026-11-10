@@ -1,6 +1,7 @@
 import { measurementFields, permitFormFields } from '../../api/jobs';
 import { Badge } from '../home/panel.jsx';
 import Icon from '../ui/icon.jsx';
+import { TbmPhotoSummary } from '../tbm/tbm-photos.jsx';
 import { shortDateTime, unitLabel } from '../../utils/approval-model.js';
 import { RISK_LEVEL_LABELS, timeRange, WORK_TYPE_LABELS } from '../../utils/home-model.js';
 
@@ -28,7 +29,7 @@ export default function ApprovalPreview({ preview }) {
       )}
       {preview.targetType === 'PERMIT' && <PermitPreview permit={content} />}
       {preview.targetType === 'RISK' && <RiskPreview risk={content} />}
-      {preview.targetType === 'TBM' && <TbmPreview tbm={content} />}
+      {preview.targetType === 'TBM' && <TbmPreview tbm={content} tbmId={content.tbmId ?? preview.targetId} />}
       {preview.targetType === 'INSPECTION' && <InspectionPreview inspection={content} />}
       {!['PERMIT', 'RISK', 'TBM', 'INSPECTION'].includes(preview.targetType) && <GenericPreview content={content} />}
     </div>
@@ -116,7 +117,7 @@ function RiskPreview({ risk }) {
   );
 }
 
-function TbmPreview({ tbm }) {
+function TbmPreview({ tbm, tbmId }) {
   return (
     <>
       <dl className="appr-facts">
@@ -133,6 +134,7 @@ function TbmPreview({ tbm }) {
         </>
       )}
       {tbm.healthCheck && <p className="appr-note">건강 확인: {tbm.healthCheck}</p>}
+      {Number.isSafeInteger(tbmId) && <><h4 className="appr-sub">TBM 사진 확인</h4><TbmPhotoSummary tbmId={tbmId} detail /></>}
     </>
   );
 }

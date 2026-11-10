@@ -17,6 +17,8 @@ const paths = {
   external: ['M14 4h6v6', 'M20 4l-9 9', 'M18 14v6H4V6h6'],
   spinner: ['M12 3a9 9 0 1 0 9 9'],
   refresh: ['M20 11a8 8 0 1 0-2.3 5.7', 'M20 5v6h-6'],
+  camera: ['M4 8h3l2-3h6l2 3h3v11H4z', 'M12 10a3.5 3.5 0 1 0 0 7a3.5 3.5 0 1 0 0-7'],
+  image: ['M4 5h16v14H4z', 'M4 16l5-5 4 4 2-2 5 5', 'M15 8h.01'],
   home: ['M3 11l9-8 9 8', 'M5 10v10h14V10'],
   work: ['M4 7h16v13H4z', 'M9 7V4h6v3'],
   records: ['M5 4h14v16H5z', 'M9 9h6', 'M9 13h6', 'M9 17h3'],

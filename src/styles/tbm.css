@@ -85,3 +85,28 @@ button.tbm-list__item.is-active, button.tbm-list__item.is-active:hover:not(:disa
   .tbm-risks__table td::before { content: attr(data-label); flex: 0 0 80px; color: var(--color-text-muted); font-size: var(--text-xs); }
 }
 .tbm-work__title .work-table__id, .tbm-worker__name .work-table__id { margin-left: 6px; }
+
+/* TBM 사진 (올리기·사진별 확인 결과) */
+.tbm-photos__pad, .tbm-photos > .rec-note, .tbm-photos > .rec-help { margin-left: var(--space-4); margin-right: var(--space-4); }
+.tbm-photos__note.is-warn { background: var(--color-warning-soft); color: var(--color-warning-text); }
+.tbm-photos__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: var(--space-3); margin: 0 var(--space-4); padding: 0; list-style: none; }
+.tbm-photo { display: flex; flex-direction: column; overflow: hidden; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface); }
+.tbm-photo.is-fail { border-color: var(--color-danger-border); }
+.tbm-photo__thumb { aspect-ratio: 4 / 3; background: var(--color-surface-muted); }
+.tbm-photo__thumb img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.tbm-photo__placeholder { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; height: 100%; padding: var(--space-2); color: var(--color-text-muted); text-align: center; word-break: break-all; }
+.tbm-photo__body { display: flex; flex-direction: column; gap: 6px; padding: var(--space-3); }
+.tbm-photo__head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
+.tbm-photo__meta { margin: 0; color: var(--color-text-sub); font-size: var(--text-sm); font-variant-numeric: tabular-nums; }
+.tbm-photo__msgs { margin: 0; padding-left: 1.1em; color: var(--color-text-sub); font-size: var(--text-sm); line-height: 1.5; }
+.tbm-photo.is-fail .tbm-photo__msgs { color: var(--color-danger-text); }
+.tbm-photo__confirm { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); font-size: var(--text-sm); }
+button.tbm-photo__btn { align-self: flex-start; min-height: 36px; padding: 4px 12px; font-size: var(--text-sm); }
+button.tbm-photo__btn.is-danger { color: var(--color-danger-text); border-color: var(--color-danger-border); }
+.tbm-photo-summary { display: flex; flex-direction: column; gap: 6px; }
+.tbm-photo-summary p { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); margin: 0; }
+@media (max-width: 640px) {
+  .tbm-photos__grid { grid-template-columns: 1fr; }
+  .tbm-photos .tbm-card__actions { width: 100%; }
+  .tbm-photos .tbm-card__actions .ui-btn { flex: 1 1 0; justify-content: center; }
+}

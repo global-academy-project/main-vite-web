@@ -5,6 +5,7 @@ import { useWorkSite } from '../../api/workers';
 import JobPageLayout from '../../components/job-page-layout';
 import JobReferenceSelectors from '../../components/job-reference-selectors';
 import JobTbmRisks from '../../components/job-tbm-risks';
+import TbmPhotos from '../../components/tbm/tbm-photos.jsx';
 import PageHeader from '../../components/ui/page-header.jsx';
 import { Badge } from '../../components/home/panel.jsx';
 import Icon from '../../components/ui/icon.jsx';
@@ -27,7 +28,7 @@ import PeriodBar from '../../components/period-bar.jsx';
 const tone = (tbm) => (!tbm ? 'todo' : tbm.approvalStatus === 'PENDING' ? 'wait' : tbm.status === 'APPROVED' ? 'done' : tbm.status === 'DONE' ? 'info' : 'todo');
 
 /**
- * TBM. 날짜 하나에 TBM 여러 건 — 왼쪽 목록, 오른쪽 고른 TBM(내용 · 연결 작업 위험성평가 · 참석자 · 실시 완료 · 확인 요청).
+ * TBM. 날짜 하나에 TBM 여러 건 — 왼쪽 목록, 오른쪽 고른 TBM(내용 · 연결 작업 위험성평가 · 참석자 · 사진 · 실시 완료 · 확인 요청).
  * 주소: ?date=YYYY-MM-DD&tbmId=번호 (작업 허브에서 오면 workId 로 새 TBM 에 그 작업을 미리 골라 둔다)
  */
 export default function JobTbm() {
@@ -62,7 +63,7 @@ function TbmPage({ site, context, initialDate, initialTbmId, presetWorkId, back,
 
   return (
     <div className="work-list rec-page tbm-page">
-      <PageHeader title="TBM" description="작업 전 안전 회의. 내용 작성 → 참석자 → 실시 완료 → 확인 요청 순서로 진행합니다." context={context}
+      <PageHeader title="TBM" description="작업 전 안전 회의. 내용 작성 → 참석자 → 사진 → 실시 완료 → 확인 요청 순서로 진행합니다." context={context}
         actions={<>
           {hub && <Link className="ui-btn ui-btn--ghost" to={hub}><Icon name="chevronLeft" size={16} />작업 허브로</Link>}
           <button type="button" className="ui-btn ui-btn--ghost" disabled={data.busy || data.loading} onClick={data.reload}><Icon name="refresh" size={16} />새로고침</button>
@@ -246,6 +247,8 @@ function TbmDetail({ data, tbm, siteId }) {
           ))}
         </fieldset>
       </section>
+
+      <TbmPhotos key={tbm.tbmId} tbm={tbm} editable={tbm.status !== 'APPROVED' && !data.approvalPending} />
 
       {data.editable && (
         <section className="home-panel tbm-card" aria-labelledby="tbm-finish">
