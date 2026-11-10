@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { checkChip, isStale, photoSummary, splitFiles, summaryText } from './tbm-photo-model.js';
+import { checkChip, correctionBody, correctionForm, isStale, photoSummary, splitFiles, summaryText } from './tbm-photo-model.js';
 
 const photo = (result, checkedTbmDate = '2026-11-03') => ({ attachmentId: 1, check: result ? { result, messages: [], checkedTbmDate } : null });
 
@@ -33,4 +33,15 @@ test('파일 고르기: 사진이 아니거나 너무 크면 빼고 이유를 �
   ], 20);
   assert.deepEqual(ok.map((file) => file.name), ['a.jpg', 'b.heic']);
   assert.equal(rejected.length, 2);
+});
+
+test('결과 고치기: 지금 값으로 시작, 사유 필수, 빈 칸은 모름, 날짜 정보 있는 사진은 당일 확인 안 보냄', () => {
+  const noDate = { takenAt: null, check: { detectedPeople: 4, helmetMissing: null, dateConfirmed: false } };
+  assert.deepEqual(correctionForm(noDate), { people: '4', helmetMissing: '', dateConfirmed: false, reason: '' });
+  assert.equal(correctionBody({ people: '5', helmetMissing: '', dateConfirmed: true, reason: ' ' }, noDate).error, '고친 사유를 적어 주세요.');
+  assert.deepEqual(correctionBody({ people: '5', helmetMissing: '', dateConfirmed: true, reason: '뒤쪽 1명 가려짐' }, noDate).body,
+    { people: 5, helmetMissing: null, dateConfirmed: true, reason: '뒤쪽 1명 가려짐' });
+  assert.equal(correctionBody({ people: '2', helmetMissing: '3', reason: 'x' }, noDate).error, '안전모 미착용 인원이 사진 속 인원보다 많습니다.');
+  assert.equal(correctionBody({ people: '-1', helmetMissing: '', reason: 'x' }, noDate).error, '인원은 0~500 사이 숫자로 적어 주세요.');
+  assert.equal(correctionBody({ people: '5', helmetMissing: '0', dateConfirmed: true, reason: 'x' }, { takenAt: '2026-11-03T08:00:00' }).body.dateConfirmed, null);
 });

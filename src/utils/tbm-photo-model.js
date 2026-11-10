@@ -55,3 +55,32 @@ export function splitFiles(files, maxBytes = 20 * 1024 * 1024) {
   });
   return { ok, rejected };
 }
+
+/** 고치기 폼 처음 값: 지금 결과에서 */
+export function correctionForm(photo) {
+  const check = photo.check ?? {};
+  return {
+    people: check.detectedPeople == null ? '' : String(check.detectedPeople),
+    helmetMissing: check.helmetMissing == null ? '' : String(check.helmetMissing),
+    dateConfirmed: Boolean(check.dateConfirmed),
+    reason: '',
+  };
+}
+
+const count = (text) => {
+  const value = String(text ?? '').trim();
+  if (!value) return null;
+  return /^\d{1,3}$/.test(value) && Number(value) <= 500 ? Number(value) : undefined;
+};
+
+/** 고치기 폼 → 요청 본문 ({ body } 또는 { error }). 비운 칸은 모름(null). 사유 필수 200자 */
+export function correctionBody(form, photo) {
+  const people = count(form.people);
+  const helmetMissing = count(form.helmetMissing);
+  if (people === undefined || helmetMissing === undefined) return { error: '인원은 0~500 사이 숫자로 적어 주세요.' };
+  if (people != null && helmetMissing != null && helmetMissing > people) return { error: '안전모 미착용 인원이 사진 속 인원보다 많습니다.' };
+  const reason = String(form.reason ?? '').trim();
+  if (!reason) return { error: '고친 사유를 적어 주세요.' };
+  if (reason.length > 200) return { error: '사유는 200자까지 적을 수 있습니다.' };
+  return { body: { people, helmetMissing, dateConfirmed: photo.takenAt ? null : Boolean(form.dateConfirmed), reason } };
+}
