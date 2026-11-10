@@ -12,7 +12,7 @@ function requirePhoto(photo) {
   if (check !== null && (!RESULTS.includes(check.result) || !Array.isArray(check.messages))) {
     throw new Error('사진 확인 결과 형식이 올바르지 않습니다. 최신 서버 배포 여부를 확인하세요.');
   }
-  return { ...photo, check };
+  return { ...photo, check: check && { ...check, boxes: Array.isArray(check.boxes) ? check.boxes : [] } };
 }
 
 const requirePhotos = (list) => {
@@ -24,7 +24,17 @@ export async function getTbmPhotos(tbmId) {
   return requirePhotos(await api(`/api/v1/tbm/${jobId(tbmId)}/photos`));
 }
 
-/** TBM 사진 한 장 올리기. 서버가 올리면서 촬영 날짜·같은 사진을 확인해 check 로 돌려준다 */
+/** 사진 속 인원과 참석자 명부 비교 (서버 판정, 알림만) */
+export async function getTbmPhotoSummary(tbmId) {
+  const summary = await api(`/api/v1/tbm/${jobId(tbmId)}/photos/summary`);
+  if (!summary || !Number.isInteger(summary.photoCount) || !Number.isInteger(summary.rosterCount) || typeof summary.message !== 'string'
+    || (summary.result !== null && !RESULTS.includes(summary.result))) {
+    throw new Error('사진 인원 요약 응답 형식이 올바르지 않습니다.');
+  }
+  return summary;
+}
+
+/** TBM 사진 한 장 올리기. 서버가 올리면서 촬영 날짜·같은 사진 확인과 사진 인식(켜져 있으면)을 해서 check 로 돌려준다 */
 export async function uploadTbmPhoto(tbmId, file) {
   const id = jobId(tbmId);
   const form = new FormData();
@@ -36,6 +46,12 @@ export async function uploadTbmPhoto(tbmId, file) {
 export async function recheckTbmPhotos(tbmId) {
   const id = jobId(tbmId);
   return jobWrite(async () => requirePhotos(await api(`/api/v1/tbm/${id}/photos/check`, { method: 'POST' })));
+}
+
+/** 작성자가 사진을 보고 확인 결과 고치기 (사유 필수). 고친 결과가 담긴 사진을 돌려준다 */
+export async function correctPhotoCheck(attachmentId, body) {
+  const id = jobId(attachmentId);
+  return jobWrite(async () => requirePhoto(await api(`/api/v1/attachments/${id}/check`, { method: 'PUT', body })));
 }
 
 export async function deleteAttachment(attachmentId) {
