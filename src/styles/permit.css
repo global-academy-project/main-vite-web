@@ -92,6 +92,12 @@ button.speak-fill__open:hover:not(:disabled) { background: var(--color-primary-s
 .speak-fill__input { display: flex; gap: var(--space-2); align-items: stretch; }
 .speak-fill__input textarea { flex: 1 1 auto; min-width: 0; min-height: 48px; padding: var(--space-2) var(--space-3); border: 1px solid var(--color-border-input); border-radius: var(--radius-sm); background: var(--color-surface); color: var(--color-text); font: inherit; font-size: var(--text-md); resize: vertical; }
 .speak-fill__input textarea:focus-visible { outline: 3px solid var(--color-focus); border-color: var(--color-primary); }
+.speak-fill__mic { white-space: nowrap; font-variant-numeric: tabular-nums; }
+button.speak-fill__mic.is-recording, button.speak-fill__mic.is-recording:hover:not(:disabled) { background: var(--color-danger); border-color: var(--color-danger); color: #fff; }
+.speak-fill__mic.is-recording svg { animation: speak-fill-pulse 1s ease-in-out infinite; }
+@keyframes speak-fill-pulse { 50% { opacity: 0.35; } }
+@media (prefers-reduced-motion: reduce) { .speak-fill__mic.is-recording svg { animation: none; } }
+.speak-fill__voice { display: flex; align-items: center; gap: 6px; margin: 0; }
 .speak-fill__result { display: flex; flex-direction: column; gap: 4px; padding: var(--space-2) var(--space-3); border-radius: var(--radius-sm); background: var(--color-surface); font-size: var(--text-sm); }
 .speak-fill__result p { display: flex; align-items: flex-start; gap: 6px; margin: 0; color: var(--color-text); }
 .speak-fill__result p svg { flex: 0 0 auto; margin-top: 3px; }
