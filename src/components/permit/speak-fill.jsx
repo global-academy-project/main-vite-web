@@ -59,17 +59,17 @@ export default function SpeakFill({ data, fields }) {
         <textarea ref={area} rows={2} maxLength={MAX} value={text} disabled={data.extracting || voice.state !== 'idle'} placeholder={`예: ${exampleText(fields)}`}
           onChange={(event) => setText(event.target.value)} />
         {voice.available && (
-          <button type="button" className={`ui-btn ${recording ? 'ui-btn--primary speak-fill__mic is-recording' : 'ui-btn--secondary speak-fill__mic'}`}
+          <button type="button" className={`ui-icon-btn speak-fill__mic${recording ? ' is-recording' : ''}`}
             disabled={data.extracting || voice.state === 'sending'} aria-pressed={recording}
+            aria-label={recording ? '녹음 멈추기' : voice.state === 'sending' ? '받아 적는 중' : '말로 입력'} title={recording ? '녹음 멈추기' : '말로 입력'}
             onClick={() => { setVoiceError(''); if (recording) voice.stop(); else void voice.start(); }}>
-            <Icon name={recording ? 'stop' : 'mic'} size={16} />
-            {recording ? `멈추기 ${clock(voice.elapsed)} / ${clock(voice.maxSeconds)}` : voice.state === 'sending' ? '받아 적는 중…' : '말로 입력'}
+            <Icon name={recording ? 'stop' : voice.state === 'sending' ? 'spinner' : 'mic'} size={20} />
           </button>
         )}
         <button type="submit" className="ui-btn ui-btn--primary" disabled={data.extracting || data.locked || !text.trim()}>{data.extracting ? '뽑는 중…' : '칸 채우기'}</button>
       </div>
-      {recording && <p className="rec-help speak-fill__voice" role="status">측정값을 또박또박 말해 주세요. 다 말하면 "멈추기"를 누르세요 ({voice.maxSeconds}초가 되면 자동으로 멈춥니다).</p>}
-      {voiceError && <p className="work-form__error speak-fill__voice" role="alert"><Icon name="alert" size={14} />{voiceError}</p>}
+      {recording && <p className="rec-help speak-fill__voice" role="status"><span className="speak-fill__clock">녹음 중 {clock(voice.elapsed)} / {clock(voice.maxSeconds)}</span>측정값을 또박또박 말하고 ■ 를 누르세요 ({voice.maxSeconds}초가 되면 자동으로 멈춥니다).</p>}
+      {voice.state === 'sending' && <p className="rec-help speak-fill__voice" role="status">받아 적는 중…</p>}
       {fill && (
         <div className="speak-fill__result" role="status">
           <p><Icon name="check" size={14} />{fill.filled.length ? `${fill.filled.map(labelOf).join(', ')} 칸을 채웠습니다.` : '채울 수 있는 값을 찾지 못했습니다.'}</p>
