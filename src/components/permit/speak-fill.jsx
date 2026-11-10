@@ -1,12 +1,15 @@
 import { useRef, useState } from 'react';
+import { useVoiceInput } from '../../hooks/use-voice-input.js';
 import Icon from '../ui/icon.jsx';
 import { exampleText, insertTerm, quickTerms, shortLabel } from '../../utils/extract-model.js';
+import { appendText, clock } from '../../utils/voice-model.js';
 
 const MAX = 2000;
 
 /**
  * 작업허가 측정값 단계의 "문장으로 채우기". 칸 입력이 주 방법이고 이건 보조다. 입력창은 허가 종류와 상관없이 하나.
- * 빠른 입력 버튼은 말(예: "산소 ")만 넣고 숫자는 사람이 쓴다. (음성 입력 STT 는 나중에 이 입력창에 글자를 넣는 식으로 확장)
+ * 빠른 입력 버튼은 말(예: "산소 ")만 넣고 숫자는 사람이 쓴다.
+ * 말로 입력(서버 음성 입력이 켜져 있을 때만): 녹음 → 받아 적은 글을 입력창 글 뒤에 붙인다. 칸은 채우지 않는다 (사람이 확인 후 "칸 채우기")
  * "칸 채우기"를 누르면 서버가 값을 뽑아 아래 칸을 채우고, 못 찾은 칸·기준 밖·확인할 점은 서버 판정 그대로 보여 준다.
  * data: hooks/use-permit-workspace.js (fill, fillFromText, extracting), fields: 그 허가 종류 측정 칸
  */
@@ -15,6 +18,12 @@ export default function SpeakFill({ data, fields }) {
   const [text, setText] = useState('');
   const area = useRef(null);
   const fill = data.fill;
+  const [voiceError, setVoiceError] = useState('');
+  const voice = useVoiceInput({
+    onText: (spoken) => { setVoiceError(''); setText((current) => appendText(current, spoken, MAX)); area.current?.focus(); },
+    onError: setVoiceError,
+  });
+  const recording = voice.state === 'recording';
   const labelOf = (code) => shortLabel(fields.find((field) => field.code === code)?.label ?? code);
 
   const addTerm = (term) => {
@@ -47,10 +56,20 @@ export default function SpeakFill({ data, fields }) {
         {quickTerms(fields).map((term) => <button key={term} type="button" className="work-chip" disabled={data.extracting} onClick={() => addTerm(term)}>{term}</button>)}
       </div>
       <div className="speak-fill__input">
-        <textarea ref={area} rows={2} maxLength={MAX} value={text} disabled={data.extracting} placeholder={`예: ${exampleText(fields)}`}
+        <textarea ref={area} rows={2} maxLength={MAX} value={text} disabled={data.extracting || voice.state !== 'idle'} placeholder={`예: ${exampleText(fields)}`}
           onChange={(event) => setText(event.target.value)} />
+        {voice.available && (
+          <button type="button" className={`ui-btn ${recording ? 'ui-btn--primary speak-fill__mic is-recording' : 'ui-btn--secondary speak-fill__mic'}`}
+            disabled={data.extracting || voice.state === 'sending'} aria-pressed={recording}
+            onClick={() => { setVoiceError(''); if (recording) voice.stop(); else void voice.start(); }}>
+            <Icon name={recording ? 'stop' : 'mic'} size={16} />
+            {recording ? `멈추기 ${clock(voice.elapsed)} / ${clock(voice.maxSeconds)}` : voice.state === 'sending' ? '받아 적는 중…' : '말로 입력'}
+          </button>
+        )}
         <button type="submit" className="ui-btn ui-btn--primary" disabled={data.extracting || data.locked || !text.trim()}>{data.extracting ? '뽑는 중…' : '칸 채우기'}</button>
       </div>
+      {recording && <p className="rec-help speak-fill__voice" role="status">측정값을 또박또박 말해 주세요. 다 말하면 "멈추기"를 누르세요 ({voice.maxSeconds}초가 되면 자동으로 멈춥니다).</p>}
+      {voiceError && <p className="work-form__error speak-fill__voice" role="alert"><Icon name="alert" size={14} />{voiceError}</p>}
       {fill && (
         <div className="speak-fill__result" role="status">
           <p><Icon name="check" size={14} />{fill.filled.length ? `${fill.filled.map(labelOf).join(', ')} 칸을 채웠습니다.` : '채울 수 있는 값을 찾지 못했습니다.'}</p>
