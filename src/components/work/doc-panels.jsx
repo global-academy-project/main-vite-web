@@ -7,6 +7,7 @@ import Field from '../ui/field.jsx';
 import Icon from '../ui/icon.jsx';
 import StatusView from '../ui/status-view.jsx';
 import { Badge } from '../home/panel.jsx';
+import { TbmPhotoSummary } from '../tbm/tbm-photos.jsx';
 import { PERMIT_STATUS_LABELS, RISK_LEVEL_LABELS, RISK_STATUS_LABELS, TBM_STATUS_LABELS, timeRange, toneOf, WORK_STATUS_LABELS, WORK_TYPE_LABELS } from '../../utils/home-model.js';
 import { jobRecordPath } from '../../utils/job-forms.js';
 import { withBack } from '../../utils/work-list-model.js';
@@ -171,7 +172,8 @@ function TbmDraft({ tbm, footer }) {
     <div className="draft-panel">
       <div className="draft-panel__status"><Badge tone={toneOf(tbm.status)}>{TBM_STATUS_LABELS[tbm.status]}</Badge><span>{tbm.tbmDate}</span></div>
       <Facts rows={[['참석', `${tbm.attendees.length}명`], ['연결 작업', `${tbm.works.length}건`], ['결재', tbm.approvalStatus ? ({ PENDING: '승인 대기', APPROVED: '승인', REJECTED: '반려', CANCELED: '취소' }[tbm.approvalStatus]) : '요청 전']]} />
-      <p className="draft-muted">참석 확인·교육 포인트·사진은 TBM 화면에서 이어서 합니다.</p>
+      <TbmPhotoSummary tbmId={tbm.tbmId} />
+      <p className="draft-muted">참석 확인·교육 포인트·사진 올리기는 TBM 화면에서 이어서 합니다.</p>
       <div className="draft-actions">{footer}</div>
     </div>
   );
