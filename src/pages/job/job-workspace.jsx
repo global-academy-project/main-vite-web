@@ -26,6 +26,7 @@ import { jobRecordPath } from '../../utils/job-forms.js';
 import { filterWorks, hubDocs, parseDocParam, sortWorks, withBack, workStats } from '../../utils/work-list-model.js';
 import '../../styles/home.css';
 import '../../styles/work.css';
+import '../../styles/risk.css';
 
 const docStatusLabel = (doc) => (doc.type === 'RISK' ? RISK_STATUS_LABELS : doc.type === 'PERMIT' ? PERMIT_STATUS_LABELS : TBM_STATUS_LABELS)[doc.status] ?? doc.status;
 
