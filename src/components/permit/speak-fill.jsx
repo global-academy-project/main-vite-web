@@ -70,6 +70,7 @@ export default function SpeakFill({ data, fields }) {
       </div>
       {recording && <p className="rec-help speak-fill__voice" role="status"><span className="speak-fill__clock">녹음 중 {clock(voice.elapsed)} / {clock(voice.maxSeconds)}</span>측정값을 또박또박 말하고 ■ 를 누르세요 ({voice.maxSeconds}초가 되면 자동으로 멈춥니다).</p>}
       {voice.state === 'sending' && <p className="rec-help speak-fill__voice" role="status">받아 적는 중…</p>}
+      {voiceError && <p className="work-form__error speak-fill__voice" role="alert"><Icon name="alert" size={14} />{voiceError}</p>}
       {fill && (
         <div className="speak-fill__result" role="status">
           <p><Icon name="check" size={14} />{fill.filled.length ? `${fill.filled.map(labelOf).join(', ')} 칸을 채웠습니다.` : '채울 수 있는 값을 찾지 못했습니다.'}</p>
