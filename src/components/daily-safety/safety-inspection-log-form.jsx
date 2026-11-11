@@ -1,4 +1,4 @@
-import './safety-inspection-log-form.css';
+import '../../styles/safety-inspection-log-form.css';
 
 const valueOf = (log, key) => (typeof log?.[key] === 'string' ? log[key] : '');
 
