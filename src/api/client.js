@@ -27,7 +27,9 @@ export class ApiError extends Error {
   }
 }
 
-const TIMEOUT_MS = 30000;
+// 요청 하나의 최대 대기. 11/12: 30 → 60초. 같은 PC 에서 모델이 CPU 를 쓰는 동안 잠깐 느린 응답을 실패로 끊지 않고,
+// 문장 추출(서버 LLM 대기 50초)이 화면에서 먼저 끊기지 않게. 서버가 꺼져 있으면 연결 단계에서 바로 실패한다
+const TIMEOUT_MS = 60000;
 let refreshing = null;
 
 function refreshAccessToken() {

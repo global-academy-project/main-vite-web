@@ -11,7 +11,9 @@ const MAX = 2000;
  * 빠른 입력 버튼은 말(예: "산소 ")만 넣고 숫자는 사람이 쓴다.
  * 말로 입력(서버 음성 입력이 켜져 있을 때만): 녹음 → 받아 적은 글을 입력창 글 뒤에 붙인다. 칸은 채우지 않는다 (사람이 확인 후 "칸 채우기")
  * "칸 채우기"를 누르면 서버가 값을 뽑아 아래 칸을 채우고, 못 찾은 칸·기준 밖·확인할 점은 서버 판정 그대로 보여 준다.
- * data: hooks/use-permit-workspace.js (fill, fillFromText, extracting), fields: 그 허가 종류 측정 칸
+ * 11/12: 채우기에 성공하면 입력창을 비우고, 아직 빈 필수 칸만 "남은 칸"으로 안내한다 → 남은 것만 이어서 적는다.
+ *        보낸 문장은 목록으로 보여 주고 저장 때 모두 기록한다. 실패하면 문장을 그대로 둔다 (고쳐서 다시 보내게)
+ * data: hooks/use-permit-workspace.js (fill, fillFromText, extracting, remaining), fields: 그 허가 종류 측정 칸
  */
 export default function SpeakFill({ data, fields }) {
   const [open, setOpen] = useState(false);
@@ -33,9 +35,15 @@ export default function SpeakFill({ data, fields }) {
     node?.focus(); // 바로 이어서 숫자를 칠 수 있게 입력창으로 (커서는 그린 뒤 말 뒤로)
     requestAnimationFrame(() => node?.setSelectionRange(cursor, cursor));
   };
+  const remaining = data.remaining ?? [];
+  const remainingFields = fields.filter((field) => remaining.includes(field.code));
   const submit = async (event) => {
     event.preventDefault();
-    await data.fillFromText(text);
+    const result = await data.fillFromText(text);
+    if (result) {
+      setText('');
+      requestAnimationFrame(() => area.current?.focus()); // 남은 칸을 바로 이어서 적게
+    }
   };
 
   if (!open) {
@@ -56,7 +64,8 @@ export default function SpeakFill({ data, fields }) {
         {quickTerms(fields).map((term) => <button key={term} type="button" className="work-chip" disabled={data.extracting} onClick={() => addTerm(term)}>{term}</button>)}
       </div>
       <div className="speak-fill__input">
-        <textarea ref={area} rows={2} maxLength={MAX} value={text} disabled={data.extracting || voice.state !== 'idle'} placeholder={`예: ${exampleText(fields)}`}
+        <textarea ref={area} rows={2} maxLength={MAX} value={text} disabled={data.extracting || voice.state !== 'idle'}
+          placeholder={`예: ${exampleText(fill && remainingFields.length ? remainingFields : fields)}`}
           onChange={(event) => setText(event.target.value)} />
         {voice.available && (
           <button type="button" className={`ui-icon-btn speak-fill__mic${recording ? ' is-recording' : ''}`}
@@ -73,8 +82,13 @@ export default function SpeakFill({ data, fields }) {
       {voiceError && <p className="work-form__error speak-fill__voice" role="alert"><Icon name="alert" size={14} />{voiceError}</p>}
       {fill && (
         <div className="speak-fill__result" role="status">
-          <p><Icon name="check" size={14} />{fill.filled.length ? `${fill.filled.map(labelOf).join(', ')} 칸을 채웠습니다.` : '채울 수 있는 값을 찾지 못했습니다.'}</p>
-          {fill.missing.length > 0 && <p className="is-missing"><Icon name="info" size={14} />입력 필요: {fill.missing.map(labelOf).join(', ')} — 아래 칸에 직접 넣거나 문장에 더 적어 주세요.</p>}
+          {fill.texts?.length > 1 && (
+            <ol className="speak-fill__sent" aria-label="보낸 문장">{fill.texts.map((sent, index) => <li key={index}>{sent}</li>)}</ol>
+          )}
+          <p><Icon name="check" size={14} />{(fill.lastFilled ?? fill.filled).length ? `${(fill.lastFilled ?? fill.filled).map(labelOf).join(', ')} 칸을 채웠습니다.` : '이 문장에서 채울 수 있는 값을 찾지 못했습니다.'}</p>
+          {remaining.length > 0
+            ? <p className="is-missing"><Icon name="info" size={14} />남은 칸: {remaining.map(labelOf).join(', ')} — 위에 이어서 적거나 아래 칸에 직접 넣어 주세요.</p>
+            : fill.required?.length > 0 && <p><Icon name="check" size={14} />필수 측정 칸을 모두 채웠습니다. 값을 확인하고 저장하세요.</p>}
           {Object.keys(fill.out).length > 0 && <p className="is-out"><Icon name="warning" size={14} />기준 밖: {Object.entries(fill.out).map(([code, item]) => `${labelOf(code)} (기준 ${item.expected})`).join(', ')}</p>}
           {fill.watcher && <p><Icon name="info" size={14} />감시인 "{fill.watcher}"을(를) 찾았습니다. 감시인은 1단계 허가서에서 저장합니다.</p>}
           {fill.notes.map((note, index) => <p key={index} className="is-note">· {note}</p>)}
