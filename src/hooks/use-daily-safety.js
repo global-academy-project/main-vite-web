@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { getSafetyDashboard } from '../api/dashboard';
+import { getSiteWorks } from '../api/jobs';
+import { getTbmPhotos } from '../api/attachments';
 import {
   createDailySafetyLogDraft, getDailySafetyLog, getDailySafetyLogs, submitDailySafetyLog, updateDailySafetyLog,
 } from '../api/records';
@@ -21,6 +23,8 @@ export function useDailySafety(siteId, date, period = null) {
   const toast = useToast();
   const [state, setState] = useState({ key: null, log: null, error: '' });
   const [dash, setDash] = useState({ key: null, data: null });
+  const [works, setWorks] = useState({ key: null, types: [] });
+  const [tbmPhotos, setTbmPhotos] = useState({ key: null, photos: [] });
   const [summary, setSummary] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -58,6 +62,30 @@ export function useDailySafety(siteId, date, period = null) {
     let active = true;
     getSafetyDashboard(siteId, date).then((data) => { if (active) setDash({ key: dashKey, data }); })
       .catch(() => { if (active) setDash({ key: dashKey, data: null }); });
+    return () => { active = false; };
+  }, [siteId, date, dashKey]);
+
+  useEffect(() => {
+    if (!log || !Array.isArray(log.evidence)) return undefined;
+    const tbmIds = [...new Set(log.evidence
+      .filter((item) => item?.targetType === 'TBM' && item.targetId != null)
+      .map((item) => item.targetId))];
+    if (!tbmIds.length) return undefined;
+    let active = true;
+    Promise.all(tbmIds.map((tbmId) => getTbmPhotos(tbmId)))
+      .then((lists) => { if (active) setTbmPhotos({ key, photos: lists.flat() }); })
+      .catch(() => { if (active) setTbmPhotos({ key, photos: [] }); });
+    return () => { active = false; };
+  }, [log, key]);
+
+  useEffect(() => {
+    if (!siteId || !date) return undefined;
+    let active = true;
+    getSiteWorks(siteId, date)
+      .then((items) => {
+        if (active) setWorks({ key: dashKey, types: [...new Set(items.map((item) => item.workType).filter(Boolean))] });
+      })
+      .catch(() => { if (active) setWorks({ key: dashKey, types: [] }); });
     return () => { active = false; };
   }, [siteId, date, dashKey]);
 
@@ -108,6 +136,8 @@ export function useDailySafety(siteId, date, period = null) {
   return {
     loading, loadError: state.key === key ? state.error : '', log, summary, setSummary, dirty, busy, error,
     dashboard: dash.key === dashKey ? dash.data : null, dashboardLoading: Boolean(siteId && date) && dash.key !== dashKey,
+    workTypes: works.key === dashKey ? works.types : [],
+    tbmPhotos: tbmPhotos.key === key ? tbmPhotos.photos : [],
     rangeLogs: range.key === rangeKey ? range.logs : [], rangeLoading: multiDay && range.key !== rangeKey, rangeError: range.key === rangeKey ? range.error : '', rangeFrom: from, rangeTo: to, multiDay,
     reload, createDraft, saveSummary, submit,
   };
