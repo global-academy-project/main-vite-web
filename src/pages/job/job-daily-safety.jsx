@@ -36,6 +36,9 @@ export default function JobDailySafety() {
   const [picked, setPicked] = useState(null);
   const date = picked && picked >= range.from && picked <= range.to ? picked : range.to;
   const data = useDailySafety(site?.siteId, date, range);
+  const documentContext = {
+    user: context.account?.user, site, workTypes: data.workTypes, tbmPhotos: data.tbmPhotos,
+  };
   const canApprove = DAILY_LOG_APPROVER_ROLES.includes(roleOf(site));
   const deadline = deadlineOf(data.dashboard);
 
@@ -50,7 +53,7 @@ export default function JobDailySafety() {
     pick: (days) => { if (confirmLeave()) { setPicked(null); range.period.pick(days); } },
   };
   const handlePrint = () => {
-    const missing = missingDailyLogDocumentFields(normalizeDailyLogDocument(data.log));
+    const missing = missingDailyLogDocumentFields(normalizeDailyLogDocument(data.log, documentContext));
     if (missing.length > 0) {
       toast.show({ tone: 'warning', message: `인쇄 전에 확인해 주세요: ${missing.join(', ')}` });
       return;
@@ -80,7 +83,10 @@ export default function JobDailySafety() {
         {!site ? <StatusView kind="empty" title="현장을 선택해 주세요" />
           : canApprove ? <ManagerView data={data} /> : <WriterView data={data} />}
       </div>
-      <SafetyInspectionLogForm log={normalizeDailyLogDocument(data.log)} />
+      <SafetyInspectionLogForm
+        log={normalizeDailyLogDocument(data.log, documentContext)}
+        tbmPhotos={data.tbmPhotos}
+      />
     </JobPageLayout>
   );
 }

@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
 import { getDocumentPreview, PREVIEW_TYPES } from '../../api/records';
+import { getSiteWorks } from '../../api/jobs.js';
+import { getTbmPhotos } from '../../api/attachments.js';
 import { useWorkSite } from '../../api/workers';
 import ApprovalPreview from '../../components/approvals/approval-preview.jsx';
 import SafetyInspectionLogForm from '../../components/daily-safety/safety-inspection-log-form.jsx';
@@ -45,6 +47,8 @@ export default function RecordDetail() {
 function DocumentPage({ type, id }) {
   const context = useWorkSite();
   const [state, setState] = useState({ key: null, data: null, error: '' });
+  const [workTypeState, setWorkTypeState] = useState({ key: null, types: [] });
+  const [tbmPhotoState, setTbmPhotoState] = useState({ key: null, photos: [] });
   const [revision, setRevision] = useState(0);
   const key = `${type}:${id}:${revision}`;
   const supported = PREVIEW_TYPES.includes(type);
@@ -59,7 +63,38 @@ function DocumentPage({ type, id }) {
 
   const loading = supported && state.key !== key;
   const preview = loading ? null : state.data;
-  const dailyLogContent = normalizeDailyLogDocument(preview);
+  const workTypeKey = `${type}:${id}:${revision}`;
+  useEffect(() => {
+    if (!preview || type !== 'DAILY_LOG') return undefined;
+    const content = preview.content || {};
+    const siteId = preview.siteId || content.siteId;
+    const date = content.date;
+    if (!siteId || !date) return undefined;
+    let active = true;
+    getSiteWorks(siteId, date)
+      .then((items) => { if (active) setWorkTypeState({ key: workTypeKey, types: [...new Set(items.map((item) => item.workType).filter(Boolean))] }); })
+      .catch(() => { if (active) setWorkTypeState({ key: workTypeKey, types: [] }); });
+    return () => { active = false; };
+  }, [preview, type, workTypeKey]);
+  useEffect(() => {
+    if (!preview || type !== 'DAILY_LOG') return undefined;
+    const content = preview.content || {};
+    const tbmIds = [...new Set((Array.isArray(content.evidence) ? content.evidence : [])
+      .filter((item) => item?.targetType === 'TBM' && item.targetId != null)
+      .map((item) => item.targetId))];
+    if (!tbmIds.length) return undefined;
+    let active = true;
+    Promise.all(tbmIds.map((tbmId) => getTbmPhotos(tbmId)))
+      .then((lists) => { if (active) setTbmPhotoState({ key: workTypeKey, photos: lists.flat() }); })
+      .catch(() => { if (active) setTbmPhotoState({ key: workTypeKey, photos: [] }); });
+    return () => { active = false; };
+  }, [preview, type, workTypeKey]);
+  const dailyLogContent = normalizeDailyLogDocument(preview, {
+    user: context.account?.user,
+    site: context.currentSite,
+    workTypes: workTypeState.key === workTypeKey ? workTypeState.types : [],
+    tbmPhotos: tbmPhotoState.key === workTypeKey ? tbmPhotoState.photos : [],
+  });
   const label = APPROVAL_TARGET_LABELS[type] ?? type;
   const summary = preview?.approval?.summary;
   const steps = preview?.approval?.steps ?? [];
@@ -94,7 +129,11 @@ function DocumentPage({ type, id }) {
                 <span className="rec-help doc-sheet__time">생성 {shortDateTime(preview.generatedAt)}</span>
               </header>
               {type === 'DAILY_LOG'
-                ? <SafetyInspectionLogForm log={dailyLogContent} preview />
+                ? <SafetyInspectionLogForm
+                  log={dailyLogContent}
+                  tbmPhotos={tbmPhotoState.key === workTypeKey ? tbmPhotoState.photos : []}
+                  preview
+                />
                 : <ApprovalPreview preview={preview} />}
             </section>
 
