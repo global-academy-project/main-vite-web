@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  checkPermit, createPermit, createWork, getPermit, getWork, getSiteWorks, jobId, jobWrite, measurementItems,
+  applyPermitExtraction, checkPermit, createPermit, createWork, getPermit, getWork, getSiteWorks, jobId, jobWrite, measurementItems,
   requireRuleEvaluation, requireWork, saveMeasurements, submitPermit, updatePermit, validatePeriod,
 } from './jobs.js';
 import { ApiError } from './client.js';
@@ -270,4 +270,25 @@ test('permit step follows saved state and blocked targets point to the step to f
   assert.equal(stepForTarget('measurement.O2'), 2);
   assert.equal(stepForTarget('form.ventilation_done'), 1);
   assert.equal(stepForTarget(undefined), 1);
+});
+
+test('문장 추출 반영: 나눠 보낸 문장이 있으면 texts 를 함께 보내고, 없으면 이전 요청 모양 그대로', async (t) => {
+  const bodies = [];
+  t.mock.method(globalThis, 'fetch', async (path, options) => {
+    bodies.push(JSON.parse(options.body));
+    return new Response(JSON.stringify({ success: true, data: permit }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+  });
+  const storage = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
+  Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: { getItem: () => 'test-only-token' } });
+  t.after(() => {
+    if (storage) Object.defineProperty(globalThis, 'localStorage', storage);
+    else delete globalThis.localStorage;
+  });
+  const measurements = [{ item: 'LEL', value: 0 }];
+
+  await applyPermitExtraction(11, { lockVersion: 0, text: '가연성가스 0', measurements }, 1);
+  assert.deepEqual(bodies.at(-1), { lockVersion: 0, text: '가연성가스 0', measurements, form: {} });
+
+  await applyPermitExtraction(11, { lockVersion: 0, text: 'a\nb', texts: ['a', 'b'], measurements }, 1);
+  assert.deepEqual(bodies.at(-1), { lockVersion: 0, text: 'a\nb', texts: ['a', 'b'], measurements, form: {} });
 });

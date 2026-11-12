@@ -221,10 +221,14 @@ export async function extractRuleInput({ siteId, text, workType }) {
   return result;
 }
 
-/** 확인한 추출값을 허가서에 넣기 (POST /permits/{id}/extraction). 원문·추출값 기록이 남고, 측정값은 작업 전 측정으로 추가된다 */
-export async function applyPermitExtraction(id, { lockVersion, text, measurements }, siteId) {
+/**
+ * 확인한 추출값을 허가서에 넣기 (POST /permits/{id}/extraction). 원문·추출값 기록이 남고, 측정값은 작업 전 측정으로 추가된다.
+ * texts: 문장을 나눠 채운 경우 보낸 문장들 (11/12, 서버가 문장마다 미리 보기 결과를 합쳐 기록). text 는 이들을 이은 값
+ */
+export async function applyPermitExtraction(id, { lockVersion, text, texts, measurements }, siteId) {
   const path = `/api/v1/permits/${jobId(id)}/extraction`;
-  return jobWrite(async () => requirePermit(await api(path, { method: 'POST', body: { lockVersion, text, measurements, form: {} } }), siteId));
+  const body = { lockVersion, text, measurements, form: {}, ...(texts?.length ? { texts } : {}) };
+  return jobWrite(async () => requirePermit(await api(path, { method: 'POST', body }), siteId));
 }
 
 export async function checkPermit(id) {

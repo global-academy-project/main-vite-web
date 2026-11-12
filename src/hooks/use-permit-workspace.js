@@ -4,7 +4,7 @@ import {
   requireWork, saveMeasurements, stepForPermit, submitPermit, updatePermit, validatePeriod, applyPermitExtraction, extractRuleInput, measurementFields,
 } from '../api/jobs';
 import { useToast } from '../components/ui/toast-context.js';
-import { extractFill } from '../utils/extract-model.js';
+import { MAX_FILL_TEXTS, extractFill, mergeFill, remainingCodes } from '../utils/extract-model.js';
 
 const EMPTY_FORM = { validFrom: '', validTo: '', watcherName: '', supervisorName: '', form: {} };
 
@@ -119,17 +119,22 @@ export function usePermitWorkspace({ siteId, disabled, initialWorkId, initialPer
   const setMeasurement = (code, value) => { setValues((current) => ({ ...current, [code]: value })); setError(''); };
 
   // 말·문장으로 채우기: 서버가 뽑은 값으로 칸을 채우고(저장 전), 무엇이 빠졌는지는 서버 미리 판정을 그대로 보여 준다
-  const [fill, setFill] = useState(null); // extractFill 결과 + text
+  // 11/12: 문장을 나눠 이어서 채울 수 있다. 결과는 앞 문장과 합치고(mergeFill), 저장 때 보낸 문장을 모두 기록한다
+  const [fill, setFill] = useState(null); // mergeFill 결과 (texts·text 포함)
   const [extracting, setExtracting] = useState(false);
   const fillFromText = async (text) => {
     const clean = String(text ?? '').trim();
     if (!clean || extracting || disabled) return null;
+    if ((fill?.texts?.length ?? 0) >= MAX_FILL_TEXTS) {
+      setError(`문장으로 채우기는 ${MAX_FILL_TEXTS}번까지입니다. 남은 칸은 아래에 직접 입력해 주세요.`);
+      return null;
+    }
     setExtracting(true); setError('');
     try {
       const result = extractFill(await extractRuleInput({ siteId, text: clean, workType: type }), type, measurementFields[type] ?? []);
       if (!mounted.current) return null;
       setValues((current) => ({ ...current, ...result.values }));
-      setFill({ ...result, text: clean });
+      setFill((current) => mergeFill(current, result, clean));
       return result;
     } catch (requestError) {
       if (mounted.current) setError(requestError.message || '문장에서 값을 뽑지 못했습니다. 칸에 직접 입력해 주세요.');
@@ -185,7 +190,7 @@ export function usePermitWorkspace({ siteId, disabled, initialWorkId, initialPer
       const items = measurementItems(type, values);
       // 문장으로 채운 경우: 원문·추출값 기록이 함께 남도록 추출 반영 API 로 저장 (측정값 저장은 같다)
       const result = fill?.text
-        ? await applyPermitExtraction(permit.permitId, { lockVersion: permit.lockVersion, text: fill.text, measurements: items }, siteId)
+        ? await applyPermitExtraction(permit.permitId, { lockVersion: permit.lockVersion, text: fill.text, texts: fill.texts?.length > 1 ? fill.texts : undefined, measurements: items }, siteId)
         : await saveMeasurements(permit.permitId, items, siteId);
       if (mounted.current) { apply(result); setFill(null); setStep(3); say('측정값을 저장했습니다. 기존 측정값은 이력으로 남고 최근 판정은 무효가 되었습니다. 규칙 판정을 실행하세요.'); }
     });
@@ -220,6 +225,7 @@ export function usePermitWorkspace({ siteId, disabled, initialWorkId, initialPer
     workId, setWorkId: (value) => { setWorkId(value); setDirty(true); }, type, changeType,
     form, update, permit, values, setMeasurement,
     discardMeasurements: () => { setValues({}); setFill(null); }, fill, fillFromText, extracting, clearFill: () => setFill(null), dirty, measurementDirty, conflict, evaluation, currentEvaluation, visibleChecks,
+    remaining: remainingCodes(fill, values, measurementFields[type] ?? []), // 문장으로 채운 뒤 아직 비어 있는 필수 칸
     noApplicableRules, serverDisallowsSubmit, submitted, reachable, blocked, error, busy, loading, creationUncertain,
     unlockCreation: () => { setCreationUncertain(false); setError(''); },
     step, goTo, hasMeasurements, editable, locked: busy || disabled,
