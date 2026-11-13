@@ -4,7 +4,7 @@ import { defineConfig } from 'vite'
 
 export default defineConfig(({ command }) => {
   const apiTarget = env.VITE_API_PROXY_TARGET
-    ?? (command === 'serve' ? 'http://localhost:8080' : 'http://server-app:60001')
+    ?? (command === 'serve' ? 'http://localhost:8080' : 'http://spring-boot-application:60001')
   const proxy = {
     '/api': {
       target: apiTarget,
