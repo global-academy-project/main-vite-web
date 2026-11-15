@@ -9,6 +9,39 @@ export const PERMIT_RULE_SUMMARY = Object.freeze({
 export const RULE_CHECK_LABELS = Object.freeze({ PASS: '통과', FAIL: '기준 미충족', MISSING: '입력 누락' });
 export const EVALUATION_LABELS = Object.freeze({ PASS: '통과', WARN: '주의', BLOCK: '차단' });
 export const EVALUATION_TONES = Object.freeze({ PASS: 'done', WARN: 'warn', BLOCK: 'block' });
+export const SEVERITY_LABELS = Object.freeze({ BLOCK: '차단', WARN: '주의' });
+
+/**
+ * 서버가 영어 코드로 보내는 선택지 값(예: WORK_PLATFORM)을 화면 글자로 바꾸기 위한 표.
+ * permitFormFields(api/jobs.js)의 고르는 항목(choices)에서 만든다 — 글자를 따로 적지 않아 입력 화면과 늘 같다.
+ */
+export function ruleValueLabels(formFields) {
+  const labels = {};
+  for (const field of Object.values(formFields ?? {})) {
+    for (const choice of field.choices ?? []) {
+      for (const option of choice.options ?? []) labels[option.value] = option.label;
+    }
+  }
+  return Object.freeze(labels);
+}
+
+/** 판정 응답의 기준·입력값 글자에서 영어 코드를 한글로. 표에 없는 글자는 그대로 둔다. true/false 는 입력 화면의 "조치 확인/미조치"와 같게. */
+export function localizeRuleText(value, labels = {}) {
+  if (typeof value !== 'string') return value;
+  if (value === 'true') return '조치 확인';
+  if (value === 'false') return '미조치';
+  const codes = Object.keys(labels).sort((a, b) => b.length - a.length);
+  if (!codes.length) return value;
+  return value.replace(new RegExp(`\\b(?:${codes.join('|')})\\b`, 'g'), (code) => labels[code]);
+}
+
+/** 위반 카드의 둘째 줄: "입력 없음 · 기준 …". 기준이 "확인 필요"(서버가 구체 기준을 주지 않음)이면 기준은 빼고 보여 준다. */
+export function ruleDetailLine({ actual, expected } = {}, labels = {}) {
+  const parts = [actual == null || actual === '' ? '입력 없음' : `입력값 ${localizeRuleText(actual, labels)}`];
+  const criterion = String(expected ?? '').trim();
+  if (criterion && criterion !== '확인 필요') parts.push(`기준 ${localizeRuleText(criterion, labels)}`);
+  return parts.join(' · ');
+}
 
 /**
  * 4단계 표시 (StepIndicator 모양). 측정 항목이 없는 유형은 2단계 "해당 없음".
