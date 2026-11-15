@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { getSiteWorks, getWork, measurementFields, permitFormFieldsOf, setPermitChoice, stepForTarget } from '../../api/jobs';
+import { getSiteWorks, getWork, measurementFields, permitFormFields, permitFormFieldsOf, setPermitChoice, stepForTarget } from '../../api/jobs';
 import { useWorkSite } from '../../api/workers';
 import JobPageLayout from '../../components/job-page-layout';
 import PageHeader from '../../components/ui/page-header.jsx';
@@ -11,7 +11,7 @@ import StatusView, { Skeleton } from '../../components/ui/status-view.jsx';
 import StepIndicator from '../../components/ui/step-indicator.jsx';
 import { usePermitWorkspace } from '../../hooks/use-permit-workspace.js';
 import { PERMIT_STATUS_LABELS, toneOf, WORK_TYPE_LABELS } from '../../utils/home-model.js';
-import { EVALUATION_LABELS, EVALUATION_TONES, PERMIT_RULE_SUMMARY, PERMIT_TYPE_LABELS, permitSteps, RULE_CHECK_LABELS } from '../../utils/permit-model.js';
+import { EVALUATION_LABELS, EVALUATION_TONES, localizeRuleText, PERMIT_RULE_SUMMARY, PERMIT_TYPE_LABELS, permitSteps, RULE_CHECK_LABELS, ruleDetailLine, ruleValueLabels, SEVERITY_LABELS } from '../../utils/permit-model.js';
 import { backToHubPath } from '../../utils/work-list-model.js';
 import '../../styles/home.css';
 import '../../styles/work.css';
@@ -193,6 +193,10 @@ function StepError({ data }) {
   return data.error ? <p className="work-form__error" role="alert"><Icon name="alert" size={16} />{data.error}</p> : null;
 }
 
+// 판정 응답의 기준·입력값에 영어 코드(WORK_PLATFORM 등)가 오면 입력 화면과 같은 한글로 보인다
+const RULE_VALUE_LABELS = ruleValueLabels(permitFormFields);
+const ruleText = (value) => localizeRuleText(value, RULE_VALUE_LABELS);
+
 /** 판정 직후 그 칸에 붙는 결과 */
 function FieldChecks({ data, target }) {
   if (!data.visibleChecks) return null;
@@ -200,7 +204,7 @@ function FieldChecks({ data, target }) {
   if (!results.length) return <span className="permit-fieldcheck is-none">적용된 판정 규칙 없음 · 안전성 검증 아님</span>;
   return results.map((item) => (
     <span key={item.ruleCode} className={`permit-fieldcheck is-${item.status.toLowerCase()}`}>
-      <strong>{RULE_CHECK_LABELS[item.status] ?? item.status}</strong> · 판정값 {item.actual ?? '미입력'} · 기준 {item.expected}{item.message && ` · ${item.message}`}
+      <strong>{RULE_CHECK_LABELS[item.status] ?? item.status}</strong> · 판정값 {ruleText(item.actual) ?? '미입력'} · 기준 {ruleText(item.expected)}{item.message && ` · ${item.message}`}
     </span>
   ));
 }
@@ -359,7 +363,6 @@ function FillHint({ hint }) {
 function StepCheck({ data }) {
   const current = data.currentEvaluation;
   const { evaluation } = data;
-  const counts = evaluation ? ['PASS', 'FAIL', 'MISSING'].map((status) => [status, evaluation.checks.filter((item) => item.status === status).length]) : [];
   return (
     <section className="home-panel permit-step" aria-labelledby="permit-step3">
       <header className="permit-step__head">
@@ -374,42 +377,17 @@ function StepCheck({ data }) {
             <div className="permit-result__head">
               <Icon name={current.result === 'PASS' ? 'check' : current.result === 'BLOCK' ? 'alert' : 'warning'} size={20} />
               <strong>최근 판정: {EVALUATION_LABELS[current.result] ?? current.result}</strong>
-              {evaluation && <span className="permit-result__counts">적용 규칙 {evaluation.rulesApplied}건{counts.map(([status, count]) => ` · ${RULE_CHECK_LABELS[status]} ${count}건`).join('')}</span>}
             </div>
             {evaluation?.rulesApplied === 0 && <p className="permit-result__note">판정 불가: 등록된 규칙이 없습니다. 통과로 응답되어도 이 작업의 안전성이 검증된 것은 아닙니다.</p>}
-            {!evaluation && <p className="permit-result__note">저장된 판정은 위반 내역만 있습니다. 전체 규칙의 통과·입력 누락 상세는 판정 직후에만 보이고 서버에 저장되지 않습니다. 다시 판정하면 볼 수 있습니다.</p>}
-            {evaluation?.unusedFields?.length > 0 && <p className="permit-result__note">미사용 입력: {evaluation.unusedFields.join(', ')}</p>}
           </div>
         )}
 
-        {!data.conflict && evaluation && evaluation.rulesApplied > 0 && (
-          <table className="home-table permit-rules">
-            <caption className="sr-only">전체 적용 규칙의 통과·기준 미충족·입력 누락 상세 결과</caption>
-            <thead><tr><th scope="col">규칙 / 대상</th><th scope="col">판정</th><th scope="col">입력값</th><th scope="col">기준</th><th scope="col">심각도</th><th scope="col">안내 및 근거</th></tr></thead>
-            <tbody>{evaluation.checks.map((item) => (
-              <tr key={item.ruleCode} className={`is-${item.status.toLowerCase()}`}>
-                <td data-label="규칙"><strong>{item.ruleCode}</strong><span className="home-table__facts">{item.target}</span></td>
-                <td data-label="판정"><Badge tone={item.status === 'PASS' ? 'done' : item.status === 'FAIL' ? 'block' : 'warn'}>{RULE_CHECK_LABELS[item.status] ?? item.status}</Badge></td>
-                <td data-label="입력값">{item.actual ?? '미입력'}</td>
-                <td data-label="기준">{item.expected}</td>
-                <td data-label="심각도">{item.severity}</td>
-                <td data-label="안내" className="permit-rules__note">
-                  {item.message && <span>{item.message}</span>}
-                  {item.action && <span>조치: {item.action}</span>}
-                  <span className="home-table__facts">근거: {item.legalBasis || '제공되지 않음'}</span>
-                  {/^https?:\/\//i.test(item.sourceUrl ?? '') && <a href={item.sourceUrl} target="_blank" rel="noopener noreferrer">근거 원문</a>}
-                </td>
-              </tr>
-            ))}</tbody>
-          </table>
-        )}
-
-        {!data.conflict && !evaluation && current?.violations?.length > 0 && (
+        {!data.conflict && current?.violations?.length > 0 && (
           <ul className="permit-violations">
             {current.violations.map((item, index) => (
               <li key={`${item.ruleCode}-${index}`}>
-                <strong>{item.severity} · {item.message}</strong>
-                <span>{item.ruleCode} · 측정 {item.actual ?? '미입력'} · 기준 {item.expected}</span>
+                <strong>{SEVERITY_LABELS[item.severity] ?? item.severity} · {item.message}</strong>
+                <span>{ruleDetailLine(item, RULE_VALUE_LABELS)}</span>
                 {item.action && <span>조치: {item.action}</span>}
                 <span className="home-table__facts">근거: {item.legalBasis}</span>
               </li>
@@ -424,7 +402,7 @@ function StepCheck({ data }) {
               const target = stepForTarget(item.target);
               return (
                 <li key={`${item.ruleCode}-${index}`}>
-                  <span>{item.message || item.ruleCode} <small>({RULE_CHECK_LABELS[item.status] ?? item.severity})</small></span>
+                  <span>{item.message || '확인이 필요한 항목입니다.'} <small>({RULE_CHECK_LABELS[item.status] ?? SEVERITY_LABELS[item.severity] ?? item.severity})</small></span>
                   <button type="button" className="ui-btn ui-btn--secondary" disabled={data.locked || (target === 2 && !data.hasMeasurements)} onClick={() => data.goTo(target)}>{target === 2 ? '측정값에서 고치기' : '허가서에서 고치기'}</button>
                 </li>
               );
