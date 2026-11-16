@@ -8,6 +8,7 @@ import { Badge } from '../../components/home/panel.jsx';
 import Icon from '../../components/ui/icon.jsx';
 import StatusView, { Skeleton } from '../../components/ui/status-view.jsx';
 import StepIndicator from '../../components/ui/step-indicator.jsx';
+import RiskDraftEvidence from '../../components/risk-draft-evidence.jsx';
 import { useRiskAssessment } from '../../hooks/use-risk-assessment.js';
 import { TAG_LABELS } from '../../utils/agentic-rag-tags';
 import { RISK_STATUS_LABELS, toneOf, WORK_TYPE_LABELS } from '../../utils/home-model.js';
@@ -161,9 +162,7 @@ function RiskEditor({ site, context, initialRiskId, initialWorkId, back }) {
           </ul>
         </div>
         <p className="rec-help risk-summary__rule">빈도×강도 12 이상 높음, 6 이상 보통, 그 아래 낮음. 고른 등급이 계산보다 낮으면 서버가 올려 저장하고, 높게 고른 것은 그대로 둡니다. 등급은 승인이나 작업 시작 허가가 아닙니다.</p>
-        {risk?.formData && risk.formData !== '{}' && (
-          <details className="risk-formdata"><summary>기존 초안 근거·검토 정보 (수정해도 그대로 보존)</summary><pre>{typeof risk.formData === 'string' ? risk.formData : JSON.stringify(risk.formData, null, 2)}</pre></details>
-        )}
+        {risk?.formData && risk.formData !== '{}' && <RiskDraftEvidence formData={risk.formData} />}
       </section>
 
       <form className="risk-items" onSubmit={(event) => { event.preventDefault(); void data.save(); }} aria-label="위험요인 및 감소대책">
