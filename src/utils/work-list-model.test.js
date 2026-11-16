@@ -64,3 +64,16 @@ test('작업 허브에서 다른 화면으로 갈 때 back=작업번호 를 붙�
   assert.equal(backToHubPath('//evil.example'), null);
   assert.equal(backToHubPath(null), null);
 });
+
+test('위 칸 요약 문구', async () => {
+  const { statNotes } = await import('./work-list-model.js');
+  const works = [
+    { workId: 1, workType: 'HOT', status: 'DRAFT', riskAssessment: { riskAssessmentId: 1, status: 'APPROVED' }, permits: [{ permitId: 1, status: 'BLOCKED' }] },
+    { workId: 2, workType: 'GENERAL', status: 'DRAFT' },
+    { workId: 3, workType: 'GENERAL', status: 'DRAFT', riskAssessment: { riskAssessmentId: 3, status: 'APPROVED' }, tbm: { tbmId: 3, status: 'DRAFT' } },
+    { workId: 4, workType: 'HEIGHT', status: 'DRAFT', riskAssessment: { riskAssessmentId: 4, status: 'APPROVED' }, permits: [{ permitId: 4, status: 'PENDING' }], tbm: { tbmId: 4, status: 'APPROVED' } },
+    { workId: 5, workType: 'GENERAL', status: 'DRAFT', riskAssessment: { riskAssessmentId: 5, status: 'APPROVED' }, tbm: { tbmId: 5, status: 'APPROVED' } },
+  ];
+  assert.deepEqual(statNotes(works), { BLOCKED: '작업허가 판정 차단 1건', TODO: '위험성평가 1 · TBM 1', WAIT: '작업허가 결재 1건', READY: '작업 시작 가능' });
+  assert.deepEqual(statNotes([]), { BLOCKED: '', TODO: '', WAIT: '', READY: '' });
+});

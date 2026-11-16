@@ -18,12 +18,13 @@ import { useAgentConversation } from '../../hooks/use-agent-conversation.js';
 import { useWorkHub } from '../../hooks/use-work-hub.js';
 import { useWorkList } from '../../hooks/use-work-list.js';
 import { usePeriod } from '../../hooks/use-period.js';
-import PeriodBar from '../../components/period-bar.jsx';
+import { ActionMenu, PeriodMenu, TypeMenu } from '../../components/work/work-filters.jsx';
+import { TypeBadge } from '../../components/home/home-panels.jsx';
 import {
-  nextAction, PERMIT_STATUS_LABELS, workReady, RISK_STATUS_LABELS, TBM_STATUS_LABELS, timeRange, toneOf, WORK_STATUS_LABELS, WORK_TYPE_LABELS, workStages,
+  nextAction, PERMIT_STATUS_LABELS, workReady, RISK_STATUS_LABELS, TBM_STATUS_LABELS, timeRange, toneOf, WORK_STATUS_LABELS, workStages,
 } from '../../utils/home-model.js';
 import { jobRecordPath } from '../../utils/job-forms.js';
-import { filterWorks, hubDocs, parseDocParam, sortWorks, withBack, workStats } from '../../utils/work-list-model.js';
+import { filterWorks, hubDocs, parseDocParam, sortWorks, statNotes, withBack, workStats } from '../../utils/work-list-model.js';
 import '../../styles/home.css';
 import '../../styles/work.css';
 import '../../styles/risk.css';
@@ -73,7 +74,7 @@ export default function JobWorkspace() {
 
 /* ── 작업 목록 ─────────────────────────────────────────────── */
 
-const TYPE_KEYS = Object.keys(WORK_TYPE_LABELS);
+const STAGE_ARROW = new Set(['WAIT', 'READY']); // 할 일 있음 › 승인 대기 › 준비 완료
 
 function WorkList({ site, context, onCreate, onAgent }) {
   const navigate = useNavigate();
@@ -89,8 +90,10 @@ function WorkList({ site, context, onCreate, onAgent }) {
   const all = useMemo(() => list.works.data ?? [], [list.works.data]);
   const rows = useMemo(() => sortWorks(filterWorks(all, { types, stage, query, actionOnly })), [all, types, stage, query, actionOnly]);
   const stats = workStats(all);
+  const notes = useMemo(() => statNotes(all), [all]);
   const zoneName = (id) => list.zones.data?.find((zone) => zone.zoneId === id)?.name ?? (id ? `구역 #${id}` : '구역 미지정');
-
+  const ready = list.works.status === 'ready';
+  const rangeText = from === to ? `${from}${period.preset === 'today' ? ' 오늘' : ''}` : `${from} ~ ${to}`;
 
   return (
     <div className="work-list">
@@ -101,58 +104,68 @@ function WorkList({ site, context, onCreate, onAgent }) {
           <button type="button" className="ui-btn ui-btn--primary" onClick={onCreate}>작업 직접 등록</button>
         </>} />
 
+      {/* 상태 칸 (11/14): 숫자는 검정, 색은 이름표에만. 할 일 있음 › 승인 대기 › 준비 완료 */}
       <ul className="work-stats" aria-label="작업 상태별 건수">
         {stats.map((stat) => {
           const active = stat.key === 'ALL' ? !stage : stage === stat.key;
+          const note = stat.key === 'ALL' ? rangeText : notes[stat.key];
           return (
-            <li key={stat.key}>
+            <li key={stat.key} className={STAGE_ARROW.has(stat.key) ? 'has-arrow' : ''}>
               <button type="button" aria-pressed={active} className={`work-stat work-stat--${stat.tone}${active ? ' is-active' : ''}`}
                 onClick={() => setStage(stat.key === 'ALL' || stage === stat.key ? '' : stat.key)}>
-                <span className="work-stat__label">{stat.label}</span>
-                <strong className="work-stat__value">{list.works.status === 'ready' ? stat.value : '–'}</strong>
+                <span className="work-stat__label"><i aria-hidden="true" />{stat.label}</span>
+                <strong className="work-stat__value">{ready ? stat.value : '–'}</strong>
+                <span className="work-stat__note">{ready ? note || '\u00a0' : '\u00a0'}</span>
               </button>
             </li>
           );
         })}
       </ul>
 
+      {/* 필터 한 줄 (11/14): 기간 ⌄ · 종류 ⌄ · 할 일 ⌄ + 작업명 검색 + 작업 번호 열기 */}
       <section className="work-filters" aria-label="작업 검색 조건">
-        <div className="work-filters__row">
-          <PeriodBar period={period} />
-          <div className="work-types" role="group" aria-label="작업 종류">
-            {TYPE_KEYS.map((type) => (
-              <button key={type} type="button" className="work-chip" aria-pressed={types.includes(type)}
-                onClick={() => setTypes((value) => (value.includes(type) ? value.filter((item) => item !== type) : [...value, type]))}>
-                {types.includes(type) && <Icon name="check" size={14} />}{WORK_TYPE_LABELS[type]}
-              </button>
-            ))}
-          </div>
+        <div className="work-filters__menus">
+          <PeriodMenu period={period} />
+          <TypeMenu types={types} setTypes={setTypes} />
+          <ActionMenu actionOnly={actionOnly} setActionOnly={setActionOnly} />
         </div>
-        <div className="work-filters__row">
-          <label className="work-search"><span className="sr-only">작업명 검색</span>
+        <div className="work-filters__find">
+          <label className="work-search"><Icon name="search" size={16} /><span className="sr-only">작업명 검색</span>
             <input type="search" value={query} placeholder="작업명 검색" onChange={(event) => setQuery(event.target.value)} />
           </label>
-          <label className="work-toggle"><input type="checkbox" checked={actionOnly} onChange={(event) => setActionOnly(event.target.checked)} />할 일 있는 작업만</label>
           <form className="work-lookup" onSubmit={(event) => { event.preventDefault(); if (/^\d+$/.test(lookup.trim())) navigate(`/job/workspace?workId=${lookup.trim()}`); }}>
             <label><span className="sr-only">작업 번호로 찾기</span><input inputMode="numeric" value={lookup} placeholder="작업 번호" onChange={(event) => setLookup(event.target.value)} /></label>
             <button type="submit" className="ui-btn ui-btn--ghost" disabled={!/^\d+$/.test(lookup.trim())}>열기</button>
           </form>
         </div>
-        <p className="work-filters__help" role={period.error ? 'alert' : undefined}>{period.error || `${from === to ? from : `${from} ~ ${to}`} · ${rows.length}건 표시`}</p>
       </section>
+      <div className="work-meta">
+        <p className="work-filters__help" role={period.error ? 'alert' : undefined}>{period.error || `${rangeText} · ${rows.length}건 표시`}</p>
+        <ul className="work-legend" aria-label="진행 점 보는 법">
+          <li><span className="home-dot home-dot--done" />완료</li>
+          <li><span className="home-dot home-dot--current" />진행 중</li>
+          <li><span className="home-dot home-dot--problem" />문제</li>
+          <li><span className="home-dot home-dot--todo" />할 일</li>
+          <li><span className="home-dot home-dot--skip" />해당 없음</li>
+        </ul>
+      </div>
 
       <section className="home-panel work-table-panel" aria-label="작업 목록">
         {list.works.status === 'loading' && <div className="home-panel__pad"><Skeleton lines={6} /></div>}
         {list.works.status === 'error' && <StatusView kind={list.works.code === 403 ? 'forbidden' : 'error'} message={list.works.error} onRetry={list.reload} />}
-        {list.works.status === 'ready' && !rows.length && (
+        {ready && !rows.length && (
           <StatusView kind="empty" title={all.length ? '조건에 맞는 작업이 없습니다' : '이 기간에 등록된 작업이 없습니다'}
             message={all.length ? '검색 조건을 바꿔 보세요.' : '대화로 만들거나 직접 등록하세요.'}
             action={all.length ? { label: '조건 초기화', onClick: () => { setTypes([]); setStage(''); setQuery(''); setActionOnly(false); } } : { label: '작업 직접 등록', onClick: onCreate }} />
         )}
-        {list.works.status === 'ready' && rows.length > 0 && (
+        {ready && rows.length > 0 && (
           <table className="home-table work-table">
             <thead>
-              <tr><th scope="col">작업일</th><th scope="col">작업</th><th scope="col">종류</th><th scope="col">위험성평가</th><th scope="col">허가</th><th scope="col">TBM</th><th scope="col">진행</th><th scope="col">지금 할 일</th></tr>
+              <tr>
+                <th scope="col">작업일</th><th scope="col">작업</th><th scope="col">종류</th><th scope="col">위험성평가</th><th scope="col">작업허가</th><th scope="col">TBM</th>
+                <th scope="col"><span className="sr-only">진행</span><span className="home-pgh" aria-hidden="true">{workStages({}).map((step) => <span key={step.key}>{step.label}</span>)}</span></th>
+                <th scope="col">지금 할 일</th>
+              </tr>
             </thead>
             <tbody>
               {rows.map((work) => {
@@ -164,15 +177,20 @@ function WorkList({ site, context, onCreate, onAgent }) {
                     <td data-label="작업일" className="work-table__date">{work.workDate?.slice(5).replace('-', '/')}</td>
                     <td data-label="작업">
                       <span className="home-table__name"><Link to={`/job/workspace?workId=${work.workId}`} className="home-table__title">{work.title}</Link><span className="work-table__id">#{work.workId}</span></span>
-                      <span className={`home-table__facts${work.zoneId ? '' : ' is-warn'}`}>{[zoneName(work.zoneId), timeRange(work.startAt, work.endAt), work.workerCount != null ? `${work.workerCount}명` : ''].filter(Boolean).join(' · ')}</span>
+                      <span className={`home-table__facts${work.zoneId && work.startAt ? '' : ' is-warn'}`}>{[zoneName(work.zoneId), timeRange(work.startAt, work.endAt) || '시간 미정', work.workerCount != null ? `${work.workerCount}명` : ''].filter(Boolean).join(' · ')}</span>
                     </td>
-                    <td data-label="종류"><Badge tone={work.highRisk ? 'warn' : 'neutral'}>{WORK_TYPE_LABELS[work.workType] ?? work.workType}</Badge></td>
+                    <td data-label="종류"><TypeBadge type={work.workType} /></td>
                     <td data-label="위험성평가">{work.riskAssessment ? <Badge tone={toneOf(work.riskAssessment.status)}>{RISK_STATUS_LABELS[work.riskAssessment.status]}</Badge> : <span className="work-none">없음</span>}</td>
-                    <td data-label="허가">{permits.length ? <span className="work-badges">{permits.map((permit) => <Badge key={permit.permitId} tone={toneOf(permit.status)}>{PERMIT_STATUS_LABELS[permit.status]}</Badge>)}</span> : <span className="work-none">{work.workType === 'GENERAL' ? '해당 없음' : '없음'}</span>}</td>
+                    <td data-label="작업허가">{permits.length ? <span className="work-badges">{permits.map((permit) => <Badge key={permit.permitId} tone={toneOf(permit.status)}>{PERMIT_STATUS_LABELS[permit.status]}</Badge>)}</span> : <span className="work-none">{work.workType === 'GENERAL' ? '해당 없음' : '없음'}</span>}</td>
                     <td data-label="TBM">{work.tbm ? <Badge tone={toneOf(work.tbm.status)}>{TBM_STATUS_LABELS[work.tbm.status]}</Badge> : <span className="work-none">없음</span>}</td>
                     <td data-label="진행">
                       <span className="home-dots" role="img" aria-label={stages.map((step) => `${step.label} ${step.hint || step.state}`).join(', ')}>
-                        {stages.map((step) => <span key={step.key} className={`home-dot home-dot--${step.state}`} title={`${step.label} · ${step.hint || ''}`} />)}
+                        {stages.map((step) => (
+                          <span key={step.key} className="home-dots__cell" title={`${step.label} · ${step.hint || ''}`}>
+                            <span className={`home-dot home-dot--${step.state}`} />
+                            <small aria-hidden="true">{step.label}</small>
+                          </span>
+                        ))}
                       </span>
                     </td>
                     <td data-label="지금 할 일">{next.path ? <Link to={`/job/workspace?workId=${work.workId}`} className={`home-next home-next--${next.tone}`}>{next.label}</Link> : <Badge tone={next.tone}>{next.label}</Badge>}</td>
@@ -229,7 +247,7 @@ function WorkHub({ site, context, workId, params, setParams }) {
   return (
     <div className="work-hub">
       <PageHeader title={work.title} context={context} onBeforeSelect={() => setParams({})}
-        badges={<><Badge tone={work.highRisk ? 'warn' : 'neutral'}>{WORK_TYPE_LABELS[work.workType] ?? work.workType}</Badge>{/* 작업 상태는 서버에서 바뀌지 않아(작업 승인·종료 API 없음) 문서가 다 승인됐는지로 보인다 */}<Badge tone={workReady(work) ? 'done' : toneOf(work.status)}>{workReady(work) ? '작업 준비 완료' : work.status === 'DRAFT' ? '준비 중' : (WORK_STATUS_LABELS[work.status] ?? work.status)}</Badge></>}
+        badges={<><TypeBadge type={work.workType} />{/* 작업 상태는 서버에서 바뀌지 않아(작업 승인·종료 API 없음) 문서가 다 승인됐는지로 보인다 */}<Badge tone={workReady(work) ? 'done' : toneOf(work.status)}>{workReady(work) ? '작업 준비 완료' : work.status === 'DRAFT' ? '준비 중' : (WORK_STATUS_LABELS[work.status] ?? work.status)}</Badge></>}
         description={`작업 #${work.workId} · ${zone?.name ?? (work.zoneId ? `구역 #${work.zoneId}` : '구역 미지정')} · ${work.workDate} ${timeRange(work.startAt, work.endAt)} · 작업자 ${work.workerCount ?? '-'}명`}
         actions={<Link className="ui-btn ui-btn--ghost" to="/job/workspace">작업 목록</Link>} />
       {hub.error && <p className="work-form__error" role="alert"><Icon name="alert" size={16} />{hub.error}</p>}
