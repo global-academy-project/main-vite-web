@@ -2,20 +2,29 @@
  * 승인함 · 결재 검토 · 처리 결과. 목록 틀(숫자 카드·검색 조건·표)은 work.css / home.css 를 같이 쓴다.
  * 값은 tokens.css 변수만 쓴다.
  */
-button.ui-btn--danger { background: var(--color-surface); color: var(--color-danger-text); border-color: var(--color-danger-border); }
-button.ui-btn--danger:hover:not(:disabled) { background: var(--color-danger-soft); transform: none; }
 
 .appr-tabs { border-bottom: 1px solid var(--color-border); }
 .appr-tabs .home-panel__count { margin-left: 6px; }
 .appr-stats { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+/* 아차사고 구역 선택(job-incidents.jsx)도 같이 쓴다 */
 .appr-select select { min-height: var(--touch-min); padding: 0 var(--space-8) 0 var(--space-3); border: 1px solid var(--color-border-input); border-radius: var(--radius-sm); background-color: var(--color-surface); color: var(--color-text); font-size: var(--text-md); }
+/* 숫자 색은 지연만 빨강 (나머지는 작업 목록처럼 검정) */
+.appr-stats .appr-stat--overdue .work-stat__value { color: var(--color-danger-text); }
 
 /* 목록 */
 button.appr-row-title { padding: 0; border: 0; background: transparent; color: var(--color-text-strong); font-size: var(--text-sm); font-weight: var(--weight-bold); text-align: left; cursor: pointer; }
 button.appr-row-title:hover:not(:disabled) { background: transparent; color: var(--color-primary); text-decoration: underline; transform: none; }
 .appr-row-title:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 2px; border-radius: 4px; }
 .appr-step { font-size: var(--text-xs); color: var(--color-text-sub); }
-button.appr-open { min-height: 36px; padding: 0 var(--space-3); font-size: var(--text-sm); }
+.appr-table-list td { padding-top: 14px; padding-bottom: 14px; }
+/* 표 3상태(11/14): 올림 = 연회색, 고름(지금 열린 결재) = 연한 남색 + 왼쪽 줄 */
+.appr-table-list tbody tr:hover td { background: var(--color-surface-muted); }
+.appr-table-list tbody tr.is-selected td { background: var(--color-primary-soft); }
+.appr-table-list tbody tr.is-selected td:first-child { box-shadow: inset 3px 0 0 var(--color-primary); }
+.home-table.appr-table-list td:first-child { width: 1%; min-width: 0; white-space: nowrap; }
+.home-table.appr-table-list td:nth-child(2) { width: 100%; min-width: 180px; white-space: normal; }
+.appr-table-list td:last-child { text-align: right; }
+button.appr-open { min-width: 64px; }
 
 /* 검토 */
 .appr-review { display: flex; flex-direction: column; gap: var(--space-5); font-family: var(--font-sans); color: var(--color-text); }
@@ -81,13 +90,13 @@ button.appr-open { min-height: 36px; padding: 0 var(--space-3); font-size: var(-
 .appr-note { margin: 0; font-size: var(--text-sm); color: var(--color-text-sub); }
 
 /* 결재 처리 */
-.appr-decide { padding: var(--space-4); border: 1px solid var(--color-border-accent); border-radius: var(--radius-lg); background: var(--color-surface-accent); }
-.appr-decide .appr-block__title { border-bottom-color: var(--color-border-accent); }
+.appr-decide { padding: var(--space-4); border: 1px solid var(--color-border); border-radius: var(--radius-card); background: var(--color-surface-muted); }
+.appr-decide .ui-field__input { background: var(--color-surface); }
 .appr-missing-pick { margin: 0; padding: 0; border: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px var(--space-3); }
 .appr-missing-pick legend { margin-bottom: var(--space-2); font-size: var(--text-sm); font-weight: var(--weight-medium); color: var(--color-text-sub); }
 .appr-missing-pick__item { display: flex; align-items: center; gap: var(--space-2); min-height: 40px; font-size: var(--text-sm); color: var(--color-text); }
 .appr-missing-pick__item input { width: 20px; height: 20px; flex-shrink: 0; }
-.appr-decide__actions { display: flex; justify-content: flex-end; gap: var(--space-2); }
+.appr-decide__actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-2); }
 .appr-result { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); font-size: var(--text-sm); }
 .appr-result--done { background: var(--color-success-soft); color: var(--color-success-text); }
 .appr-result--block { background: var(--color-danger-soft); color: var(--color-danger-text); }
@@ -102,7 +111,6 @@ button.appr-open { min-height: 36px; padding: 0 var(--space-3); font-size: var(-
 .appr-review__main, .appr-review__side { display: flex; flex-direction: column; gap: var(--space-5); padding: var(--space-5) var(--space-6); overflow: visible; }
 .appr-review__side { position: sticky; top: var(--space-4); gap: var(--space-4); }
 .appr-review__side .appr-decide { padding: 0; border: 0; background: transparent; }
-.appr-review__side .appr-decide__actions { flex-direction: column-reverse; }
 .appr-review__side .appr-decide__actions > * { width: 100%; }
 .appr-review__side .appr-missing-pick { grid-template-columns: minmax(0, 1fr); }
 .appr-done { align-items: center; gap: var(--space-3); max-width: 640px; margin: var(--space-6) auto; padding: var(--space-8) var(--space-6); text-align: center; overflow: visible; font-family: var(--font-sans); }
@@ -127,28 +135,32 @@ button.appr-open { min-height: 36px; padding: 0 var(--space-3); font-size: var(-
 }
 
 @media (max-width: 640px) {
-  .appr-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .appr-select, .appr-select select { width: 100%; }
+  /* 결재 대기(3칸)는 한 줄에 다 보이고, 내 요청(5칸)은 작업 목록처럼 옆으로 넘긴다 */
+  .appr-stats > li { flex: 1 0 104px; }
   .appr-missing-pick { grid-template-columns: minmax(0, 1fr); }
   .appr-decide { padding: var(--space-3); }
-  .appr-decide__actions > * { flex: 1; }
   .appr-review__main, .appr-review__side { padding: var(--space-4); }
   .appr-done { margin: var(--space-3) 0; padding: var(--space-6) var(--space-4); }
   .appr-done__actions > * { width: 100%; }
 
-  /* 목록 표 → 카드 */
+  /* 목록 표 → 카드: 제목 한 줄, 아래 3칸(이름표 위·값 아래), 검토 버튼은 꽉 차게 */
   .appr-table-list thead { display: none; }
   .appr-table-list, .appr-table-list tbody { display: block; width: 100%; }
-  .appr-table-list tr { display: flex; flex-wrap: wrap; align-items: center; gap: 6px var(--space-2); padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--color-border-soft); }
-  .appr-table-list td { display: block; width: auto; padding: 0; border: 0; white-space: normal; }
-  .appr-table-list td:nth-child(2) { order: -1; width: 100%; }
-  .appr-table-list td:nth-child(3), .appr-table-list td:nth-child(5) { display: none; }
-  .appr-table-list td:last-child { width: 100%; }
-  .appr-table-list td:last-child .appr-open { width: 100%; min-height: var(--touch-min); }
+  .home-table.appr-table-list tr { width: auto; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px var(--space-2); margin: 0 12px 10px; padding: 14px; border: 1px solid var(--color-border-soft); border-radius: 18px; }
+  .appr-table-list tbody tr:first-child { margin-top: 12px; }
+  .appr-table-list tr.is-selected { border-color: var(--color-text-strong); }
+  .appr-table-list tbody tr.is-selected td, .appr-table-list tbody tr:hover td { background: transparent; box-shadow: none; }
+  .home-table.appr-table-list td, .home-table.appr-table-list td:first-child, .home-table.appr-table-list td:nth-child(2) { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; width: auto; min-width: 0; padding: 0; border: 0; white-space: normal; text-align: left; }
+  .appr-table-list td::before { content: attr(data-label); font-size: var(--text-xs); color: var(--color-text-muted); }
+  .home-table.appr-table-list td:nth-child(2) { grid-column: 1 / -1; order: -1; padding-bottom: 10px; border-bottom: 1px solid var(--color-border-soft); }
+  .appr-table-list td:nth-child(2)::before, .appr-table-list td:last-child::before { content: none; }
+  .home-table.appr-table-list td:last-child { grid-column: 1 / -1; width: 100%; margin-left: 0; }
+  .appr-table-list td:last-child .appr-open { width: 100%; min-height: 40px; }
 }
 
 /* 본문 폭이 좁아지면(PC 두 칸일 때) 정보 칸을 칸 너비에 맞춰 줄인다 */
-.appr-review__main .appr-facts { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
+.appr-review__main .appr-facts { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
 
 /* 반려된 내 요청: 문서 작성 화면으로 (approval-review.jsx) */
 .appr-revise { display: flex; flex-wrap: wrap; gap: var(--space-2); }

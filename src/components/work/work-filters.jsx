@@ -8,7 +8,7 @@ import { TYPE_KEYS } from '../../utils/schedule-model.js';
 const short = (date) => date?.slice(5).replace('-', '/');
 
 /** 버튼에 보일 기간 값: 오늘 / 7일 / 30일 / 11/02 ~ 11/16 */
-export function periodValue(period) {
+function periodValue(period) {
   const preset = PERIOD_PRESETS.find((item) => item.key === period.preset);
   if (preset) return preset.label;
   return period.from === period.to ? short(period.from) : `${short(period.from)} ~ ${short(period.to)}`;
@@ -55,18 +55,20 @@ function PeriodPanel({ period, close, disabled }) {
 
 /** 종류 드롭다운: 여러 개 고르기 (없으면 전체) */
 export function TypeMenu({ types, setTypes }) {
-  const value = !types.length ? '전체' : types.length === 1 ? WORK_TYPE_LABELS[types[0]] : `${WORK_TYPE_LABELS[types[0]]} 외 ${types.length - 1}`;
+  const all = Object.keys(WORK_TYPE_LABELS);
+  const allOn = types.length === all.length;
+  const value = !types.length || allOn ? '전체' : types.length === 1 ? WORK_TYPE_LABELS[types[0]] : `${WORK_TYPE_LABELS[types[0]]} 외 ${types.length - 1}`;
   const toggle = (type) => setTypes((current) => (current.includes(type) ? current.filter((item) => item !== type) : [...current, type]));
   return (
-    <FilterMenu label="종류" value={value} active={types.length > 0} width={220}>
+    <FilterMenu label="종류" value={value} active={types.length > 0 && !allOn} width={220}>
       <div className="work-check-menu" role="group" aria-label="작업 종류 (여러 개)">
+        <label className="work-check-menu__row"><input type="checkbox" checked={allOn} onChange={() => setTypes(allOn ? [] : all)} />전체 선택</label>
         {Object.keys(WORK_TYPE_LABELS).map((type) => (
           <label key={type} className="work-check-menu__row">
             <input type="checkbox" checked={types.includes(type)} onChange={() => toggle(type)} />
             <i className={`home-legend__sw home-legend__sw--${TYPE_KEYS[type]}`} aria-hidden="true" />{WORK_TYPE_LABELS[type]}
           </label>
         ))}
-        <button type="button" className="ui-btn ui-btn--link ui-btn--sm" disabled={!types.length} onClick={() => setTypes([])}>전체 보기</button>
       </div>
     </FilterMenu>
   );
