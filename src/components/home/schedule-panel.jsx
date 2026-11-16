@@ -70,8 +70,9 @@ export default function SchedulePanel({ siteId, today, todayWorks, zones, deadli
   const isEmpty = section.status === 'ready' && !works.length && shownView !== 'month' && shownView !== 'week';
   return (
     <Panel id="schedule" title="일정" grip={grip} collapse={collapse} count={count} section={section} onRetry={onRetry} className="home-cal"
-      actions={null}
-      toolbar={<div className="home-cal__tools">{toolbar}{filters}</div>}
+      // PC·태블릿: 날짜·보기 줄을 제목 "일정" 바로 오른쪽(머리)에 붙여 달력 칸을 한 줄 더 쓴다. 모바일은 예전처럼 머리 아래
+      actions={mobile ? null : toolbar}
+      toolbar={<div className="home-cal__tools">{mobile && toolbar}{filters}</div>}
       isEmpty={isEmpty}
       empty={{ title: anchor === today ? '오늘 등록된 작업이 없습니다' : `${dayLabel(anchor)} 작업이 없습니다`, message: 'AI 도우미에게 말하거나 단계별로 등록하세요.', action: { label: '작업 등록', onClick: () => document.getElementById('home-composer')?.focus() } }}>
       {shownView === 'day' && <DayView works={works.filter(hasTime)} zones={zoneList} isToday={anchor === today} tbmDeadline={anchor === today ? deadlines?.tbmDeadline : null} highlightId={highlightId} onOpen={setOpened} />}

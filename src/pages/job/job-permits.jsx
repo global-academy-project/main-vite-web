@@ -89,7 +89,7 @@ function PermitFinder({ site, context }) {
         {!loading && state.error && <StatusView kind="error" message={state.error} />}
         {!loading && !state.error && !state.works.length && <StatusView kind="empty" title={from === to ? '이 날짜에 등록된 작업이 없습니다' : '이 기간에 등록된 작업이 없습니다'} action={{ label: '작업 목록으로', onClick: () => navigate('/job/workspace') }} />}
         {!loading && state.works.length > 0 && (
-          <table className="home-table permit-table">
+          <table className="home-table finder-table">
             <thead><tr><th scope="col" className="work-table__date">작업일</th><th scope="col">작업</th><th scope="col">종류</th><th scope="col">허가서</th><th scope="col"><span className="sr-only">열기</span></th></tr></thead>
             <tbody>
               {state.works.map((work) => {
@@ -104,8 +104,8 @@ function PermitFinder({ site, context }) {
                         : <span className="work-none">{work.workType === 'GENERAL' ? '해당 없음' : '작성 전'}</span>}
                     </td>
                     <td data-label="열기">{work.workType !== 'GENERAL' && !permits.length
-                      ? <Link className="ui-btn ui-btn--ghost ui-btn--sm appr-open" to={`/job/permits?workId=${work.workId}`}>작성하기</Link>
-                      : permits.length ? <span className="permit-row-actions"><Link className="ui-btn ui-btn--ghost ui-btn--sm appr-open" to={`/job/permits?permitId=${permits[0].permitId}`}>열기</Link><Link className="home-panel__link" to={`/job/permits?workId=${work.workId}`}>새 허가서</Link></span> : null}</td>
+                      ? <Link className="ui-btn ui-btn--ghost ui-btn--sm" to={`/job/permits?workId=${work.workId}`}>작성하기</Link>
+                      : permits.length ? <span className="permit-row-actions"><Link className="ui-btn ui-btn--ghost ui-btn--sm" to={`/job/permits?permitId=${permits[0].permitId}`}>열기</Link><Link className="home-panel__link" to={`/job/permits?workId=${work.workId}`}>새 허가서</Link></span> : null}</td>
                   </tr>
                 );
               })}

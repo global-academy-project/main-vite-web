@@ -11,7 +11,7 @@ import StepIndicator from '../../components/ui/step-indicator.jsx';
 import RiskDraftEvidence from '../../components/risk-draft-evidence.jsx';
 import { useRiskAssessment } from '../../hooks/use-risk-assessment.js';
 import { TAG_LABELS } from '../../utils/agentic-rag-tags';
-import { RISK_STATUS_LABELS, toneOf, WORK_TYPE_LABELS } from '../../utils/home-model.js';
+import { RISK_STATUS_LABELS, toneOf } from '../../utils/home-model.js';
 import { itemScore, levelCounts, RISK_LEVEL_TEXT, RISK_LEVEL_TONES, riskSteps } from '../../utils/risk-model.js';
 import { backToHubPath, withBack } from '../../utils/work-list-model.js';
 import '../../styles/home.css';
@@ -19,7 +19,8 @@ import '../../styles/work.css';
 import '../../styles/records.css';
 import '../../styles/risk.css';
 import { usePeriod } from '../../hooks/use-period.js';
-import PeriodBar from '../../components/period-bar.jsx';
+import { PeriodMenu } from '../../components/work/work-filters.jsx';
+import { TypeBadge } from '../../components/home/home-panels.jsx';
 
 const SCALE = ['1', '2', '3', '4', '5'];
 const FREQUENCY_HINT = { 1: '거의 없음', 2: '드묾', 3: '가끔', 4: '자주', 5: '매우 자주' };
@@ -69,20 +70,23 @@ function RiskFinder({ site, context }) {
   return (
     <div className="work-list rec-page">
       <PageHeader title="위험성평가" description="작업을 고르면 그 작업의 위험성평가를 열거나 새로 작성합니다." context={context} />
-      <section className="work-filters rec-datebar" aria-label="작업일">
-        <PeriodBar period={period} label="작업일" />
-        <form className="risk-lookup" onSubmit={(event) => { event.preventDefault(); if (/^\d+$/.test(lookup.trim())) navigate(`/job/risk-assessment?riskId=${lookup.trim()}`); }}>
-          <label><span className="sr-only">평가 번호</span><input value={lookup} inputMode="numeric" placeholder="평가 번호로 열기" onChange={(event) => setLookup(event.target.value)} /></label>
-          <button type="submit" className="ui-btn ui-btn--ghost" disabled={!/^\d+$/.test(lookup.trim())}>열기</button>
-        </form>
-        {period.error && <p className="work-filters__help" role="alert">{period.error}</p>}
+      <section className="work-filters" aria-label="작업일">
+        <div className="work-filters__menus"><PeriodMenu period={period} label="작업일" /></div>
+        <div className="work-filters__find">
+          <form className="work-lookup" onSubmit={(event) => { event.preventDefault(); if (/^\d+$/.test(lookup.trim())) navigate(`/job/risk-assessment?riskId=${lookup.trim()}`); }}>
+            <label><span className="sr-only">평가 번호</span><input value={lookup} inputMode="numeric" placeholder="평가 번호" onChange={(event) => setLookup(event.target.value)} /></label>
+            <button type="submit" className="ui-btn ui-btn--ghost" disabled={!/^\d+$/.test(lookup.trim())}>열기</button>
+          </form>
+        </div>
       </section>
+      {period.error && <p className="work-filters__help" role="alert">{period.error}</p>}
+      <p className="work-filters__help">{from === to ? from : `${from} ~ ${to}`}{loading ? '' : ` · ${state.works.length}건 표시`}</p>
       <section className="home-panel work-table-panel" aria-label="작업 목록">
         {loading && <div className="home-panel__pad"><Skeleton lines={5} /></div>}
         {!loading && state.error && <StatusView kind="error" message={state.error} />}
         {!loading && !state.error && !state.works.length && <StatusView kind="empty" title={from === to ? '이 날짜에 등록된 작업이 없습니다' : '이 기간에 등록된 작업이 없습니다'} message="작업을 먼저 등록하세요." action={{ label: '작업 목록으로', onClick: () => navigate('/job/workspace') }} />}
         {!loading && state.works.length > 0 && (
-          <table className="home-table">
+          <table className="home-table finder-table">
             <thead><tr><th scope="col" className="work-table__date">작업일</th><th scope="col">작업</th><th scope="col">종류</th><th scope="col">위험성평가</th><th scope="col"><span className="sr-only">열기</span></th></tr></thead>
             <tbody>
               {state.works.map((work) => {
@@ -91,9 +95,9 @@ function RiskFinder({ site, context }) {
                   <tr key={work.workId}>
                     <td data-label="작업일" className="work-table__date">{shortDay(work.workDate)}</td>
                     <td data-label="작업"><span className="home-table__name"><span className="home-table__title">{work.title}</span><span className="work-table__id">#{work.workId}</span></span></td>
-                    <td data-label="종류"><Badge tone={work.highRisk ? 'warn' : 'neutral'}>{WORK_TYPE_LABELS[work.workType] ?? work.workType}</Badge></td>
+                    <td data-label="종류"><TypeBadge type={work.workType} highRisk={work.highRisk} /></td>
                     <td data-label="위험성평가">{brief ? <Badge tone={toneOf(brief.status)}>{RISK_STATUS_LABELS[brief.status] ?? brief.status}</Badge> : <span className="work-none">작성 전</span>}</td>
-                    <td data-label="열기"><Link className="ui-btn ui-btn--secondary appr-open" to={brief ? `/job/risk-assessment?riskId=${brief.riskAssessmentId}` : `/job/risk-assessment?workId=${work.workId}`}>{brief ? '열기' : '작성하기'}</Link></td>
+                    <td data-label="열기"><Link className="ui-btn ui-btn--ghost ui-btn--sm" to={brief ? `/job/risk-assessment?riskId=${brief.riskAssessmentId}` : `/job/risk-assessment?workId=${work.workId}`}>{brief ? '열기' : '작성하기'}</Link></td>
                   </tr>
                 );
               })}
@@ -127,8 +131,8 @@ function RiskEditor({ site, context, initialRiskId, initialWorkId, back }) {
   return (
     <div className="work-list rec-page risk-page">
       <PageHeader title={work?.title ? `${work.title} 위험성평가` : '위험성평가'} context={context} onBeforeSelect={() => navigate('/job/risk-assessment')}
-        badges={<Badge tone={risk ? toneOf(risk.status) : 'todo'}>{status}</Badge>}
-        description={[risk ? `평가 #${risk.riskAssessmentId}${risk.revision ? ` · ${risk.revision}판` : ''}` : null, targetWorkId ? `작업 #${targetWorkId}` : null, work?.workType ? WORK_TYPE_LABELS[work.workType] : null].filter(Boolean).join(' · ')}
+        badges={<>{work?.workType && <TypeBadge type={work.workType} highRisk={work.highRisk} />}<Badge tone={risk ? toneOf(risk.status) : 'todo'}>{status}</Badge></>}
+        description={[risk ? `평가 #${risk.riskAssessmentId}${risk.revision ? ` · ${risk.revision}판` : ''}` : null, targetWorkId ? `작업 #${targetWorkId}` : null].filter(Boolean).join(' · ')}
         actions={<>
           {hub && <Link className="ui-btn ui-btn--ghost" to={hub}><Icon name="chevronLeft" size={16} />작업 허브로</Link>}
           {risk?.approvalId && <Link className="ui-btn ui-btn--ghost" to={`/approvals?tab=requested&open=${risk.approvalId}`}>결재 보기</Link>}

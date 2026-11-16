@@ -223,3 +223,6 @@ button.rec-range__item { display: inline-flex; align-items: center; gap: var(--s
 button.rec-range__item:hover:not(:disabled) { border-color: var(--color-primary); background: var(--color-surface); transform: none; }
 button.rec-range__item.is-active, button.rec-range__item.is-active:hover:not(:disabled) { border-color: var(--color-primary); background: var(--color-primary-soft); }
 .rec-range__item strong { color: var(--color-text-strong); font-variant-numeric: tabular-nums; }
+
+/* 안전일지: 고른 날짜 + 일지 상태 배지 한 줄 (PR6, 예전 PeriodBar 줄의 배지 자리) */
+.daily-datebar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
