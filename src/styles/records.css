@@ -226,3 +226,27 @@ button.rec-range__item.is-active, button.rec-range__item.is-active:hover:not(:di
 
 /* 안전일지: 고른 날짜 + 일지 상태 배지 한 줄 (PR6, 예전 PeriodBar 줄의 배지 자리) */
 .daily-datebar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+
+/* 아차사고 표: 표 3상태(11/14) 올림 = 연회색, 고름(열린 보고) = 연한 남색 + 왼쪽 줄 (승인함과 같음, PR7) */
+.inc-table tbody tr:hover td { background: var(--color-surface-muted); }
+.inc-table tbody tr.is-selected td { background: var(--color-primary-soft); }
+.inc-table tbody tr.is-selected td:first-child { box-shadow: inset 3px 0 0 var(--color-primary); }
+/* 안전일지 초안 JSON: 접어 두기 (PR7) */
+details.rec-log__json { display: block; }
+details.rec-log__json > summary { cursor: pointer; padding: 4px 0; }
+details.rec-log__json[open] > pre { margin-top: var(--space-2); }
+/* 아차사고 표 → 모바일 카드 3단 (제목 / 정보 3칸 / 꽉 찬 보기 버튼), 승인함과 같은 모양 (PR7) */
+@media (max-width: 640px) {
+  .inc-table thead { display: none; }
+  .inc-table, .inc-table tbody { display: block; width: 100%; }
+  .home-table.inc-table tr { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px var(--space-2); width: auto; margin: 0 12px 10px; padding: 14px; border: 1px solid var(--color-border-soft); border-radius: 18px; }
+  .home-table.inc-table tbody tr:first-child { margin-top: 12px; }
+  .inc-table tr.is-selected { border-color: var(--color-text-strong); }
+  .inc-table tbody tr.is-selected td, .inc-table tbody tr:hover td { background: transparent; box-shadow: none; }
+  .home-table.inc-table td, .home-table.inc-table td:first-child { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; width: auto; min-width: 0; padding: 0; border: 0; white-space: normal; text-align: left; }
+  .inc-table td::before { content: attr(data-label); font-size: var(--text-xs); color: var(--color-text-muted); }
+  .home-table.inc-table td:nth-child(2) { grid-column: 1 / -1; order: -1; padding-bottom: 10px; border-bottom: 1px solid var(--color-border-soft); }
+  .inc-table td:nth-child(2)::before, .inc-table td:last-child::before { content: none; }
+  .home-table.inc-table td:last-child { grid-column: 1 / -1; width: 100%; }
+  .inc-table td:last-child .appr-open { width: 100%; min-height: 40px; }
+}

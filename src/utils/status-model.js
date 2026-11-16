@@ -43,7 +43,7 @@ export function deadlineRows(deadlines) {
   return [
     { key: 'tbm', label: 'TBM 마감', time: clockOf(deadlines.tbmDeadline), passed: deadlines.tbmPassed },
     { key: 'log', label: '안전일지 마감', time: clockOf(deadlines.dailyLogDeadline), passed: deadlines.dailyLogPassed },
-    { key: 'approval', label: '결재 처리 기한', time: `${deadlines.approvalDueMinutes}분`, passed: false },
+    { key: 'approval', label: '결재 처리 기한', time: Number.isFinite(deadlines.approvalDueMinutes) ? `${deadlines.approvalDueMinutes}분` : '—', passed: false },
   ];
 }
 

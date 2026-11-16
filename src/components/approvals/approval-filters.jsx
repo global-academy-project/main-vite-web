@@ -48,16 +48,16 @@ export function StatusMenu({ status, statuses, setStatus }) {
   );
 }
 
-/** 요청일: 전체 · 오늘 · 7일 · 30일은 바로 적용, 직접 지정은 한쪽 날짜만 넣어도 된다 */
-export function RequestDateMenu({ from, to, setRange }) {
+/** 날짜 범위(기본 "요청일"): 전체 · 오늘 · 7일 · 30일은 바로 적용, 직접 지정은 한쪽 날짜만 넣어도 된다. 아차사고 발생일도 같이 쓴다 */
+export function RequestDateMenu({ from, to, setRange, label = '요청일' }) {
   return (
-    <FilterMenu label="요청일" value={requestPeriodLabel(from, to)} active={Boolean(from || to)} width={320}>
-      {(close) => <RequestDatePanel from={from} to={to} setRange={setRange} close={close} />}
+    <FilterMenu label={label} value={requestPeriodLabel(from, to)} active={Boolean(from || to)} width={320}>
+      {(close) => <RequestDatePanel from={from} to={to} setRange={setRange} close={close} label={label} />}
     </FilterMenu>
   );
 }
 
-function RequestDatePanel({ from, to, setRange, close }) {
+function RequestDatePanel({ from, to, setRange, close, label }) {
   const [start, setStart] = useState(from);
   const [end, setEnd] = useState(to);
   const error = start && end && end < start ? '끝 날짜는 시작 날짜와 같거나 뒤여야 합니다.' : '';
@@ -73,9 +73,9 @@ function RequestDatePanel({ from, to, setRange, close }) {
       </div>
       <p className="work-period-menu__caption">직접 지정 (한쪽만 넣어도 됩니다)</p>
       <div className="work-period-menu__range">
-        <label><span className="sr-only">요청일 시작</span><input type="date" value={start} max={end || '9999-12-31'} onChange={(event) => setStart(event.target.value)} /></label>
+        <label><span className="sr-only">{label} 시작</span><input type="date" value={start} max={end || '9999-12-31'} onChange={(event) => setStart(event.target.value)} /></label>
         <span aria-hidden="true">~</span>
-        <label><span className="sr-only">요청일 끝</span><input type="date" value={end} min={start || undefined} max="9999-12-31" onChange={(event) => setEnd(event.target.value)} /></label>
+        <label><span className="sr-only">{label} 끝</span><input type="date" value={end} min={start || undefined} max="9999-12-31" onChange={(event) => setEnd(event.target.value)} /></label>
       </div>
       {error && <p className="work-period-menu__error" role="alert">{error}</p>}
       <div className="work-period-menu__actions">
