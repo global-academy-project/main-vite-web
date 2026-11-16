@@ -676,3 +676,12 @@ button.home-panel__fold-btn:hover:not(:disabled) { background: var(--color-neutr
 }
 @media (max-width: 640px) { .home-assistant__head { padding-right: var(--space-4); } } /* ⌄/⌃ 를 다른 카드와 같은 가로 자리에 */
 @media (max-width: 640px) { .home-assistant__head > .home-assistant__tabs { flex: 1 1 auto; min-width: 0; } }
+/* 일정 날짜 글자: 보기마다 길이가 달라도(하루·주간·월간) 옆 버튼이 움직이지 않게 가장 긴 주간 길이만큼 자리를 잡는다 */
+.home-cal__label { min-width: 11.6em; }
+@media (max-width: 640px) { .home-cal__label { min-width: 0; } }
+/* 넓은 PC: 위 3칸 높이 고정 (11/16). 목록 수·탭(결재 대기 / 내 요청 / 위험·주의)에 따라 칸이 늘거나 줄면
+ * 아래 일정·AI 칸 높이가 따라 바뀌어서, 위 칸은 290px 로 고정하고 넘치는 목록은 칸 안에서 스크롤한다 */
+@media (min-width: 1321px) {
+  .home-top { grid-auto-rows: 290px; }
+  .home-top .home-panel__body { max-height: none; }
+}

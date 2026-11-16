@@ -18,7 +18,10 @@ test('주는 월요일부터, 이동은 보기 단위', () => {
   assert.equal(addMonths('2026-03-31', -1), '2026-02-28');
   assert.deepEqual(weekDays('2026-11-16'), ['2026-11-16', '2026-11-17', '2026-11-18', '2026-11-19', '2026-11-20', '2026-11-21', '2026-11-22']);
   assert.equal(rangeLabel('day', '2026-11-16'), '2026. 11. 16 (월)');
-  assert.equal(rangeLabel('month', '2026-11-16'), '2026년 11월');
+  assert.equal(rangeLabel('day', '2026-12-03'), '2026. 12. 03 (목)');
+  assert.equal(rangeLabel('week', '2026-11-18'), '2026. 11. 16 ~ 11. 22');
+  assert.equal(rangeLabel('week', '2026-12-02'), '2026. 11. 30 ~ 12. 06');
+  assert.equal(rangeLabel('month', '2026-11-16'), '2026. 11');
 });
 
 test('월간 칸은 7의 배수, 바깥 날짜 표시', () => {

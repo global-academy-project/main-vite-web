@@ -46,19 +46,19 @@ export function shiftAnchor(view, anchor, step) {
   return addDays(anchor, step);
 }
 
-/** "2026. 11. 16 (월)" · 주간 "11. 16 ~ 11. 22" · 월간 "2026년 11월" */
+/** 보기마다 같은 형식(yyyy. mm. dd): 하루 "2026. 11. 16 (월)" · 주간 "2026. 11. 16 ~ 11. 22" · 월간 "2026. 11" */
 export function rangeLabel(view, anchor) {
   const date = parseDate(anchor);
   if (view === 'week') {
     const [from, to] = rangeFor('week', anchor).map(parseDate);
-    return `${from.getMonth() + 1}. ${from.getDate()} ~ ${to.getMonth() + 1}. ${to.getDate()}`;
+    return `${from.getFullYear()}. ${pad(from.getMonth() + 1)}. ${pad(from.getDate())} ~ ${pad(to.getMonth() + 1)}. ${pad(to.getDate())}`;
   }
-  if (view === 'month') return `${date.getFullYear()}년 ${date.getMonth() + 1}월`;
+  if (view === 'month') return `${date.getFullYear()}. ${pad(date.getMonth() + 1)}`;
   return dayLabel(anchor, true);
 }
 export const dayLabel = (text, withYear = false) => {
   const date = parseDate(text);
-  return `${withYear ? `${date.getFullYear()}. ` : ''}${date.getMonth() + 1}. ${date.getDate()} (${WEEKDAYS[date.getDay()]})`;
+  return `${withYear ? `${date.getFullYear()}. ` : ''}${withYear ? pad(date.getMonth() + 1) : date.getMonth() + 1}. ${withYear ? pad(date.getDate()) : date.getDate()} (${WEEKDAYS[date.getDay()]})`;
 };
 export const weekdayOf = (text) => WEEKDAYS[parseDate(text).getDay()];
 
