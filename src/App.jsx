@@ -8,6 +8,7 @@ import { homePathFor } from "./components/app-shell/nav-config.js";
 import ErrorBoundary from "./components/ui/error-boundary.jsx";
 import StatusView from "./components/ui/status-view.jsx";
 import ToastProvider from "./components/ui/toast-provider.jsx";
+import ConfirmHost from "./components/ui/confirm-dialog.jsx";
 import "./styles/ui.css";
 
 // 화면별 지연 로딩: 첫 화면(로그인)만 바로 싣고 나머지는 들어갈 때 받는다
@@ -110,6 +111,7 @@ function App() {
           </Routes>
         </RouteFrame>
       </BrowserRouter>
+      <ConfirmHost />
     </ToastProvider>
   );
 }

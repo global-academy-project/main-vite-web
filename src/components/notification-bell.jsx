@@ -25,7 +25,8 @@ export default function NotificationBell() {
     panelRef.current?.focus();
     const close = () => { setOpen(false); buttonRef.current?.focus(); };
     const onKey = (event) => { if (event.key === 'Escape') close(); };
-    const onDown = (event) => { if (!containerRef.current?.contains(event.target)) setOpen(false); };
+    // 확인 창(알림 끄기 등)은 body 에 뜨므로 바깥 클릭으로 치지 않는다
+    const onDown = (event) => { if (!containerRef.current?.contains(event.target) && !event.target.closest?.('[data-confirm-dialog]')) setOpen(false); };
     document.addEventListener('keydown', onKey);
     document.addEventListener('mousedown', onDown);
     return () => { document.removeEventListener('keydown', onKey); document.removeEventListener('mousedown', onDown); };
@@ -74,7 +75,6 @@ function NotificationList({ notes, onSettings, onClose }) {
       <header className="notif-head">
         <div className="notif-head__title">
           <h2>알림</h2>
-          {unread > 0 && <span className="notif-pill">안 읽음 {unread > 99 ? '99+' : unread}</span>}
         </div>
         <div className="notif-head__actions">
           <button type="button" className="ui-icon-btn" aria-label="새로고침 (설정 편집 초기화)" title="새로고침" disabled={notes.busy} onClick={notes.refresh}><Icon name="refresh" size={18} /></button>
@@ -85,7 +85,9 @@ function NotificationList({ notes, onSettings, onClose }) {
       <div className="notif-bar">
         <div className="notif-seg" role="group" aria-label="알림 보기">
           <button type="button" aria-pressed={!notes.unreadOnly} disabled={notes.busy} onClick={() => notes.setUnreadOnly(false)}>전체</button>
-          <button type="button" aria-pressed={notes.unreadOnly} disabled={notes.busy} onClick={() => notes.setUnreadOnly(true)}>안 읽음</button>
+          <button type="button" aria-pressed={notes.unreadOnly} disabled={notes.busy} onClick={() => notes.setUnreadOnly(true)}>
+            안 읽음{unread > 0 && <span className="notif-seg__count">{unread > 99 ? '99+' : unread}</span>}
+          </button>
         </div>
         <button type="button" className="notif-text-btn" disabled={notes.locked || unread === 0} onClick={notes.readAll}><Icon name="check" size={16} />모두 읽음</button>
       </div>
@@ -115,31 +117,75 @@ function NotificationItem({ notification, notes }) {
   const target = notificationTarget(notification);
   const unread = !notification.readAt;
   const site = siteLabel(notification.siteId, notes.sites);
+  const typeLabel = NOTIFICATION_TYPE_LABELS[notification.type] ?? notification.type;
+  const sevText = notification.severity !== 'INFO' ? `${severity.label} · ` : '';
+  const content = (
+    <>
+      <span className="notif-item__icon" aria-hidden="true"><Icon name={severity.icon} size={18} /></span>
+      <span className="notif-item__body">
+        <span className="notif-item__title">
+          {unread && <span className="notif-dot"><span className="sr-only">안 읽음</span></span>}
+          <span className="notif-item__title-text">{notification.title}</span>
+        </span>
+        {notification.message && <span className="notif-item__msg" title={notification.message}>{notification.message}</span>}
+        <span className="notif-item__meta">
+          <span className="sr-only">{sevText}</span>
+          <span className="notif-item__type">{typeLabel}</span>
+          {site && <><span aria-hidden="true">·</span><span className="notif-item__site">{site}</span></>}
+          <span aria-hidden="true">·</span>
+          <time className="notif-item__time" dateTime={notification.createdAt ?? undefined}>{relativeTime(notification.createdAt)}</time>
+          {target && <span className="notif-item__go">{target.label}<Icon name="chevronRight" size={14} /></span>}
+        </span>
+        {!target && notification.targetId != null && <span className="notif-item__note">이 화면에서 열 수 없는 기록 ({notification.targetType} #{notification.targetId})</span>}
+      </span>
+    </>
+  );
   return (
     <li className={`notif-item notif-item--${severity.tone}${unread ? ' is-unread' : ''}`}>
-      <span className="notif-item__icon" aria-hidden="true"><Icon name={severity.icon} size={18} /></span>
-      <div className="notif-item__body">
-        <p className="notif-item__meta">
-          <span className="notif-item__type">{NOTIFICATION_TYPE_LABELS[notification.type] ?? notification.type}</span>
-          {notification.severity !== 'INFO' && <span className="notif-item__sev">{severity.label}</span>}
-          {site && <span className="notif-item__site">{site}</span>}
-          <time className="notif-item__time" dateTime={notification.createdAt ?? undefined}>{relativeTime(notification.createdAt)}</time>
-        </p>
-        <p className="notif-item__title">
-          {unread && <span className="notif-dot"><span className="sr-only">안 읽음</span></span>}
-          {notification.title}
-        </p>
-        {notification.message && <p className="notif-item__msg">{notification.message}</p>}
-        <div className="notif-item__actions">
-          {target
-            ? <button type="button" className="ui-btn ui-btn--secondary notif-item__open" disabled={notes.locked} onClick={() => notes.openRecord(notification, target.path)}>{target.label}<Icon name="send" size={14} /></button>
-            : notification.targetId != null && <span className="notif-item__note">이 화면에서 열 수 없는 기록 ({notification.targetType} #{notification.targetId})</span>}
-          <span className="notif-item__spacer" />
-          <button type="button" className="notif-text-btn" disabled={notes.locked || !unread} onClick={() => notes.readOne(notification)}>{unread ? '읽음 표시' : '읽음'}</button>
-          <button type="button" className="notif-text-btn" disabled={notes.locked} onClick={() => notes.dismiss(notification)}>끄기</button>
-        </div>
-      </div>
+      {target
+        ? <button type="button" className="notif-item__main" disabled={notes.locked} onClick={() => notes.openRecord(notification, target.path)}>{content}</button>
+        : <div className="notif-item__main">{content}</div>}
+      <ItemMenu notification={notification} notes={notes} unread={unread} label={notification.title} />
     </li>
+  );
+}
+
+/** 항목 ⋯ 메뉴: 읽음 표시 · 끄기 (기능은 그대로, 자리만 옮김) */
+function ItemMenu({ notification, notes, unread, label }) {
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef(null);
+  const btnRef = useRef(null);
+  useEffect(() => {
+    if (!open) return undefined;
+    const onDown = (event) => { if (!wrapRef.current?.contains(event.target)) setOpen(false); };
+    document.addEventListener('mousedown', onDown);
+    wrapRef.current?.querySelector('[role="menuitem"]:not(:disabled)')?.focus();
+    return () => document.removeEventListener('mousedown', onDown);
+  }, [open]);
+  const run = (action) => { setOpen(false); btnRef.current?.focus(); action(notification); };
+  const onKeyDown = (event) => {
+    if (event.key !== 'Escape' || !open) return;
+    event.stopPropagation();
+    setOpen(false);
+    btnRef.current?.focus();
+  };
+  return (
+    <div className="notif-menu" ref={wrapRef} onKeyDown={onKeyDown}>
+      <button ref={btnRef} type="button" className="notif-menu__btn" aria-haspopup="menu" aria-expanded={open}
+        aria-label={`${label} 더보기`} disabled={notes.locked} onClick={() => setOpen((v) => !v)}>
+        <Icon name="more" size={18} />
+      </button>
+      {open && (
+        <div className="notif-menu__list" role="menu">
+          <button type="button" role="menuitem" disabled={!unread} onClick={() => run(notes.readOne)}>
+            <Icon name="check" size={16} />{unread ? '읽음 표시' : '읽음'}
+          </button>
+          <button type="button" role="menuitem" onClick={() => run(notes.dismiss)}>
+            <Icon name="eyeOff" size={16} />끄기
+          </button>
+        </div>
+      )}
+    </div>
   );
 }
 

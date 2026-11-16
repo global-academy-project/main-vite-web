@@ -5,6 +5,7 @@ import { jobRecordPath } from '../../utils/job-forms.js';
 import { RECORD_TYPE_LABELS } from '../../utils/record-query-model.js';
 import Icon from '../ui/icon.jsx';
 import DraftCard from './draft-card.jsx';
+import { confirmAction } from '../ui/confirm-store.js';
 
 const TABS = [
   { key: 'WORK_REGISTER', label: '작업 등록', placeholder: '예: 오늘 오후 2시 3번 탱크 내부 청소, 4명', hint: '작업 장소·종류·시간·인원을 말하듯이 적어 주세요.',
@@ -87,7 +88,7 @@ export function Thread({ id, conversation, records, siteId, zones, hint, suggest
       {uncertain && (
         <div className="bubble bubble--error" role="alert">
           전송 결과를 확인하지 못해 추가 전송을 멈췄습니다. 서버에 실행이 생겼을 수 있습니다.
-          <button type="button" className="ui-btn ui-btn--ghost" onClick={() => { if (window.confirm('서버에 실행이 생성됐는지 확인했습니까? 다시 보내면 중복 실행이 될 수 있습니다.')) conversation.unlock(); }}>확인 후 잠금 해제</button>
+          <button type="button" className="ui-btn ui-btn--ghost" onClick={async () => { if (await confirmAction({ title: '중복 실행이 될 수 있습니다', message: '서버에 실행이 생성됐는지 확인했습니까? 다시 보내면 중복 실행이 될 수 있습니다.', confirmLabel: '잠금 해제', tone: 'warn' })) conversation.unlock(); }}>확인 후 잠금 해제</button>
         </div>
       )}
       <span ref={end} />

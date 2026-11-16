@@ -9,46 +9,56 @@
  * 어두운 화면: theme-provider 가 <html class="dark-mode"> 를 켠다. 아래 .dark-mode 에서 같은 이름을 다시 정한다.
  */
 :root {
-  /* 바탕·면 */
-  --color-bg: #f3f5f9;
-  --color-surface: #ffffff;
-  --color-surface-muted: #f7f9fc;
-  --color-surface-accent: #f4f8fe;
+  /* 바탕·면 — 11/16 개편: 메뉴는 연한 회청색, 본문은 흰 판, 카드 안 칸은 연회색 */
+  --color-bg: #f5f7fb;              /* 메뉴·앱 바탕 */
+  --color-canvas: #ffffff;          /* 본문 판 */
+  --color-surface: #ffffff;         /* 카드 */
+  --color-surface-muted: #f6f7f9;   /* 카드 안 칸 */
+  --color-surface-accent: #f2f6fd;  /* 방금 생성·강조 줄 */
 
   /* 글자 (흰 바탕 대비 4.5:1 이상) */
-  --color-text: #1f2937;
-  --color-text-strong: #102a43;
-  --color-text-sub: #374151;
-  --color-text-muted: #59657a;
+  --color-text: #1e2228;
+  --color-text-strong: #1e2228;
+  --color-text-sub: #2c323b;
+  --color-text-muted: #5b636f;
   --color-text-on-primary: #ffffff;
 
   /* 선 */
-  --color-border: #dfe5ee;
-  --color-border-soft: #edf0f5;
-  --color-border-input: #c8d2e0;
-  --color-border-accent: #c9d8f5;
+  --color-border: #dde2e8;
+  --color-border-soft: #eef1f5;
+  --color-border-input: #d5dae1;
+  --color-border-accent: #c9ced6;
 
-  /* 강조 (파란색) */
-  --color-primary: #246be2;
-  --color-primary-hover: #1b55b8;
-  --color-primary-soft: #e8f0fd;
-  --color-primary-disabled: #c9d4e5;
+  /* 주요 동작·고른 것 (남색). 파랑은 아래 wait(결재 중) 뜻으로만 쓴다 */
+  --color-primary: #384150;
+  --color-primary-hover: #2c3440;
+  --color-primary-soft: #eef1f5;
+  --color-primary-disabled: #c9ced6;
+  --color-primary-fill: #384150;      /* 큰 버튼 바탕 (다크에서도 어두운 버튼) */
+  --color-primary-fill-hover: #2c3440;
+  --color-on-primary-fill: #ffffff;
+
+  /* 결재 중·안내 파랑 */
+  --color-wait: #1f4fa3;
+  --color-wait-soft: #e3ecfb;
 
   /* 상태: 색만으로 구분하지 않는다 (아이콘·글자와 함께) */
   --color-success: #2e8a57;
-  --color-success-text: #2e6b47;
-  --color-success-soft: #e6f4ec;
-  --color-warning: #c2410c;
-  --color-warning-text: #8a4b00;
-  --color-warning-soft: #fff4e5;
-  --color-warning-border: #f0c39a;
-  --color-danger: #b3261e;
+  --color-success-text: #1b6b3a;
+  --color-success-soft: #e3f4e9;
+  --color-warning: #e8590c;
+  --color-warning-text: #9a3a06;
+  --color-warning-soft: #fff1e7;
+  --color-warning-border: #f5c4a1;
+  --color-danger: #c42b1f;
   --color-danger-text: #a3261e;
   --color-danger-soft: #fdecea;
-  --color-danger-border: #e8a39d;
-  --color-neutral-soft: #f3f4f6;
+  --color-danger-border: #f3c7c2;
+  --color-neutral-soft: #f1f3f6;
+  --color-todo: #ffe14d;              /* 할 일 있음 (노랑) */
+  --color-on-todo: #1e2228;
 
-  --color-scrim: rgba(16, 42, 67, 0.32);
+  --color-scrim: rgba(16, 24, 40, 0.32);
   --color-focus: rgba(36, 107, 226, 0.45);
 
   /* 간격 (4px 단위) */
@@ -73,57 +83,74 @@
   --weight-bold: 600;
 
   /* 모서리·그림자 */
-  --radius-sm: 8px;
-  --radius-md: 10px;
-  --radius-lg: 12px;
-  --radius-sheet: 16px;
+  --radius-sm: 10px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --radius-card: 22px;
+  --radius-sheet: 24px;
   --radius-pill: 999px;
-  --shadow-sm: 0 1px 2px rgba(16, 42, 67, 0.06);
-  --shadow-md: 0 8px 24px rgba(16, 42, 67, 0.12);
+  --shadow-sm: 0 1px 2px rgba(20, 30, 50, 0.08);
+  --shadow-md: 0 12px 30px rgba(20, 30, 50, 0.16);
+  --shadow-lg: 0 24px 60px rgba(20, 30, 50, 0.22);
 
-  /* 터치 대상 (장갑 낀 손 고려) */
+  /* 터치 대상 (장갑 낀 손 고려). 입력칸·버튼 모두 44 */
   --touch-min: 44px;
-  --touch-field: 48px;
+  --touch-field: 44px;
+  --touch-sm: 32px;
+  --toolbar-h: 40px;
 
   /* 층 */
   --z-sheet: 1000;
   --z-toast: 1100;
 }
 
+/* 어두운 화면 (F안: 살짝 푸른 회색, 메뉴와 본문이 붙어 보이고 카드가 바탕보다 밝다) */
 .dark-mode {
-  --color-bg: #0f172a;
-  --color-surface: #172033;
-  --color-surface-muted: #1d283c;
-  --color-surface-accent: #1a2a47;
+  --color-bg: #17181b;
+  --color-canvas: #1b1c1f;
+  --color-surface: #222428;
+  --color-surface-muted: #2a2c31;
+  --color-surface-accent: #232b3a;
 
-  --color-text: #e5e7eb;
-  --color-text-strong: #f9fafb;
-  --color-text-sub: #d1d5db;
-  --color-text-muted: #aeb9c9;
+  --color-text: #e8eaed;
+  --color-text-strong: #f3f4f6;
+  --color-text-sub: #c9cdd3;
+  --color-text-muted: #9aa1ab;
 
-  --color-border: #344158;
-  --color-border-soft: #243149;
-  --color-border-input: #4b5a73;
-  --color-border-accent: #2f4f8a;
+  --color-border: #303238;
+  --color-border-soft: #2a2c31;
+  --color-border-input: #3a3d44;
+  --color-border-accent: #4a4e57;
 
-  --color-primary: #5b93f0;
-  --color-primary-hover: #8ab3f5;
-  --color-primary-soft: #1d3157;
-  --color-primary-disabled: #344158;
-  --color-text-on-primary: #0f172a;
+  --color-primary: #e4e6ea;
+  --color-primary-hover: #ffffff;
+  --color-primary-soft: #2b2e34;
+  --color-primary-disabled: #3a3d44;
+  --color-text-on-primary: #15171a;
+  --color-primary-fill: #4a5260;
+  --color-primary-fill-hover: #576072;
+  --color-on-primary-fill: #ffffff;
+
+  --color-wait: #8db4f5;
+  --color-wait-soft: #1e2c45;
 
   --color-success: #4cb782;
-  --color-success-text: #86d4a9;
-  --color-success-soft: #173a2a;
+  --color-success-text: #8fd0a8;
+  --color-success-soft: #1e3b2a;
   --color-warning: #f0883e;
   --color-warning-text: #f6c08e;
   --color-warning-soft: #3b2716;
   --color-warning-border: #7a4a22;
-  --color-danger: #f07167;
+  --color-danger: #e5544a;
   --color-danger-text: #f6a39c;
   --color-danger-soft: #3d1f1f;
   --color-danger-border: #7a3530;
-  --color-neutral-soft: #243149;
+  --color-neutral-soft: #2a2c31;
+  --color-todo: #ffd43b;
+  --color-on-todo: #1e2228;
 
-  --color-scrim: rgba(0, 0, 0, 0.5);
+  --color-scrim: rgba(0, 0, 0, 0.55);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 12px 30px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.55);
 }

@@ -7,6 +7,7 @@ import {
 import { getCachedCurrentUser, refreshWorkSite } from '../api/workers';
 import { setLastSite } from '../api/users';
 import { useToast } from '../components/ui/toast-context.js';
+import { confirmAction } from '../components/ui/confirm-store.js';
 
 const POLL_MS = 30000;
 
@@ -122,8 +123,8 @@ export function useNotifications() {
     if (mounted.current) { setOpen(false); navigate(path); }
   }, '');
 
-  const dismiss = (notification) => {
-    if (notification.severity === 'CRITICAL' && !window.confirm('안전 중요 알림을 목록에서 끕니까? 내용을 확인한 후 진행하세요.')) return;
+  const dismiss = async (notification) => {
+    if (notification.severity === 'CRITICAL' && !(await confirmAction({ title: '안전 중요 알림을 끌까요?', message: '안전 중요 알림을 목록에서 끕니까? 내용을 확인한 후 진행하세요.', confirmLabel: '끄기', tone: 'danger' }))) return;
     void run(() => dismissNotification(notification.id), '알림을 목록에서 껐습니다.');
   };
 

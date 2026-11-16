@@ -33,6 +33,11 @@ const paths = {
   send: ['M5 12h14', 'M13 6l6 6-6 6'],
   bell: ['M6 17h12l-1.5-2.5V10a4.5 4.5 0 0 0-9 0v4.5z', 'M10 20.5h4'],
   chevronLeft: ['M15 6l-6 6 6 6'],
+  chevronRight: ['M9 6l6 6-6 6'],
+  panel: ['M4 5h16v14H4z', 'M9 5v14'],
+  logout: ['M10 5H5v14h5', 'M14 8l4 4-4 4', 'M18 12H9'],
+  moon: ['M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z'],
+  sun: ['M12 8a4 4 0 1 0 0 8a4 4 0 1 0 0-8', 'M12 2v2', 'M12 20v2', 'M4.9 4.9l1.4 1.4', 'M17.7 17.7l1.4 1.4', 'M2 12h2', 'M20 12h2', 'M4.9 19.1l1.4-1.4', 'M17.7 6.3l1.4-1.4'],
 };
 const circled = new Set(['alert', 'info', 'clock']);
 

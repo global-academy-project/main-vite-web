@@ -5,6 +5,7 @@ import {
 } from '../api/jobs';
 import { useToast } from '../components/ui/toast-context.js';
 import { MAX_FILL_TEXTS, extractFill, mergeFill, remainingCodes } from '../utils/extract-model.js';
+import { confirmAction } from '../components/ui/confirm-store.js';
 
 const EMPTY_FORM = { validFrom: '', validTo: '', watcherName: '', supervisorName: '', form: {} };
 
@@ -97,10 +98,10 @@ export function usePermitWorkspace({ siteId, disabled, initialWorkId, initialPer
   };
 
   const measurementDirty = Object.values(values).some((value) => String(value).trim());
-  const confirmReplacement = () => !(dirty || measurementDirty) || window.confirm('저장하지 않은 내용과 측정값을 버리고 계속하시겠습니까?');
+  const confirmReplacement = async () => !(dirty || measurementDirty) || confirmAction({ title: '저장하지 않은 내용이 있습니다', message: '저장하지 않은 내용과 측정값을 버리고 계속하시겠습니까?', confirmLabel: '버리고 계속', tone: 'danger' });
 
-  const load = (id) => {
-    if (!confirmReplacement()) return undefined;
+  const load = async (id) => {
+    if (!(await confirmReplacement())) return undefined;
     return run(async () => {
       const saved = await getPermit(id, siteId);
       if (mounted.current) { apply(saved); setFill(null); setStep(stepForPermit(saved)); say('서버의 허가서를 불러왔습니다. 이어서 할 단계로 이동했습니다.'); }
@@ -112,8 +113,8 @@ export function usePermitWorkspace({ siteId, disabled, initialWorkId, initialPer
     setDirty(true);
     setEvaluation(null);
   };
-  const changeType = (next) => {
-    if (!confirmReplacement()) return;
+  const changeType = async (next) => {
+    if (!(await confirmReplacement())) return;
     setChosenType(next); update('form', {}); setValues({}); setFill(null);
   };
   const setMeasurement = (code, value) => { setValues((current) => ({ ...current, [code]: value })); setError(''); };
@@ -213,8 +214,8 @@ export function usePermitWorkspace({ siteId, disabled, initialWorkId, initialPer
     if (mounted.current) { apply(result); say('승인 요청을 보냈습니다. 승인 완료나 작업 시작 허가가 아닙니다. 결과는 승인함 "내 요청"에서 볼 수 있습니다.'); }
   });
 
-  const startNew = () => {
-    if (!confirmReplacement()) return false;
+  const startNew = async () => {
+    if (!(await confirmReplacement())) return false;
     setPermit(null); setForm(EMPTY_FORM); setValues({}); setFill(null); setDirty(false);
     setConflict(false); setCreationUncertain(false); setEvaluation(null); setError('');
     setStep(1);

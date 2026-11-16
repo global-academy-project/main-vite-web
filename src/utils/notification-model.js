@@ -10,7 +10,7 @@ export const NOTIFICATION_TYPE_LABELS = Object.freeze({
 // 심각도 → 색·아이콘·읽는 말
 export const SEVERITY = Object.freeze({
   CRITICAL: { tone: 'block', icon: 'warning', label: '긴급' },
-  WARN: { tone: 'wait', icon: 'alert', label: '주의' },
+  WARN: { tone: 'warn', icon: 'alert', label: '주의' },
   INFO: { tone: 'info', icon: 'info', label: '안내' },
 });
 export const severityOf = (severity) => SEVERITY[severity] ?? SEVERITY.INFO;

@@ -78,9 +78,10 @@ button.home-more { display: none; } /* 펼치기 버튼은 모바일에서만 */
 .home-badge--done { background: var(--color-success-soft); color: var(--color-success-text); }
 .home-badge--block { background: var(--color-danger-soft); color: var(--color-danger-text); }
 .home-badge--warn { background: var(--color-warning-soft); color: var(--color-warning-text); }
-.home-badge--wait, .home-badge--info { background: var(--color-primary-soft); color: var(--color-primary-hover); }
+/* 배지 tone 하나 = 색 하나 (11/16): 결재 중(wait)만 파랑, 안내(info)는 회색 */
+.home-badge--wait { background: var(--color-wait-soft); color: var(--color-wait); }
+.home-badge--info { background: var(--color-neutral-soft); color: var(--color-text-sub); }
 .home-badge--todo, .home-badge--active, .home-badge--neutral { background: var(--color-neutral-soft); color: var(--color-text-sub); }
-.dark-mode .home-badge--wait, .dark-mode .home-badge--info { color: var(--color-primary); }
 
 /* ── 오늘 할 일 ────────────────────────────────────── */
 .home-deadlines { display: flex; flex-wrap: wrap; gap: var(--space-3); padding: var(--space-2) var(--space-4) 0; font-size: var(--text-xs); color: var(--color-text-muted); }
@@ -339,3 +340,32 @@ button.draft-card__fold:hover:not(:disabled) { background: transparent; color: v
 }
 
 .home > .page-head-wrap { margin-bottom: var(--space-3); }
+
+/* ── 탭 규칙 (11/16) ──────────────────────────────────
+ * 밑줄형: 그 안의 목록 나누기 (홈 승인함 결재 대기 / 내 요청, 기록 검색 지난 대화 종류)
+ * 트랙형: 대화 종류·보기 전환 (AI 도우미 작업 등록 / 기록 질문)
+ * 탭 숫자: 기본 회색, 고른 탭은 검정 글자 */
+.home-seg { display: flex; gap: 20px; margin: var(--space-2) var(--space-4) var(--space-1); padding: 0; border-radius: 0; border-bottom: 1px solid var(--color-border-soft); background: transparent; }
+button.home-seg__btn { position: relative; justify-content: flex-start; min-height: 38px; padding: 0; border-radius: 0; background: transparent; color: var(--color-text-muted); font-size: var(--text-sm); font-weight: var(--weight-medium); }
+button.home-seg__btn.is-active { background: transparent; box-shadow: none; color: var(--color-text-strong); font-weight: 700; }
+button.home-seg__btn.is-active::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; border-radius: 1px; background: var(--color-text-strong); }
+.home-seg__count { background: var(--color-neutral-soft); color: var(--color-text-muted); font-weight: 600; }
+.home-seg__btn.is-active .home-seg__count { color: var(--color-text-strong); }
+
+.home-assistant__tabs:not(.appr-tabs) { align-self: flex-start; gap: 2px; margin: var(--space-2) 0; padding: 3px; border-radius: var(--radius-pill); background: var(--color-neutral-soft); }
+.home-assistant__tabs:not(.appr-tabs) button.home-assistant__tab { min-height: 34px; padding: 0 var(--space-4); border-bottom: 0; border-radius: var(--radius-pill); font-size: 13.5px; white-space: nowrap; }
+/* 탭·버튼 글자는 줄바꿈하지 않는다(세로 쪼개짐 방지). 좁으면 머리 줄이 두 줄로 내려간다 */
+.home-assistant__tabs:not(.appr-tabs) { flex: 0 0 auto; }
+.home-assistant__head button, .home-assistant__head a { white-space: nowrap; }
+.home-assistant__tabs:not(.appr-tabs) button.home-assistant__tab.is-active { background: var(--color-surface); color: var(--color-text-strong); box-shadow: var(--shadow-sm); }
+/* 승인함 화면 탭은 밑줄형 (검정 밑줄) */
+.appr-tabs button.home-assistant__tab.is-active { border-bottom-color: var(--color-text-strong); color: var(--color-text-strong); }
+.home-assistant__busy { background: var(--color-wait); }
+
+/* 모바일 AI 도우미 머리 (11/16): 두 줄. 1줄 = 작업 등록 | 기록 질문 트랙(반반), 2줄 = 단계별로 만들기 · 새 대화 오른쪽. 글자 줄바꿈 없음 */
+@media (max-width: 640px) {
+  .home-assistant__head { flex-wrap: wrap; row-gap: 0; padding: var(--space-2) var(--space-3) var(--space-1); }
+  .home-assistant__tabs:not(.appr-tabs) { flex: 1 1 100%; align-self: stretch; margin: 0; }
+  .home-assistant__tabs:not(.appr-tabs) button.home-assistant__tab { flex: 1 1 0; justify-content: center; min-width: 0; }
+  .home-assistant__head .home-panel__actions { flex: 1 1 100%; justify-content: flex-end; gap: var(--space-2); min-height: 40px; }
+}
