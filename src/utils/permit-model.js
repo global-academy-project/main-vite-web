@@ -35,11 +35,15 @@ export function localizeRuleText(value, labels = {}) {
   return value.replace(new RegExp(`\\b(?:${codes.join('|')})\\b`, 'g'), (code) => labels[code]);
 }
 
-/** 위반 카드의 둘째 줄: "입력 없음 · 기준 …". 기준이 "확인 필요"(서버가 구체 기준을 주지 않음)이면 기준은 빼고 보여 준다. */
+/** 기준 자리에 서버가 구체 기준 대신 보내는 말. 보여 줄 기준이 아니므로 뺀다. */
+const GENERIC_CRITERIA = new Set(['확인 필요', '입력 필요']);
+
+/** 위반 카드의 둘째 줄: "입력값 … · 기준 …". 입력이 없으면 "입력 없음"을 쓰지 않고, 보여 줄 것이 없으면 빈 글자(줄을 그리지 않는다). */
 export function ruleDetailLine({ actual, expected } = {}, labels = {}) {
-  const parts = [actual == null || actual === '' ? '입력 없음' : `입력값 ${localizeRuleText(actual, labels)}`];
+  const parts = [];
+  if (actual != null && actual !== '') parts.push(`입력값 ${localizeRuleText(actual, labels)}`);
   const criterion = String(expected ?? '').trim();
-  if (criterion && criterion !== '확인 필요') parts.push(`기준 ${localizeRuleText(criterion, labels)}`);
+  if (criterion && !GENERIC_CRITERIA.has(criterion)) parts.push(`기준 ${localizeRuleText(criterion, labels)}`);
   return parts.join(' · ');
 }
 

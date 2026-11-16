@@ -388,8 +388,7 @@ function StepCheck({ data }) {
             {current.violations.map((item, index) => (
               <li key={`${item.ruleCode}-${index}`}>
                 <strong>{SEVERITY_LABELS[item.severity] ?? item.severity} · {item.message}</strong>
-                <span>{ruleDetailLine(item, RULE_VALUE_LABELS)}</span>
-                {item.action && <span>조치: {item.action}</span>}
+                {ruleDetailLine(item, RULE_VALUE_LABELS) && <span>{ruleDetailLine(item, RULE_VALUE_LABELS)}</span>}
                 <span className="home-table__facts">근거: {item.legalBasis}</span>
               </li>
             ))}
