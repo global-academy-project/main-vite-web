@@ -85,7 +85,7 @@ export function useInspection({ siteId, disabled, initialId, initialDate, fixedD
       setListState({ key: listKey, error: '' });
     }).catch((requestError) => { if (active) setListState({ key: listKey, error: requestError.message || '점검표 목록을 불러오지 못했습니다.' }); });
     return () => { active = false; };
-  }, [siteId, date, from, listKey, pick]);
+  }, [siteId, date, from, listKey, pick, setDate]);
 
   const showWriteError = async (requestError, fallback) => {
     if (requestError.status === 409 || requestError.code === 'WRITE_OUTCOME_UNKNOWN') setNeedsReload(true);

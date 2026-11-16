@@ -293,9 +293,6 @@ button.work-stat.is-active, button.work-stat.is-active:hover:not(:disabled) { bo
 .work-search { display: inline-flex; align-items: center; gap: 6px; width: 260px; min-width: 0; padding: 0 14px; border-radius: var(--radius-pill); background: var(--color-surface-muted); color: var(--color-text-muted); }
 .work-search input { min-height: 40px; padding: 0; border: 0; background: transparent; outline: none; }
 .work-search:focus-within { outline: 3px solid var(--color-focus); }
-/* 작업명 검색: 포커스 링은 바깥 둥근 칸 하나만 */
-.work-search:focus-within { outline: none; box-shadow: 0 0 0 3px var(--color-focus); background: var(--color-surface); }
-.work-search input:focus, .work-search input:focus-visible { outline: none; border: 0; box-shadow: none; }
 .work-lookup input { width: 100px; min-height: 40px; border-radius: var(--radius-pill); }
 .work-lookup .ui-btn { min-height: 40px; }
 .work-meta { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2); margin-top: calc(-1 * var(--space-2)); }
@@ -401,4 +398,24 @@ button.work-check-menu__option:hover:not(:disabled) { background: var(--color-su
   .work-table tbody tr:first-child { margin-top: 0; }
   .work-table td:first-child { font-size: 12px; color: var(--color-text-muted); }
   .work-table td:nth-child(7) { padding: 4px 0; }
+}
+/* 작업명 검색: 포커스 링은 바깥 둥근 칸 하나만 (안쪽 입력칸의 공통 포커스 링이 겹쳐 두 겹으로 보이던 것) */
+.work-search:focus-within { outline: none; box-shadow: 0 0 0 3px var(--color-focus); background: var(--color-surface); }
+.work-search input:focus, .work-search input:focus-visible { outline: none; border: 0; box-shadow: none; }
+
+/* 찾기 표 (작업허가 · 위험성평가: 작업일 / 작업 / 종류 / 문서 / 버튼). PR6 에서 permit.css 에서 옮김 */
+.finder-table td { padding-top: 14px; padding-bottom: 14px; }
+.finder-table .permit-row-actions { justify-content: flex-end; }
+.finder-table td:last-child { width: 1%; white-space: nowrap; text-align: right; }
+@media (max-width: 640px) {
+  /* 모바일 카드 3단 (작업일·종류 / 작업명 / 문서·버튼) */
+  .home-table.finder-table tr { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 10px; width: auto; margin: 0 12px 10px; padding: 14px; border: 1px solid var(--color-border-soft); border-radius: 18px; }
+  .home-table.finder-table tbody tr:first-child { margin-top: 12px; }
+  .home-table.finder-table td { display: block; width: auto; min-width: 0; padding: 0; border: 0; white-space: normal; text-align: left; }
+  .home-table.finder-table td:nth-child(1) { grid-column: 1; grid-row: 1; align-self: center; font-size: var(--text-xs); }
+  .home-table.finder-table td:nth-child(3) { grid-column: 2; grid-row: 1; }
+  .home-table.finder-table td:nth-child(2) { grid-column: 1 / -1; grid-row: 2; }
+  .home-table.finder-table td:nth-child(4) { grid-column: 1 / -1; grid-row: 3; }
+  .home-table.finder-table td:nth-child(5) { grid-column: 1 / -1; grid-row: 4; text-align: right; }
+  .home-table.finder-table td:nth-child(5):empty { display: none; }
 }

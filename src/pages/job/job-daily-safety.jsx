@@ -10,7 +10,7 @@ import StepIndicator from '../../components/ui/step-indicator.jsx';
 import { useToast } from '../../components/ui/toast-context.js';
 import { useDailySafety } from '../../hooks/use-daily-safety.js';
 import { useDateRange } from '../../hooks/use-date-range.js';
-import PeriodBar from '../../components/period-bar.jsx';
+import { PeriodMenu } from '../../components/work/work-filters.jsx';
 import SafetyInspectionLogForm from '../../components/daily-safety/safety-inspection-log-form.jsx';
 import {
   checksTotal, DAILY_LOG_APPROVER_ROLES, DAILY_LOG_STATUS_LABELS, DAILY_LOG_TONES, dailyLogSteps, deadlineOf, teamRow,
@@ -74,11 +74,13 @@ export default function JobDailySafety() {
             {data.log?.dailyLogId && <Link className="ui-btn ui-btn--ghost" to={`/records/DAILY_LOG/${data.log.dailyLogId}`}>문서 보기</Link>}
           </>} />
 
-        <section className="work-filters rec-datebar" aria-label="기준 날짜">
-          <PeriodBar period={period} label="일지 기간" disabled={data.busy} />
-          {period.error && <span className="work-filters__help" role="alert">{period.error}</span>}
-          {data.log && <Badge tone={DAILY_LOG_TONES[data.log.status] ?? 'neutral'}>{DAILY_LOG_STATUS_LABELS[data.log.status] ?? data.log.status}</Badge>}
+        <section className="work-filters" aria-label="기준 날짜">
+          <div className="work-filters__menus"><PeriodMenu period={period} label="일지 날짜" disabled={data.busy} /></div>
         </section>
+        {/* 예전 PeriodBar 처럼 고른 날짜가 늘 보이게, 일지 상태 배지도 그대로 */}
+        {period.error && <p className="work-filters__help" role="alert">{period.error}</p>}
+        <p className="work-filters__help daily-datebar">{period.from === period.to ? period.from : `${period.from} ~ ${period.to}`}
+          {data.log && <Badge tone={DAILY_LOG_TONES[data.log.status] ?? 'neutral'}>{DAILY_LOG_STATUS_LABELS[data.log.status] ?? data.log.status}</Badge>}</p>
         {site && data.multiDay && <RangeLogs data={data} date={date} onPick={changeDate} />}
 
         {!site ? <StatusView kind="empty" title="현장을 선택해 주세요" />

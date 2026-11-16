@@ -688,3 +688,21 @@ button.home-panel__fold-btn:hover:not(:disabled) { background: var(--color-neutr
 /* 종류 + 고위험 (TypeBadge highRisk): 한 줄로 */
 .home-type-wrap { display: inline-flex; flex-wrap: nowrap; align-items: center; gap: 4px; white-space: nowrap; }
 .home-type-risk { display: inline-flex; color: var(--color-warning-text); }
+
+/* 일정 카드 머리 (PC·태블릿, schedule-panel.jsx): "일정 N" 바로 옆에 날짜, 이동·보기 버튼은 오른쪽 끝.
+   날짜 칸은 가장 긴 형식(주간 "2026. 11. 15 ~ 11. 21", 숫자 폭 고정이라 10.6em)보다 줄어들지 않고,
+   날짜와 버튼 사이는 최소 space-4. 칸이 좁으면 날짜·버튼 줄이 머리 안 다음 줄로 (날짜 왼쪽 · 버튼 오른쪽 그대로) */
+.home-cal .home-panel__head { flex-wrap: wrap; justify-content: flex-start; gap: 6px var(--space-2); padding-top: 6px; padding-bottom: 6px; }
+.home-cal .home-panel__head > .home-panel__title { margin-right: 0; }
+.home-cal .home-panel__head > .home-panel__actions { flex: 1 1 auto; margin-left: var(--space-2); }
+.home-cal .home-panel__actions .home-cal__bar { flex: 1 1 auto; flex-wrap: nowrap; }
+.home-cal .home-panel__actions .home-cal__label { flex: 0 0 auto; min-width: 10.6em; margin-right: auto; padding-right: var(--space-4); }
+/* 일정 칸이 좁을 때(가장 좁은 PC 배치 ≈555px)도 머리 한 줄 유지: 간격·버튼 안쪽 여백·글자만 조금 줄인다 (빼는 버튼·글자 없음) */
+@container homecal (max-width: 680px) {
+  .home-cal .home-panel__head { padding-left: 12px; padding-right: 12px; column-gap: 6px; }
+  .home-cal .home-panel__head > .home-panel__actions { margin-left: 4px; }
+  .home-cal .home-panel__actions .home-cal__bar { gap: 6px; }
+  .home-cal .home-panel__actions .home-cal__label { font-size: 14px; padding-right: 8px; }
+  .home-cal .home-panel__actions .home-cal__nav button, .home-cal .home-panel__actions .home-cal__views button { min-height: 28px; padding: 0 8px; font-size: 12.5px; }
+  .home-cal .home-panel__actions button.home-cal__round { width: 26px; padding: 0; }
+}

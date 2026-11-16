@@ -21,7 +21,7 @@ import '../../styles/risk.css';
 import '../../styles/permit.css';
 import '../../styles/tbm.css';
 import '../../styles/inspection.css';
-import PeriodBar from '../../components/period-bar.jsx';
+import { PeriodMenu } from '../../components/work/work-filters.jsx';
 
 /**
  * 점검표 (구역·설비). 날짜 하나에 점검표 여러 건 — 왼쪽 목록, 오른쪽 고른 점검표의 항목 점검 · 저장 · 제출.
@@ -55,14 +55,16 @@ function ChecklistPage({ site, context, initialDate, initialId, workId, fixedDay
         actions={<>
           {workId && <Link className="ui-btn ui-btn--ghost" to={`/job/workspace?workId=${workId}`}><Icon name="chevronLeft" size={16} />작업 허브로</Link>}
           <button type="button" className="ui-btn ui-btn--ghost" disabled={data.busy || data.loading} onClick={data.reload}><Icon name="refresh" size={16} />새로고침</button>
+          {/* 새 점검표는 화면 머리 한 곳에서만 (PC·모바일 모두 머리에 보인다. 빈 목록 안의 같은 버튼은 뺐다) */}
           <button type="button" className="ui-btn ui-btn--primary" disabled={data.locked} onClick={() => setCreating(true)}>새 점검표</button>
         </>} />
 
-      <section className="work-filters rec-datebar" aria-label="점검일">
-        <PeriodBar period={data.period} label="점검일 기간" disabled={data.busy} />
-        {data.period.error && <span className="work-filters__help" role="alert">{data.period.error}</span>}
-        <span className="rec-help">같은 날짜·대상·양식의 점검표는 하나만 만들 수 있습니다.</span>
+      <section className="work-filters" aria-label="점검일">
+        <div className="work-filters__menus"><PeriodMenu period={data.period} label="점검일" disabled={data.busy} /></div>
       </section>
+      {/* 예전 PeriodBar 처럼 고른 날짜가 늘 보이게, 오류가 나도 안내 문구는 그대로 */}
+      {data.period.error && <p className="work-filters__help" role="alert">{data.period.error}</p>}
+      <p className="work-filters__help">{data.period.from === data.period.to ? data.period.from : `${data.period.from} ~ ${data.period.to}`} · 같은 날짜·대상·양식의 점검표는 하나만 만들 수 있습니다.</p>
 
       {data.needsReload && (
         <div className="work-form__error" role="alert"><Icon name="warning" size={16} /><span>저장 결과나 최신 내용을 확인해야 합니다. 새로고침으로 서버 반영 여부를 확인한 뒤 계속하세요.</span>
@@ -75,7 +77,7 @@ function ChecklistPage({ site, context, initialDate, initialId, workId, fixedDay
           <div className="home-panel__body">
             {data.loading && <div className="home-panel__pad"><Skeleton lines={4} /></div>}
             {!data.loading && data.listError && <StatusView kind="error" compact message={data.listError} onRetry={data.reload} />}
-            {!data.loading && !data.listError && !data.records.length && <StatusView kind="empty" compact title={data.multiDay ? '이 기간의 점검표가 없습니다' : '이 날짜의 점검표가 없습니다'} action={{ label: '새 점검표 만들기', onClick: () => setCreating(true) }} />}
+            {!data.loading && !data.listError && !data.records.length && <StatusView kind="empty" compact title={data.multiDay ? '이 기간의 점검표가 없습니다' : '이 날짜의 점검표가 없습니다'} />}
             {!data.loading && data.records.length > 0 && (
               <ul className="home-list">
                 {data.records.map((record) => {
