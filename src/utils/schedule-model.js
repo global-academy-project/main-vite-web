@@ -22,11 +22,9 @@ export const formatDate = (date) => `${date.getFullYear()}-${pad(date.getMonth()
 export const addDays = (text, days) => { const date = parseDate(text); date.setDate(date.getDate() + days); return formatDate(date); };
 export const addMonths = (text, months) => { const date = parseDate(text); const day = date.getDate(); date.setDate(1); date.setMonth(date.getMonth() + months); const last = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate(); date.setDate(Math.min(day, last)); return formatDate(date); };
 
-/** 주는 월요일부터 */
+/** 주는 일요일부터 (우리 달력 기준, 11/16) */
 export function weekStart(text) {
-  const date = parseDate(text);
-  const shift = (date.getDay() + 6) % 7;
-  return addDays(text, -shift);
+  return addDays(text, -parseDate(text).getDay());
 }
 
 /** 보기별 조회 범위 [from, to] (월간도 한 달 = 31일 이하) */
@@ -148,7 +146,7 @@ export function weekDays(anchor) {
   return Array.from({ length: 7 }, (_, index) => addDays(from, index));
 }
 
-/** 월간 달력: 월요일 시작 주 단위 칸 (앞뒤 달 날짜는 outside) */
+/** 월간 달력: 일요일 시작 주 단위 칸 (앞뒤 달 날짜는 outside) */
 export function monthCells(anchor) {
   const [first, last] = rangeFor('month', anchor);
   const start = weekStart(first);

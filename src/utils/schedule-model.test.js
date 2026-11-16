@@ -6,29 +6,34 @@ const w = (id, start, end, extra = {}) => ({ workId: id, title: `작업 ${id}`, 
 
 test('보기별 범위는 31일을 넘지 않는다', () => {
   assert.deepEqual(rangeFor('day', '2026-11-16'), ['2026-11-16', '2026-11-16']);
-  assert.deepEqual(rangeFor('week', '2026-11-18'), ['2026-11-16', '2026-11-22']);
+  assert.deepEqual(rangeFor('week', '2026-11-18'), ['2026-11-15', '2026-11-21']);
   assert.deepEqual(rangeFor('month', '2026-02-10'), ['2026-02-01', '2026-02-28']);
   assert.deepEqual(rangeFor('month', '2026-12-31'), ['2026-12-01', '2026-12-31']);
 });
 
-test('주는 월요일부터, 이동은 보기 단위', () => {
-  assert.equal(weekStart('2026-11-22'), '2026-11-16');
+test('주는 일요일부터, 이동은 보기 단위', () => {
+  assert.equal(weekStart('2026-11-21'), '2026-11-15');
+  assert.equal(weekStart('2026-11-22'), '2026-11-22');
   assert.equal(shiftAnchor('week', '2026-11-16', -1), '2026-11-09');
   assert.equal(shiftAnchor('month', '2026-01-31', 1), '2026-02-28');
   assert.equal(addMonths('2026-03-31', -1), '2026-02-28');
-  assert.deepEqual(weekDays('2026-11-16'), ['2026-11-16', '2026-11-17', '2026-11-18', '2026-11-19', '2026-11-20', '2026-11-21', '2026-11-22']);
+  assert.deepEqual(weekDays('2026-11-16'), ['2026-11-15', '2026-11-16', '2026-11-17', '2026-11-18', '2026-11-19', '2026-11-20', '2026-11-21']);
   assert.equal(rangeLabel('day', '2026-11-16'), '2026. 11. 16 (월)');
   assert.equal(rangeLabel('day', '2026-12-03'), '2026. 12. 03 (목)');
-  assert.equal(rangeLabel('week', '2026-11-18'), '2026. 11. 16 ~ 11. 22');
-  assert.equal(rangeLabel('week', '2026-12-02'), '2026. 11. 30 ~ 12. 06');
+  assert.equal(rangeLabel('week', '2026-11-18'), '2026. 11. 15 ~ 11. 21');
+  assert.equal(rangeLabel('week', '2026-12-02'), '2026. 11. 29 ~ 12. 05');
   assert.equal(rangeLabel('month', '2026-11-16'), '2026. 11');
 });
 
 test('월간 칸은 7의 배수, 바깥 날짜 표시', () => {
   const cells = monthCells('2026-11-16');
   assert.equal(cells.length % 7, 0);
-  assert.equal(cells[0].date, '2026-10-26');
-  assert.equal(cells[0].outside, true);
+  assert.equal(cells[0].date, '2026-11-01'); // 11월 1일이 일요일 → 앞 달 칸 없음
+  assert.equal(cells[0].outside, false);
+  const dec = monthCells('2026-12-10');
+  assert.equal(dec[0].date, '2026-11-29'); // 일요일 시작
+  assert.equal(dec[0].outside, true);
+  assert.equal(dec.length % 7, 0);
   assert.ok(cells.some((cell) => cell.date === '2026-11-30' && !cell.outside));
 });
 

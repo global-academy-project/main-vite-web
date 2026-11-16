@@ -170,7 +170,7 @@ function MonthView({ works, anchor, today, onDay }) {
   const map = byDay(works);
   return (
     <div className="home-month">
-      <div className="home-month__weekdays" aria-hidden="true">{['월', '화', '수', '목', '금', '토', '일'].map((day) => <span key={day}>{day}</span>)}</div>
+      <div className="home-month__weekdays" aria-hidden="true">{['일', '월', '화', '수', '목', '금', '토'].map((day) => <span key={day}>{day}</span>)}</div>
       <div className="home-month__grid">
         {monthCells(anchor).map((cell) => {
           const list = map[cell.date] ?? [];
