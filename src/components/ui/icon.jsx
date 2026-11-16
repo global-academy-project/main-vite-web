@@ -35,8 +35,11 @@ const paths = {
   chevronLeft: ['M15 6l-6 6 6 6'],
   chevronRight: ['M9 6l6 6-6 6'],
   panel: ['M4 5h16v14H4z', 'M9 5v14'],
+  panelRight: ['M4 5h16v14H4z', 'M15 5v14'],
   logout: ['M10 5H5v14h5', 'M14 8l4 4-4 4', 'M18 12H9'],
   moon: ['M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z'],
+  grip: ['M9 6h.01', 'M15 6h.01', 'M9 12h.01', 'M15 12h.01', 'M9 18h.01', 'M15 18h.01'],
+  chat: ['M5 5h14v10H10l-5 4z'],
   sun: ['M12 8a4 4 0 1 0 0 8a4 4 0 1 0 0-8', 'M12 2v2', 'M12 20v2', 'M4.9 4.9l1.4 1.4', 'M17.7 17.7l1.4 1.4', 'M2 12h2', 'M20 12h2', 'M4.9 19.1l1.4-1.4', 'M17.7 6.3l1.4-1.4'],
 };
 const circled = new Set(['alert', 'info', 'clock']);

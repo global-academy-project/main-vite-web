@@ -25,7 +25,7 @@ test('단계: 평가 없음 → 지금 할 일은 위험성평가 작성', () =>
 test('허가 차단이 있으면 단계는 문제, 지금 할 일은 차단 확인', () => {
   const blocked = work({ riskAssessment: { riskAssessmentId: 3, status: 'PENDING' }, permits: [{ permitId: 8, permitType: 'CONFINED', status: 'BLOCKED' }] });
   assert.equal(workStages(blocked).find((stage) => stage.key === 'permit').state, 'problem');
-  assert.deepEqual(nextAction(blocked), { label: '허가 판정 차단 확인', tone: 'block', path: '/job/permits?permitId=8' });
+  assert.deepEqual(nextAction(blocked), { label: '작업허가 판정 차단 확인', tone: 'block', path: '/job/permits?permitId=8' });
 });
 
 test('일반 작업은 허가 단계를 해당 없음(완료)으로 본다', () => {
@@ -51,7 +51,7 @@ test('평가·허가·TBM 이 모두 승인되면 작업 준비 완료 (서버�
 });
 
 test('종류별 건수는 0건 종류도 자리를 둔다', () => {
-  assert.deepEqual(typeCounts([work(), work({ workType: 'HOT' }), work()]).map((item) => item.count), [0, 1, 2, 0]);
+  assert.deepEqual(typeCounts([work(), work({ workType: 'HOT' }), work()]).map((item) => item.count), [0, 1, 0, 2]); // 순서: 일반·화기·고소·밀폐공간 (11/16 종류 색 순서)
 });
 
 test('경고: 차단 작업 → 기한 지남 → 고위험 순, 같은 작업은 한 번만', () => {
@@ -78,4 +78,12 @@ test('daily log tile shows written state instead of a count', async () => {
   assert.deepEqual(tileValue({ type: 'DAILY_LOG_MISSING', count: 0 }, dashboard), { text: '작성 완료', unit: '', word: true });
   assert.deepEqual(tileValue({ type: 'DAILY_LOG_MISSING', count: 0 }, { works: { total: 0 } }), { text: '작업 없음', unit: '', word: true });
   assert.deepEqual(tileValue({ type: 'TBM_MISSING', count: 3 }), { text: '3', unit: '건' });
+});
+
+test('홈 제목 문장', async () => {
+  const { homeHeadline, todoTiles } = await import('./home-model.js');
+  assert.equal(homeHeadline(null, []), '홈');
+  assert.equal(homeHeadline({ works: { blocked: 2 } }, []), '오늘 차단된 작업이 2건 있어요');
+  assert.equal(homeHeadline({ works: { blocked: 0 } }, todoTiles([{ type: 'TBM_MISSING', count: 3 }])), '오늘 할 일이 3건 있어요');
+  assert.equal(homeHeadline({ works: { blocked: 0 } }, todoTiles([])), '오늘 할 일을 모두 마쳤어요');
 });

@@ -5,7 +5,10 @@ import { jobRecordPath } from '../../utils/job-forms.js';
 import { RECORD_TYPE_LABELS } from '../../utils/record-query-model.js';
 import Icon from '../ui/icon.jsx';
 import DraftCard from './draft-card.jsx';
+import { FoldButton } from './panel.jsx';
 import { confirmAction } from '../ui/confirm-store.js';
+import { useVoiceInput } from '../../hooks/use-voice-input.js';
+import { appendText, clock } from '../../utils/voice-model.js';
 
 const TABS = [
   { key: 'WORK_REGISTER', label: '작업 등록', placeholder: '예: 오늘 오후 2시 3번 탱크 내부 청소, 4명', hint: '작업 장소·종류·시간·인원을 말하듯이 적어 주세요.',
@@ -18,7 +21,8 @@ const TABS = [
  * 홈 AI 도우미. 탭마다 대화를 따로 가진다(서버는 대화 종류를 섞으면 409).
  * 두 대화 훅을 모두 살려 둬서 탭을 오가도 대화가 남는다. 현장이 바뀌면 둘 다 새 대화.
  */
-export default function AssistantPanel({ siteId, siteName, zones, onDraftSaved, onDraftChanged }) {
+export default function AssistantPanel({ siteId, siteName, zones, onDraftSaved, onDraftChanged, grip, onFold, collapse }) {
+  const open = !collapse || collapse.open;
   const [tab, setTab] = useState('WORK_REGISTER');
   const work = useAgentConversation({ siteId, taskType: 'WORK_REGISTER' });
   const record = useAgentConversation({ siteId, taskType: 'RECORD_QUERY' });
@@ -30,12 +34,14 @@ export default function AssistantPanel({ siteId, siteName, zones, onDraftSaved, 
   useEffect(() => { if (savedWorkId) onDraftSaved?.(savedWorkId); }, [savedWorkId, onDraftSaved]);
 
   return (
-    <section className="home-panel home-assistant" aria-labelledby="home-ai-title">
+    <section className={`home-panel home-assistant${open ? '' : ' is-collapsed'}`} aria-labelledby="home-ai-title">
       <header className="home-panel__head home-assistant__head">
+        {grip}
+        {/* 11/16: "AI 도우미" 제목 자리에 대화 종류 탭을 둔다 (세로 공간 확보). 제목은 화면 읽기용으로만 */}
         <h2 id="home-ai-title" className="sr-only">AI 도우미</h2>
         <div className="home-assistant__tabs" role="tablist" aria-label="대화 종류">
           {TABS.map((item) => (
-            <button key={item.key} type="button" role="tab" id={`ai-tab-${item.key}`} aria-controls="ai-thread" aria-selected={tab === item.key} className={`home-assistant__tab${tab === item.key ? ' is-active' : ''}`} onClick={() => setTab(item.key)}>
+            <button key={item.key} type="button" role="tab" id={`ai-tab-${item.key}`} aria-controls="ai-thread" aria-selected={tab === item.key} className={`home-assistant__tab${tab === item.key ? ' is-active' : ''}`} onClick={() => { setTab(item.key); if (collapse && !collapse.open) collapse.toggle(); }}>
               {item.label}
               {(item.key === 'WORK_REGISTER' ? work : record).processing && <span className="home-assistant__busy" aria-label="처리 중" />}
             </button>
@@ -45,9 +51,15 @@ export default function AssistantPanel({ siteId, siteName, zones, onDraftSaved, 
           <Link className="home-panel__link" to="/job/workspace">단계별로 만들기</Link>
           <button type="button" className="ui-btn ui-btn--ghost home-assistant__new" onClick={conversation.reset} disabled={conversation.processing}>새 대화</button>
         </div>
+        {/* 접기 버튼: 머리 바깥쪽 끝. 접힌 막대의 펼치기 버튼과 같은 자리·같은 아이콘 (메뉴 접기와 같은 방식) */}
+        {collapse && <FoldButton open={open} label="AI 도우미" controls="home-ai-body" onToggle={collapse.toggle} />}
+        {onFold && <button type="button" className="ui-icon-btn home-assistant__fold" aria-label="AI 도우미 접기" title="AI 도우미 접기" onClick={onFold}><Icon name="panelRight" size={18} /></button>}
       </header>
+      {/* 모바일에서 접어도 대화·진행 중 처리는 그대로 (숨기기만) */}
+      <div id="home-ai-body" className="home-assistant__body" hidden={!open}>
       <Thread id="ai-thread" conversation={conversation} records={tab === 'RECORD_QUERY'} siteId={siteId} zones={zones} hint={meta.hint} suggestions={meta.suggestions} siteName={siteName} onDraftChanged={onDraftChanged} />
-      <Composer key={tab} conversation={conversation} placeholder={meta.placeholder} siteName={siteName} />
+      <Composer key={tab} conversation={conversation} placeholder={meta.placeholder} siteName={siteName} voice />
+      </div>
     </section>
   );
 }
@@ -114,13 +126,21 @@ function RecordAnswer({ result }) {
   );
 }
 
-export function Composer({ conversation, placeholder, siteName }) {
+/** voice: 말로 입력 버튼(서버 음성 입력이 켜져 있고 브라우저가 녹음할 수 있을 때만 보인다). 받아 적은 글은 입력칸 뒤에 붙고 바로 보내지 않는다 */
+export function Composer({ conversation, placeholder, siteName, voice: withVoice = false }) {
   const [text, setText] = useState('');
+  const [voiceError, setVoiceError] = useState('');
+  const areaRef = useRef(null);
+  const voice = useVoiceInput({
+    onText: (spoken) => { setVoiceError(''); setText((current) => appendText(current, spoken, 2000)); areaRef.current?.focus(); },
+    onError: setVoiceError,
+  });
+  const recording = voice.state === 'recording';
+  const showMic = withVoice && voice.available;
   const length = text.trim().length;
   const tooLong = length > 2000;
     // 입력칸 높이: 위쪽 손잡이를 위로 끌면 커진다 (키보드 ↑↓, 두 번 누르면 원래대로)
   const [height, setHeight] = useState(null);
-  const areaRef = useRef(null);
   const clamp = (value) => Math.max(48, Math.min(Math.min(window.innerHeight * 0.5, 360), value));
   const startDrag = (event) => {
     const area = areaRef.current;
@@ -154,10 +174,21 @@ export function Composer({ conversation, placeholder, siteName }) {
         onChange={(event) => setText(event.target.value)}
         onKeyDown={(event) => { if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); event.currentTarget.form.requestSubmit(); } }}
       />
+      {showMic && (
+        <button type="button" className={`ui-icon-btn home-composer__mic${recording ? ' is-recording' : ''}`}
+          disabled={conversation.locked || voice.state === 'sending'} aria-pressed={recording}
+          aria-label={recording ? '녹음 멈추기' : voice.state === 'sending' ? '받아 적는 중' : '말로 입력'} title={recording ? '녹음 멈추기' : '말로 입력'}
+          onClick={() => { setVoiceError(''); if (recording) voice.stop(); else void voice.start(); }}>
+          <Icon name={recording ? 'stop' : voice.state === 'sending' ? 'spinner' : 'mic'} size={18} />
+        </button>
+      )}
       <button type="submit" className="ui-btn ui-btn--primary home-composer__send" disabled={conversation.locked || !length || tooLong} aria-label="보내기">
         <Icon name="send" size={18} /><span className="home-composer__send-text">보내기</span>
       </button>
-      <span id="home-composer-help" className={`home-composer__help${tooLong ? ' is-error' : ''}`}>{tooLong ? `2000자까지 보낼 수 있습니다 (${length}자)` : `1~2000자 · ${siteName ?? '선택한 현장'} 기준 · Enter 보내기, Shift+Enter 줄바꿈`}</span>
+      <span id="home-composer-help" className={`home-composer__help${tooLong || voiceError ? ' is-error' : ''}`} role={voiceError ? 'alert' : undefined}>
+        {voiceError || (recording ? `녹음 중 ${clock(voice.elapsed)} / ${clock(voice.maxSeconds)} · 다 말하면 ■ 를 누르세요` : voice.state === 'sending' ? '받아 적는 중…'
+          : tooLong ? `2000자까지 보낼 수 있습니다 (${length}자)` : `1~2000자 · ${siteName ?? '선택한 현장'} 기준 · Enter 보내기, Shift+Enter 줄바꿈`)}
+      </span>
     </form>
   );
 }
