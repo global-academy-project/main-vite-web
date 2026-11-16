@@ -43,9 +43,14 @@ export function TodoPanel({ section, onRetry, grip, collapse }) {
   );
 }
 
-/** 작업 종류 배지 (종류 색, 글자 같이) */
-export function TypeBadge({ type }) {
-  return <span className={`home-type home-type--${TYPE_KEYS[type] ?? 'general'}`}>{WORK_TYPE_LABELS[type] ?? type ?? '종류 없음'}</span>;
+/**
+ * 작업 종류 배지 (종류 색, 글자 같이). highRisk: 서버 고위험 표시(종류와 따로 온다).
+ * PR1 까지는 배지 색(주황/회색)으로 보였던 정보라, 종류 색으로 바꾼 뒤에도 주황 경고 아이콘으로 남긴다.
+ */
+export function TypeBadge({ type, highRisk = false }) {
+  const badge = <span className={`home-type home-type--${TYPE_KEYS[type] ?? 'general'}`}>{WORK_TYPE_LABELS[type] ?? type ?? '종류 없음'}</span>;
+  // 표 칸이 좁아 글자 배지 대신 주황 경고 아이콘 하나 (마우스를 올리면 "고위험", 화면 읽기도 "고위험")
+  return highRisk ? <span className="home-type-wrap">{badge}<span className="home-type-risk" title="고위험"><Icon name="warning" size={14} /><span className="sr-only">고위험</span></span></span> : badge;
 }
 
 /** 작업 현황: 진행 칸별 건수(작업 목록과 같은 기준) + 종류별 한 줄 막대(종류 색) */
@@ -116,7 +121,7 @@ export function WorksTable({ rows, zones, highlightId, dateColumn = false }) {
                   </span>
                   <span className={`home-table__facts${work.zoneId ? '' : ' is-warn'}`}>{facts}</span>
                 </td>
-                <td data-label="종류"><TypeBadge type={work.workType} /></td>
+                <td data-label="종류"><TypeBadge type={work.workType} highRisk={work.highRisk} /></td>
                 <td data-label="진행">
                   <span className="home-dots" role="img" aria-label={stages.map((stage) => `${stage.label} ${stage.hint || stage.state}`).join(', ')}>
                     {stages.map((stage) => (

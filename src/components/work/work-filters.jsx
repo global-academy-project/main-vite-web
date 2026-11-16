@@ -15,12 +15,12 @@ function periodValue(period) {
 }
 
 /**
- * 기간 드롭다운 (작업 목록 · 11/16 B안: 다른 화면의 PeriodBar 는 각 PR 에서 바꾼다).
+ * 기간 드롭다운 (작업 목록 · 작업허가 · TBM. 11/16 B안: 남은 PeriodBar 화면은 PR6 에서 바꾼다).
  * 오늘 · 7일 · 30일은 누르면 바로 적용, 직접 지정은 두 날짜를 고르고 "적용". 한 번에 31일까지(서버 제한).
  */
-export function PeriodMenu({ period, disabled = false }) {
+export function PeriodMenu({ period, disabled = false, label = '기간' }) {
   return (
-    <FilterMenu label="기간" value={periodValue(period)} active={period.preset !== 'today'} width={320}>
+    <FilterMenu label={label} value={periodValue(period)} active={period.preset !== 'today'} width={320}>
       {(close) => <PeriodPanel period={period} close={close} disabled={disabled} />}
     </FilterMenu>
   );

@@ -10,16 +10,18 @@ import Icon from '../../components/ui/icon.jsx';
 import StatusView, { Skeleton } from '../../components/ui/status-view.jsx';
 import StepIndicator from '../../components/ui/step-indicator.jsx';
 import { usePermitWorkspace } from '../../hooks/use-permit-workspace.js';
-import { PERMIT_STATUS_LABELS, toneOf, WORK_TYPE_LABELS } from '../../utils/home-model.js';
+import { PERMIT_STATUS_LABELS, toneOf } from '../../utils/home-model.js';
 import { EVALUATION_LABELS, EVALUATION_TONES, localizeRuleText, PERMIT_RULE_SUMMARY, PERMIT_TYPE_LABELS, permitSteps, RULE_CHECK_LABELS, ruleDetailLine, ruleValueLabels, SEVERITY_LABELS } from '../../utils/permit-model.js';
 import { backToHubPath } from '../../utils/work-list-model.js';
+import { unitLabel } from '../../utils/approval-model.js';
 import '../../styles/home.css';
 import '../../styles/work.css';
 import '../../styles/records.css';
 import '../../styles/risk.css';
 import '../../styles/permit.css';
 import { usePeriod } from '../../hooks/use-period.js';
-import PeriodBar from '../../components/period-bar.jsx';
+import { PeriodMenu } from '../../components/work/work-filters.jsx';
+import { TypeBadge } from '../../components/home/home-panels.jsx';
 import SpeakFill from '../../components/permit/speak-fill.jsx';
 import { fieldHint } from '../../utils/extract-model.js';
 import { confirmAction } from '../../components/ui/confirm-store.js';
@@ -71,20 +73,23 @@ function PermitFinder({ site, context }) {
   return (
     <div className="work-list rec-page">
       <PageHeader title="작업허가" description="허가서 작성 → 측정값 → 규칙 판정 → 승인 요청. 작업을 고르면 그 작업의 허가서를 열거나 새로 만듭니다." context={context} />
-      <section className="work-filters rec-datebar" aria-label="작업일">
-        <PeriodBar period={period} label="작업일" />
-        <form className="risk-lookup" onSubmit={(event) => { event.preventDefault(); if (/^\d+$/.test(lookup.trim())) navigate(`/job/permits?permitId=${lookup.trim()}`); }}>
-          <label><span className="sr-only">허가서 번호</span><input value={lookup} inputMode="numeric" placeholder="허가서 ID로 열기" onChange={(event) => setLookup(event.target.value)} /></label>
-          <button type="submit" className="ui-btn ui-btn--ghost" disabled={!/^\d+$/.test(lookup.trim())}>열기</button>
-        </form>
-        {period.error && <p className="work-filters__help" role="alert">{period.error}</p>}
+      <section className="work-filters" aria-label="작업일">
+        <div className="work-filters__menus"><PeriodMenu period={period} label="작업일" /></div>
+        <div className="work-filters__find">
+          <form className="work-lookup" onSubmit={(event) => { event.preventDefault(); if (/^\d+$/.test(lookup.trim())) navigate(`/job/permits?permitId=${lookup.trim()}`); }}>
+            <label><span className="sr-only">허가서 번호</span><input value={lookup} inputMode="numeric" placeholder="허가서 ID" onChange={(event) => setLookup(event.target.value)} /></label>
+            <button type="submit" className="ui-btn ui-btn--ghost" disabled={!/^\d+$/.test(lookup.trim())}>열기</button>
+          </form>
+        </div>
       </section>
+      {period.error && <p className="work-filters__help" role="alert">{period.error}</p>}
+      <p className="work-filters__help">{from === to ? from : `${from} ~ ${to}`}{loading ? '' : ` · ${state.works.length}건 표시`}</p>
       <section className="home-panel work-table-panel" aria-label="작업 목록">
         {loading && <div className="home-panel__pad"><Skeleton lines={5} /></div>}
         {!loading && state.error && <StatusView kind="error" message={state.error} />}
         {!loading && !state.error && !state.works.length && <StatusView kind="empty" title={from === to ? '이 날짜에 등록된 작업이 없습니다' : '이 기간에 등록된 작업이 없습니다'} action={{ label: '작업 목록으로', onClick: () => navigate('/job/workspace') }} />}
         {!loading && state.works.length > 0 && (
-          <table className="home-table">
+          <table className="home-table permit-table">
             <thead><tr><th scope="col" className="work-table__date">작업일</th><th scope="col">작업</th><th scope="col">종류</th><th scope="col">허가서</th><th scope="col"><span className="sr-only">열기</span></th></tr></thead>
             <tbody>
               {state.works.map((work) => {
@@ -93,14 +98,14 @@ function PermitFinder({ site, context }) {
                   <tr key={work.workId}>
                     <td data-label="작업일" className="work-table__date">{shortDay(work.workDate)}</td>
                     <td data-label="작업"><span className="home-table__name"><span className="home-table__title">{work.title}</span><span className="work-table__id">#{work.workId}</span></span></td>
-                    <td data-label="종류"><Badge tone={work.highRisk ? 'warn' : 'neutral'}>{WORK_TYPE_LABELS[work.workType] ?? work.workType}</Badge></td>
+                    <td data-label="종류"><TypeBadge type={work.workType} highRisk={work.highRisk} /></td>
                     <td data-label="허가서">
                       {permits.length ? <span className="work-badges">{permits.map((permit) => <Link key={permit.permitId} className="permit-chip" to={`/job/permits?permitId=${permit.permitId}`}>{permit.permitNo ?? `#${permit.permitId}`}<Badge tone={toneOf(permit.status)}>{PERMIT_STATUS_LABELS[permit.status] ?? permit.status}</Badge></Link>)}</span>
                         : <span className="work-none">{work.workType === 'GENERAL' ? '해당 없음' : '작성 전'}</span>}
                     </td>
                     <td data-label="열기">{work.workType !== 'GENERAL' && !permits.length
-                      ? <Link className="ui-btn ui-btn--secondary appr-open" to={`/job/permits?workId=${work.workId}`}>작성하기</Link>
-                      : permits.length ? <span className="permit-row-actions"><Link className="ui-btn ui-btn--secondary appr-open" to={`/job/permits?permitId=${permits[0].permitId}`}>열기</Link><Link className="home-panel__link" to={`/job/permits?workId=${work.workId}`}>새 허가서</Link></span> : null}</td>
+                      ? <Link className="ui-btn ui-btn--ghost ui-btn--sm appr-open" to={`/job/permits?workId=${work.workId}`}>작성하기</Link>
+                      : permits.length ? <span className="permit-row-actions"><Link className="ui-btn ui-btn--ghost ui-btn--sm appr-open" to={`/job/permits?permitId=${permits[0].permitId}`}>열기</Link><Link className="home-panel__link" to={`/job/permits?workId=${work.workId}`}>새 허가서</Link></span> : null}</td>
                   </tr>
                 );
               })}
@@ -145,7 +150,7 @@ function PermitEditor({ siteId, context, initialPermitId, initialWorkId, back })
   return (
     <div className="work-list rec-page permit-page">
       <PageHeader title={work?.title ? `${work.title} 작업허가` : '작업허가'} context={context} onBeforeSelect={() => navigate('/job/permits')}
-        badges={<><Badge tone="info">{PERMIT_TYPE_LABELS[data.type]}</Badge><Badge tone={permit ? toneOf(permit.status) : 'todo'}>{permit ? (PERMIT_STATUS_LABELS[permit.status] ?? permit.status) : '새 허가서'}</Badge></>}
+        badges={<><TypeBadge type={data.type} /><Badge tone={permit ? toneOf(permit.status) : 'todo'}>{permit ? (PERMIT_STATUS_LABELS[permit.status] ?? permit.status) : '새 허가서'}</Badge></>}
         description={[permit?.permitNo, targetWorkId ? `작업 #${targetWorkId}` : null, permit ? `버전 ${permit.lockVersion}` : null].filter(Boolean).join(' · ')}
         actions={<>
           {hub && <Link className="ui-btn ui-btn--ghost" to={hub}><Icon name="chevronLeft" size={16} />작업 허브로</Link>}
@@ -337,7 +342,7 @@ function StepMeasurements({ data }) {
           <caption className="sr-only">저장된 작업 전 측정 이력</caption>
           <thead><tr><th scope="col">항목</th><th scope="col">측정값</th><th scope="col">측정 일시</th><th scope="col">구분</th></tr></thead>
           <tbody>{permit.measurements.map((item) => (
-            <tr key={item.id}><td data-label="항목">{item.item}</td><td data-label="측정값"><strong>{item.value}</strong> {item.unit}</td><td data-label="측정 일시" className="work-table__date">{item.measuredAt?.replace('T', ' ').slice(0, 16)}</td><td data-label="구분">{item.remeasure ? <Badge tone="info">재측정</Badge> : '최초 측정'}</td></tr>
+            <tr key={item.id}><td data-label="항목">{measurementFields[data.type]?.find((field) => field.code === item.item)?.label ?? item.item}</td><td data-label="측정값"><strong>{item.value}</strong> {unitLabel(item.unit)}</td><td data-label="측정 일시" className="work-table__date">{item.measuredAt?.replace('T', ' ').slice(0, 16)}</td><td data-label="구분">{item.remeasure ? <Badge tone="info">재측정</Badge> : '최초 측정'}</td></tr>
           ))}</tbody>
         </table>
       )}
@@ -369,7 +374,8 @@ function StepCheck({ data }) {
       <header className="permit-step__head">
         <h2 id="permit-step3">3. 규칙 판정</h2>
         <p>{PERMIT_RULE_SUMMARY[data.type]} 통과는 등록된 규칙 안에서 위반이 없다는 뜻이고, 최종 안전 승인이 아닙니다.</p>
-        {data.editable && <button type="button" className="ui-btn ui-btn--primary" disabled={data.locked || data.conflict} onClick={data.runCheck}>{current ? '다시 판정' : '규칙 판정 실행'}</button>}
+        {/* 주요 버튼은 한 화면에 하나: 판정 전에는 "규칙 판정 실행", 판정 뒤에는 아래 "다음" */}
+        {data.editable && <button type="button" className={`ui-btn ${current ? 'ui-btn--secondary' : 'ui-btn--primary'}`} disabled={data.locked || data.conflict} onClick={data.runCheck}>{current ? '다시 판정' : '규칙 판정 실행'}</button>}
       </header>
       <div className="permit-step__body">
         {!data.conflict && !current && <p className="rec-help">아직 판정하지 않았습니다. "규칙 판정 실행"을 누르세요.</p>}

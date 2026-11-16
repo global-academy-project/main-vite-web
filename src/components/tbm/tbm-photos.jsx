@@ -31,8 +31,8 @@ export default function TbmPhotos({ tbm, editable }) {
         </div>
         {editable && (
           <div className="tbm-card__actions">
-            {mobile && <button type="button" className="ui-btn ui-btn--primary" disabled={Boolean(data.busy)} onClick={() => shoot.current?.click()}><Icon name="camera" size={16} />바로 촬영</button>}
-            <button type="button" className={`ui-btn ${mobile ? 'ui-btn--secondary' : 'ui-btn--primary'}`} disabled={Boolean(data.busy)} onClick={() => pick.current?.click()}>
+            {mobile && <button type="button" className="ui-btn ui-btn--secondary" disabled={Boolean(data.busy)} onClick={() => shoot.current?.click()}><Icon name="camera" size={16} />바로 촬영</button>}
+            <button type="button" className="ui-btn ui-btn--secondary" disabled={Boolean(data.busy)} onClick={() => pick.current?.click()}>
               <Icon name="image" size={16} />{data.busy === 'upload' ? '올리고 확인하는 중…' : '사진 올리기'}</button>
             <input ref={pick} type="file" accept={PHOTO_ACCEPT} multiple hidden onChange={onFiles} />
             <input ref={shoot} type="file" accept="image/*" capture="environment" hidden onChange={onFiles} />
@@ -119,7 +119,7 @@ function CorrectForm({ photo, busy, onSave, onCancel }) {
         <textarea id={`${id}-reason`} rows={2} maxLength={200} placeholder="예: 뒤쪽 1명 가려짐, 카톡으로 받은 사진" value={form.reason} onChange={(event) => set('reason', event.target.value)} /></label>
       {error && <p className="work-form__error" role="alert">{error}</p>}
       <div className="tbm-photo__actions">
-        <button type="submit" className="ui-btn ui-btn--primary tbm-photo__btn" disabled={busy}>저장</button>
+        <button type="submit" className="ui-btn ui-btn--secondary tbm-photo__btn" disabled={busy}>저장</button>
         <button type="button" className="ui-btn ui-btn--ghost tbm-photo__btn" onClick={onCancel}>취소</button>
       </div>
     </form>
