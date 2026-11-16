@@ -1,7 +1,7 @@
 // 홈·작업 화면에서 서버 응답을 화면용 값으로 바꾸는 순수 함수 (서버 값만 쓰고 새 상태를 만들지 않는다)
 import { jobRecordPath } from './job-forms.js';
 
-export const WORK_TYPE_LABELS = Object.freeze({ GENERAL: '일반', HOT: '화기', CONFINED: '밀폐공간', HEIGHT: '고소' });
+export const WORK_TYPE_LABELS = Object.freeze({ GENERAL: '일반', HOT: '화기', HEIGHT: '고소', CONFINED: '밀폐공간' });
 export const WORK_STATUS_LABELS = Object.freeze({
   DRAFT: '작성 중', PENDING: '승인 대기', APPROVED: '승인', REJECTED: '반려', BLOCKED: '차단',
   IN_PROGRESS: '진행 중', DONE: '완료', CANCELED: '취소',
@@ -104,7 +104,7 @@ export function workStages(work) {
   return [
     { key: 'work', label: '작업', state: work.status === 'BLOCKED' ? 'problem' : 'done', hint: work.status === 'BLOCKED' ? '차단' : work.status === 'CANCELED' ? '취소' : '등록' },
     { key: 'risk', label: '위험성평가', state: riskState, hint: risk ? RISK_STATUS_LABELS[risk.status] : '작성 전' },
-    { key: 'permit', label: '허가', state: permitState, hint: permitHint },
+    { key: 'permit', label: '작업허가', state: permitState, hint: permitHint },
     { key: 'tbm', label: 'TBM', state: tbmState, hint: tbm ? TBM_STATUS_LABELS[tbm.status] : '작성 전' },
     { key: 'ready', label: '작업 준비', state: readyState, hint: ready ? '준비 완료' : readyState === 'current' ? '승인 확인 중' : '' },
   ];
@@ -115,12 +115,12 @@ export function nextAction(work) {
   const risk = work.riskAssessment;
   const permits = latestPermits(work);
   const blocked = permits.find((permit) => permit.status === 'BLOCKED');
-  if (blocked) return { label: '허가 판정 차단 확인', tone: 'block', path: jobRecordPath('PERMIT', blocked.permitId) };
+  if (blocked) return { label: '작업허가 판정 차단 확인', tone: 'block', path: jobRecordPath('PERMIT', blocked.permitId) };
   if (!risk) return { label: '위험성평가 작성', tone: 'todo', path: `/job/risk-assessment?workId=${work.workId}` };
   if (['DRAFT', 'REJECTED'].includes(risk.status)) return { label: risk.status === 'REJECTED' ? '위험성평가 반려 수정' : '위험성평가 승인 요청', tone: risk.status === 'REJECTED' ? 'block' : 'todo', path: jobRecordPath('RISK', risk.riskAssessmentId) };
   if (work.workType !== 'GENERAL' && !permits.length) return { label: '작업허가 작성', tone: 'todo', path: `/job/permits?workId=${work.workId}` };
   const draft = permits.find((permit) => ['DRAFT', 'CHECKING', 'REJECTED'].includes(permit.status));
-  if (draft) return { label: draft.status === 'REJECTED' ? '허가 반려 수정' : '허가 측정·판정', tone: draft.status === 'REJECTED' ? 'block' : 'todo', path: jobRecordPath('PERMIT', draft.permitId) };
+  if (draft) return { label: draft.status === 'REJECTED' ? '작업허가 반려 수정' : '작업허가 측정·판정', tone: draft.status === 'REJECTED' ? 'block' : 'todo', path: jobRecordPath('PERMIT', draft.permitId) };
   if (!work.tbm) return { label: 'TBM 작성', tone: 'todo', path: `/job/tbm?date=${encodeURIComponent(work.workDate ?? '')}&workId=${work.workId}` };
   if (work.tbm.status === 'DRAFT') return { label: 'TBM 완료 처리', tone: 'todo', path: jobRecordPath('TBM', work.tbm.tbmId) };
   if (risk.status === 'PENDING' || permits.some((permit) => permit.status === 'PENDING') || work.status === 'PENDING') return { label: '승인 대기', tone: 'wait', path: null };
@@ -176,7 +176,7 @@ export function draftDocs(saved) {
   if (!saved) return [];
   const docs = [{ key: 'WORK', type: 'WORK', id: saved.workId, label: '작업' }];
   if (saved.riskAssessmentId) docs.push({ key: 'RISK', type: 'RISK', id: saved.riskAssessmentId, label: '위험성평가' });
-  (saved.permits ?? []).forEach((permit) => docs.push({ key: `PERMIT-${permit.permitId}`, type: 'PERMIT', id: permit.permitId, label: `${WORK_TYPE_LABELS[permit.permitType] ?? ''} 허가`.trim(), permitType: permit.permitType }));
+  (saved.permits ?? []).forEach((permit) => docs.push({ key: `PERMIT-${permit.permitId}`, type: 'PERMIT', id: permit.permitId, label: `${WORK_TYPE_LABELS[permit.permitType] ?? ''} 작업허가`.trim(), permitType: permit.permitType }));
   if (saved.tbmId) docs.push({ key: 'TBM', type: 'TBM', id: saved.tbmId, label: 'TBM' });
   return docs;
 }
@@ -193,4 +193,17 @@ export function draftRemaining(doc, record) {
   }
   if (doc.type === 'TBM') return { done: record.status !== 'DRAFT', label: TBM_STATUS_LABELS[record.status] };
   return { done: false, label: '' };
+}
+
+/**
+ * 홈 화면 머리 제목 (11/16): 상황을 한 문장으로. 차단 → 할 일 → 다 마침. 불러오는 중·실패면 "홈".
+ * dashboard: /sites/{id}/dashboard 응답(works.blocked 사용), tiles: todoTiles 결과
+ */
+export function homeHeadline(dashboard, tiles) {
+  if (!dashboard) return '홈';
+  const blocked = dashboard.works?.blocked ?? 0;
+  if (blocked > 0) return `오늘 차단된 작업이 ${blocked}건 있어요`;
+  const todo = todoTotal(tiles ?? []);
+  if (todo > 0) return `오늘 할 일이 ${todo}건 있어요`;
+  return '오늘 할 일을 모두 마쳤어요';
 }

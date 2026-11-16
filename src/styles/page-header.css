@@ -95,3 +95,6 @@ div.job-page-heading { display: block !important; margin: 0 !important; }
 .page-head__meta { font-size: var(--text-sm); color: var(--color-text-muted); }
 /* 버튼 글자는 줄바꿈하지 않는다 (320px 포함) */
 .page-head__actions .ui-btn { white-space: nowrap; }
+/* 제목 위 작은 줄 (홈: "김현장님 · 2026. 11. 16 (월)") */
+.page-head__eyebrow { margin: 0 0 2px; color: var(--color-text-muted); font-size: var(--text-sm); }
+.page-head__eyebrow b { color: var(--color-text-strong); font-weight: 700; }

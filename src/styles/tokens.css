@@ -30,13 +30,19 @@
   --color-border-accent: #c9ced6;
 
   /* 주요 동작·고른 것 (남색). 파랑은 아래 wait(결재 중) 뜻으로만 쓴다 */
-  --color-primary: #384150;
-  --color-primary-hover: #2c3440;
+  --color-primary: #2c3440;
+  --color-primary-hover: #222932;
   --color-primary-soft: #eef1f5;
   --color-primary-disabled: #c9ced6;
-  --color-primary-fill: #384150;      /* 큰 버튼 바탕 (다크에서도 어두운 버튼) */
-  --color-primary-fill-hover: #2c3440;
+  --color-primary-fill: #2c3440;      /* 큰 버튼 바탕 (다크에서도 어두운 버튼). 11/16 한 단계 진하게(A안) */
+  --color-primary-fill-hover: #222932;
   --color-on-primary-fill: #ffffff;
+  /* 작업 종류 색 (11/16): 종류에만 쓴다(상태 색과 겹치지 않게). 막대·범례·배지·일정 블록 */
+  --type-general: #ece8e0; --type-general-text: #58524a; --type-general-line: #b9b0a0;
+  --type-hot: #f9c0c0;     --type-hot-text: #8a2626;     --type-hot-line: #d9706f;
+  --type-height: #b5e3f5;  --type-height-text: #145a6e;  --type-height-line: #4fa8c9;
+  --type-confined: #d2c2f5; --type-confined-text: #3f2c8f; --type-confined-line: #8a6fd6;
+  --type-general-block: #ece8e0; --type-hot-block: #f9c0c0; --type-height-block: #b5e3f5; --type-confined-block: #d2c2f5;
 
   /* 결재 중·안내 파랑 */
   --color-wait: #1f4fa3;
@@ -130,6 +136,9 @@
   --color-primary-fill: #4a5260;
   --color-primary-fill-hover: #576072;
   --color-on-primary-fill: #ffffff;
+  /* 종류 색: 막대·범례는 밝은 종류색 그대로, 블록·배지는 어두운 종류색 + 밝은 글자 */
+  --type-general-block: #34322e; --type-hot-block: #3d2626; --type-height-block: #1f3640; --type-confined-block: #2d2742;
+  --type-general-text: #e6dfd2; --type-hot-text: #f6c4c4; --type-height-text: #bfe6f5; --type-confined-text: #d9cdf7;
 
   --color-wait: #8db4f5;
   --color-wait-soft: #1e2c45;
