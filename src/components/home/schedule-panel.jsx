@@ -43,7 +43,6 @@ export default function SchedulePanel({ siteId, today, todayWorks, zones, deadli
           <button key={item.key} type="button" aria-pressed={shownView === item.key} className={shownView === item.key ? 'is-on' : ''} onClick={() => { setOpened(null); onView(item.key); }}>{item.label}</button>
         ))}
       </span>
-      <Link className="home-panel__link home-cal__more" to="/job/workspace">작업 목록<Icon name="chevronRight" size={14} /></Link>
     </div>
   );
   const undated = shownView === 'day' ? works.filter((work) => !hasTime(work)) : [];
@@ -62,6 +61,8 @@ export default function SchedulePanel({ siteId, today, todayWorks, zones, deadli
           {undated.map((work) => <button key={work.workId} type="button" className="home-cal__undated-chip" onClick={() => setOpened(work)}>{work.title}</button>)}
         </span>
       )}
+      {/* 작업 목록 링크는 종류 버튼 줄 오른쪽 끝 (칸이 좁아도 혼자 한 줄을 차지하지 않게) */}
+      <Link className="home-panel__link home-cal__more" to="/job/workspace">작업 목록<Icon name="chevronRight" size={14} /></Link>
     </div>
   );
 
