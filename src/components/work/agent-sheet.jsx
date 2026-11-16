@@ -108,7 +108,7 @@ export default function AgentSheet({ siteId, siteName, work, record, tab, setTab
 
       <Thread id="agent-thread" conversation={withPermit} records={records} siteId={siteId} hint={meta.hint} suggestions={meta.suggestions} siteName={siteName} />
       {conversation.run?.result && <RunDetails run={conversation.run} records={records} />}
-      <Composer key={tab} conversation={withPermit} placeholder={meta.placeholder} siteName={siteName} />
+      <Composer key={tab} conversation={withPermit} placeholder={meta.placeholder} siteName={siteName} voice />
     </div>
   );
 }

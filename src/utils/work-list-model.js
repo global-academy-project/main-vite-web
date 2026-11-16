@@ -81,3 +81,36 @@ export function withBack(path, workId) {
 export function backToHubPath(value) {
   return /^\d{1,12}$/.test(value ?? '') ? `/job/workspace?workId=${value}` : null;
 }
+
+/**
+ * 위 숫자 칸 아래 한 줄 요약 (11/16, 보드 PgWorks). 목록 데이터만으로 계산한다.
+ *  차단 "작업허가 판정 차단 1건" · 할 일 있음 "위험성평가 2 · TBM 1" · 승인 대기 "작업허가 결재 2건" · 준비 완료 "작업 시작 가능"
+ * 반환: { BLOCKED, TODO, WAIT, READY } 문구 (해당 작업이 없으면 '')
+ */
+export function statNotes(works = []) {
+  const by = (stage) => works.filter((work) => workStage(work) === stage);
+  const join = (counts, format) => Object.entries(counts).filter(([, n]) => n > 0).map(([name, n]) => format(name, n)).join(' · ');
+  const blocked = by('BLOCKED');
+  const permitBlocked = blocked.filter((work) => (work.permits ?? []).some((permit) => permit.status === 'BLOCKED')).length;
+  const todo = { 위험성평가: 0, 작업허가: 0, TBM: 0 };
+  by('TODO').forEach((work) => {
+    const label = nextAction(work).label;
+    const key = Object.keys(todo).find((name) => label.startsWith(name));
+    if (key) todo[key] += 1;
+  });
+  const wait = { 위험성평가: 0, 작업허가: 0, TBM: 0, 작업: 0 };
+  by('WAIT').forEach((work) => {
+    const permits = (work.permits ?? []).filter((permit) => permit.status !== 'SUPERSEDED');
+    if (work.riskAssessment?.status === 'PENDING') wait.위험성평가 += 1;
+    else if (permits.some((permit) => permit.status === 'PENDING')) wait.작업허가 += 1;
+    else if (work.status === 'PENDING') wait.작업 += 1;
+    else wait.TBM += 1;
+  });
+  const waitKinds = Object.values(wait).filter((n) => n > 0).length;
+  return {
+    BLOCKED: join({ '작업허가 판정 차단': permitBlocked, '작업 차단': blocked.length - permitBlocked }, (name, n) => `${name} ${n}건`),
+    TODO: join(todo, (name, n) => `${name} ${n}`),
+    WAIT: waitKinds === 1 ? join(wait, (name, n) => `${name} 결재 ${n}건`) : join(wait, (name, n) => `${name} ${n}`),
+    READY: by('READY').length ? '작업 시작 가능' : '',
+  };
+}
