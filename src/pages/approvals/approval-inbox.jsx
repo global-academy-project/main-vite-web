@@ -10,13 +10,13 @@ import StatusView, { Skeleton } from '../../components/ui/status-view.jsx';
 import { useApprovalInbox } from '../../hooks/use-approval-inbox.js';
 import { effectiveRole } from '../../components/app-shell/nav-config.js';
 import {
-  APPROVAL_STATUS_LABELS, approvalStats, approvalTone, filterApprovals, shortDateTime, sortApprovals, TARGET_FILTERS,
+  APPROVAL_STATUS_LABELS, approvalStats, approvalTone, filterApprovals, shortDateTime, sortApprovals,
 } from '../../utils/approval-model.js';
 import { APPROVAL_TARGET_LABELS } from '../../utils/home-model.js';
 import '../../styles/home.css';
 import '../../styles/work.css';
 import '../../styles/approvals.css';
-import { PERIOD_PRESETS, presetRange } from '../../utils/period-model.js';
+import { DocTypeMenu, RequestDateMenu, StatusMenu } from '../../components/approvals/approval-filters.jsx';
 
 const TABS = [
   { key: 'pending', label: '결재 대기', empty: '지금 결재할 문서가 없습니다' },
@@ -75,18 +75,19 @@ function Inbox({ site }) {
 
       <ul className="work-stats appr-stats" aria-label="결재 건수">
         {[
-          { key: '', label: '전체', value: stats.total, tone: 'neutral' },
-          { key: 'OVERDUE', label: '지연', value: stats.overdue, tone: 'block' },
-          { key: 'PENDING', label: '승인 대기', value: stats.pending, tone: 'wait' },
-          ...(tab === 'requested' ? [{ key: 'REJECTED', label: '반려', value: stats.rejected, tone: 'block' }, { key: 'APPROVED', label: '승인 완료', value: stats.approved, tone: 'done' }] : []),
+          { key: '', label: '전체', value: stats.total, tone: 'neutral', note: tab === 'pending' ? '결재할 차례' : '올린 문서' },
+          { key: 'OVERDUE', label: '지연', value: stats.overdue, tone: 'block', note: '마감 지남' },
+          { key: 'PENDING', label: '승인 대기', value: stats.pending, tone: 'wait', note: tab === 'pending' ? '지금 결재' : '진행 중' },
+          ...(tab === 'requested' ? [{ key: 'REJECTED', label: '반려', value: stats.rejected, tone: 'block', note: '다시 제출' }, { key: 'APPROVED', label: '승인 완료', value: stats.approved, tone: 'done', note: '결재 끝' }] : []),
         ].map((stat) => {
           const active = stat.key === 'OVERDUE' ? filters.status === 'PENDING' && filters.overdueOnly : stat.key ? filters.status === stat.key && !filters.overdueOnly : !filters.status;
           return (
             <li key={stat.key || 'all'}>
-              <button type="button" aria-pressed={active} className={`work-stat work-stat--${stat.tone}${active ? ' is-active' : ''}`}
+              <button type="button" aria-pressed={active} className={`work-stat work-stat--${stat.tone}${stat.key === 'OVERDUE' ? ' appr-stat--overdue' : ''}${active ? ' is-active' : ''}`}
                 onClick={() => setFilters((prev) => ({ ...prev, status: stat.key === 'OVERDUE' ? 'PENDING' : stat.key, overdueOnly: stat.key === 'OVERDUE' }))}>
-                <span className="work-stat__label">{stat.label}</span>
+                <span className="work-stat__label"><i aria-hidden="true" />{stat.label}</span>
                 <strong className="work-stat__value">{section.status === 'ready' ? stat.value : '–'}</strong>
+                <span className="work-stat__note">{stat.note}</span>
               </button>
             </li>
           );
@@ -94,42 +95,23 @@ function Inbox({ site }) {
       </ul>
 
       <section className="work-filters" aria-label="결재 검색 조건">
-        <div className="work-filters__row">
-          <div className="work-types" role="group" aria-label="문서 종류">
-            {TARGET_FILTERS.map((type) => (
-              <button key={type} type="button" className="work-chip" aria-pressed={filters.types.includes(type)}
-                onClick={() => update('types', filters.types.includes(type) ? filters.types.filter((item) => item !== type) : [...filters.types, type])}>
-                {filters.types.includes(type) && <Icon name="check" size={14} />}{APPROVAL_TARGET_LABELS[type]}
-              </button>
-            ))}
-          </div>
-          {tab === 'requested' && (
-            <label className="appr-select"><span className="sr-only">상태</span>
-              <select value={filters.status} onChange={(event) => setFilters((prev) => ({ ...prev, status: event.target.value, overdueOnly: false }))}>
-                <option value="">상태 전체</option>
-                {STATUS_FILTERS.map((status) => <option key={status} value={status}>{APPROVAL_STATUS_LABELS[status]}</option>)}
-              </select>
-            </label>
-          )}
+        <div className="work-filters__menus">
+          <DocTypeMenu types={filters.types} setTypes={(types) => update('types', types)} />
+          {tab === 'requested' && <StatusMenu status={filters.status} statuses={STATUS_FILTERS} setStatus={(status) => setFilters((prev) => ({ ...prev, status, overdueOnly: false }))} />}
+          {/* 결재 대기는 오래된 것도 처리해야 해서 요청일 기본은 "전체" */}
+          <RequestDateMenu from={filters.from} to={filters.to} setRange={(range) => setFilters((prev) => ({ ...prev, ...range }))} />
         </div>
-        <div className="work-filters__row">
-          <div className="work-period" role="group" aria-label="요청일">
-            <label><span className="sr-only">요청일 시작</span><input type="date" value={filters.from} max={filters.to || '9999-12-31'} onChange={(event) => update('from', event.target.value)} /></label>
-            <span aria-hidden="true">~</span>
-            <label><span className="sr-only">요청일 끝</span><input type="date" max="9999-12-31" value={filters.to} min={filters.from || undefined} onChange={(event) => update('to', event.target.value)} /></label>
-            {/* 요청일 빠른 선택. "전체"는 기간 없이 (결재 대기는 오래된 것도 처리해야 해서 기본은 전체) */}
-            <button type="button" className="work-chip" aria-pressed={!filters.from && !filters.to} onClick={() => setFilters((prev) => ({ ...prev, from: '', to: '' }))}>전체</button>
-            {PERIOD_PRESETS.map((preset) => {
-              const range = presetRange(preset.days);
-              return <button key={preset.key} type="button" className="work-chip" aria-pressed={filters.from === range.from && filters.to === range.to} onClick={() => setFilters((prev) => ({ ...prev, ...range }))}>{preset.label}</button>;
-            })}
-          </div>
-          <label className="work-search"><span className="sr-only">문서명·요청자 검색</span>
+        <div className="work-filters__find">
+          <label className="work-search"><Icon name="search" size={16} /><span className="sr-only">문서명·요청자 검색</span>
             <input type="search" value={filters.keyword} placeholder="문서명·요청자 검색" onChange={(event) => update('keyword', event.target.value)} />
           </label>
-          {filtered && <button type="button" className="ui-btn ui-btn--ghost" onClick={() => setFilters(EMPTY_FILTERS)}>조건 초기화</button>}
         </div>
       </section>
+
+      <div className="work-meta">
+        <p className="work-filters__help">{section.status === 'ready' ? `${rows.length}건 표시 · 지연 먼저, 마감이 가까운 순` : '\u00a0'}</p>
+        {filtered && <button type="button" className="ui-btn ui-btn--link ui-btn--sm" onClick={() => setFilters(EMPTY_FILTERS)}>조건 초기화</button>}
+      </div>
 
       <section className="home-panel work-table-panel" aria-label={TABS.find((item) => item.key === tab).label}>
         {section.status === 'loading' && <div className="home-panel__pad"><Skeleton lines={6} /></div>}
@@ -143,15 +125,15 @@ function Inbox({ site }) {
             <thead><tr><th scope="col">문서</th><th scope="col">제목</th><th scope="col">요청자</th><th scope="col">단계</th><th scope="col">요청</th><th scope="col">마감</th><th scope="col">상태</th><th scope="col"><span className="sr-only">검토</span></th></tr></thead>
             <tbody>
               {rows.map((row) => (
-                <tr key={row.approvalId} className={String(row.approvalId) === openId ? 'is-new' : ''}>
-                  <td data-label="문서"><Badge tone="info">{APPROVAL_TARGET_LABELS[row.targetType] ?? row.targetType}</Badge></td>
+                <tr key={row.approvalId} className={String(row.approvalId) === openId ? 'is-selected' : undefined}>
+                  <td data-label="문서"><Badge tone="neutral">{APPROVAL_TARGET_LABELS[row.targetType] ?? row.targetType}</Badge></td>
                   <td data-label="제목"><button type="button" className="appr-row-title" onClick={() => setQuery({ open: String(row.approvalId) })}>{row.title || `${row.targetType} #${row.targetId}`}</button></td>
                   <td data-label="요청자">{row.requestedByName || '-'}</td>
                   <td data-label="단계">{row.status === 'PENDING' ? <span className="appr-step">{row.currentStep}/{row.totalSteps} {row.currentStepLabel}</span> : '-'}</td>
                   <td data-label="요청" className="work-table__date">{shortDateTime(row.requestedAt)}</td>
                   <td data-label="마감">{row.overdue && row.status === 'PENDING' ? <Badge tone="block"><Icon name="clock" size={12} />지연</Badge> : <span className="work-table__date">{shortDateTime(row.dueAt) || '-'}</span>}</td>
                   <td data-label="상태"><Badge tone={approvalTone(row.status)}>{APPROVAL_STATUS_LABELS[row.status] ?? row.status}</Badge></td>
-                  <td data-label="검토"><button type="button" className="ui-btn ui-btn--secondary appr-open" onClick={() => setQuery({ open: String(row.approvalId) })}>{tab === 'pending' ? '검토' : '보기'}</button></td>
+                  <td data-label="검토"><button type="button" className="ui-btn ui-btn--ghost ui-btn--sm appr-open" onClick={() => setQuery({ open: String(row.approvalId) })}>{tab === 'pending' ? '검토' : '보기'}</button></td>
                 </tr>
               ))}
             </tbody>
@@ -159,7 +141,7 @@ function Inbox({ site }) {
         )}
       </section>
 
-      <Sheet open={Boolean(openId)} onClose={() => setQuery({ open: '' })} title="결재 검토" subtitle={openId ? `/approvals/${openId}` : ''} wide
+      <Sheet open={Boolean(openId)} onClose={() => setQuery({ open: '' })} title={tab === 'pending' ? '결재 검토' : '결재 보기'} subtitle={openId ? `결재 #${openId}` : ''} wide
         actions={openId && <Link className="ui-icon-btn" to={`/approvals/${openId}`} aria-label="전체 화면으로 열기"><Icon name="external" size={18} /></Link>}>
         {openId && <ApprovalReview key={openId} approvalId={openId} onDecided={() => inbox.reload()} />}
       </Sheet>

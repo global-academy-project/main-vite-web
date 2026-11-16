@@ -7,16 +7,21 @@ import Icon from './icon.jsx';
  * active: 기본값이 아닌 값을 고른 상태(버튼 테두리 강조)
  */
 export default function FilterMenu({ label, value, active = false, children, width, align = 'start' }) {
-  const [open, setOpen] = useState(false);
+  // refocus: 닫을 때 버튼으로 포커스를 돌려줄지. 렌더 중에 ref 를 만지지 않도록 포커스는 effect 에서 옮긴다
+  const [{ open, refocus }, setState] = useState({ open: false, refocus: false });
   const wrap = useRef(null);
   const button = useRef(null);
   const panelId = useId();
-  const close = (focus = true) => { setOpen(false); if (focus) button.current?.focus(); };
+  const close = (focus = true) => setState({ open: false, refocus: focus });
+
+  useEffect(() => {
+    if (!open && refocus) button.current?.focus();
+  }, [open, refocus]);
 
   useEffect(() => {
     if (!open) return undefined;
-    const onDown = (event) => { if (!wrap.current?.contains(event.target) && !event.target.closest?.('[data-confirm-dialog]')) setOpen(false); };
-    const onKey = (event) => { if (event.key === 'Escape') { event.stopPropagation(); setOpen(false); button.current?.focus(); } };
+    const onDown = (event) => { if (!wrap.current?.contains(event.target) && !event.target.closest?.('[data-confirm-dialog]')) setState({ open: false, refocus: false }); };
+    const onKey = (event) => { if (event.key === 'Escape') { event.stopPropagation(); setState({ open: false, refocus: true }); } };
     document.addEventListener('mousedown', onDown);
     document.addEventListener('keydown', onKey);
     wrap.current?.querySelector('.ui-filter__panel input, .ui-filter__panel button')?.focus();
@@ -25,7 +30,7 @@ export default function FilterMenu({ label, value, active = false, children, wid
 
   return (
     <div className={`ui-filter${open ? ' is-open' : ''}`} ref={wrap}>
-      <button ref={button} type="button" className={`ui-filter__btn${active ? ' is-active' : ''}`} aria-expanded={open} aria-controls={panelId} aria-haspopup="dialog" onClick={() => setOpen((value) => !value)}>
+      <button ref={button} type="button" className={`ui-filter__btn${active ? ' is-active' : ''}`} aria-expanded={open} aria-controls={panelId} aria-haspopup="dialog" onClick={() => setState((value) => ({ open: !value.open, refocus: value.open }))}>
         <span className="ui-filter__label">{label}</span>
         <strong className="ui-filter__value">{value}</strong>
         <Icon name={open ? 'chevronUp' : 'chevronDown'} size={16} />

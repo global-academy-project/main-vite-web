@@ -1,5 +1,6 @@
 // 승인함 화면용 순수 함수 (서버 ApprovalSummary · ApprovalDetail · PreviewResponse 값만 쓴다)
 import { measurementFields, permitFormFields } from '../api/jobs.js';
+import { PERIOD_PRESETS, presetOf } from './period-model.js';
 
 export const APPROVAL_STATUS_LABELS = Object.freeze({ PENDING: '승인 대기', APPROVED: '승인 완료', REJECTED: '반려', CANCELED: '회수' });
 export const STEP_STATUS_LABELS = Object.freeze({ WAITING: '차례 전', PENDING: '결재 차례', APPROVED: '승인', REJECTED: '반려', SKIPPED: '건너뜀' });
@@ -66,3 +67,13 @@ export const nextStep = (detail) => detail?.steps?.find((step) => step.status ==
 // 서버 측정 단위 코드(MeasurementItem.unit) → 화면 표시
 const UNIT_LABELS = Object.freeze({ PCT: '%', PPM: 'ppm', PCT_LEL: '%LEL' });
 export const unitLabel = (unit) => UNIT_LABELS[unit] ?? unit ?? '';
+
+/** 요청일 드롭다운 버튼 값: 전체 / 오늘 / 7일 / 30일 / 11/02 ~ 11/16 / 11/02부터 / 11/16까지 */
+export function requestPeriodLabel(from = '', to = '', today) {
+  if (!from && !to) return '전체';
+  const preset = from && to ? presetOf(from, to, today) : null;
+  if (preset) return PERIOD_PRESETS.find((item) => item.key === preset).label;
+  const short = (date) => date.slice(5).replace('-', '/');
+  if (from && to) return from === to ? short(from) : `${short(from)} ~ ${short(to)}`;
+  return from ? `${short(from)}부터` : `${short(to)}까지`;
+}

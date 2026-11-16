@@ -2,7 +2,7 @@
  * 작업 목록 · 작업 허브. 페이지 스크롤(홈과 달리 고정 아님). 값은 tokens.css 변수만 쓴다.
  * 표·배지·점은 home.css 의 home-table / home-badge / home-dot 를 같이 쓴다.
  */
-.work-page { max-width: 1400px; font-family: var(--font-sans); color: var(--color-text); }
+.work-page { max-width: none; font-family: var(--font-sans); color: var(--color-text); }
 .work-list, .work-hub { display: flex; flex-direction: column; gap: var(--space-4); }
 
 .work-head { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--space-4); flex-wrap: wrap; }

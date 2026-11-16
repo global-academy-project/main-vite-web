@@ -404,6 +404,3 @@ button.ui-toast__close:hover:not(:disabled) { background: var(--color-surface-mu
   .ui-confirm__panel { width: 100%; padding: 22px var(--space-4) max(var(--space-4), env(safe-area-inset-bottom)); border-radius: 22px 22px 0 0; }
   .ui-confirm__actions .ui-btn { flex: 1 1 0; }
 }
-/* approvals.css 가 ui-btn--danger 를 테두리형으로 덮어써서(전역) 확인 창 안은 채운 빨강으로 고정. 승인함 정리는 PR4 */
-.ui-confirm__actions button.ui-btn--danger { border-color: transparent; background: var(--color-danger); color: #fff; }
-.ui-confirm__actions button.ui-btn--danger:hover:not(:disabled) { background: var(--color-danger-text); }

@@ -291,7 +291,7 @@ function WorkHub({ site, context, workId, params, setParams }) {
         </section>
       </div>
 
-      <Sheet open={Boolean(openDoc)} onClose={close} title={openDoc?.label ?? ''} subtitle={openDoc?.id ? jobRecordPath(openDoc.type, openDoc.id) : ''}
+      <Sheet open={Boolean(openDoc)} onClose={close} title={openDoc?.label ?? ''} subtitle={openDoc?.id ? `${work.title} · #${openDoc.id}` : work.title}
         actions={openDoc?.id && <Link className="ui-icon-btn" to={withBack(jobRecordPath(openDoc.type, openDoc.id), work.workId)} aria-label="전체 화면으로 열기"><Icon name="external" size={18} /></Link>}>
         {openDoc && (
           <DocPanel doc={openDoc} entry={entry?.key === openDoc.key ? entry : null} siteId={site.siteId} zones={hub.zones} backWorkId={work.workId} showFull
