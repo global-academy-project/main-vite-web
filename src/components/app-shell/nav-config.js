@@ -7,11 +7,11 @@ const ALL = ['ADMIN', 'SITE_ADMIN', 'APPROVER', 'WRITER'];
 const MANAGERS = ['ADMIN', 'SITE_ADMIN'];
 
 export const NAV = Object.freeze([
-  { key: 'home', label: '홈', icon: 'home', path: '/dashboard', roles: ALL },
-  { key: 'work-status', label: '작업 현황', icon: 'chart', path: '/job/dashboard', roles: ALL },
+  { key: 'home', label: '홈', icon: 'home', path: '/dashboard', roles: ALL, section: 'main' },
+  { key: 'work-status', label: '작업 현황', icon: 'chart', path: '/job/dashboard', roles: ALL, section: 'main' },
   // 작업 흐름 순서: 작업 등록 → 위험성평가 → 작업허가(결재) → TBM
   {
-    key: 'work', label: '작업', icon: 'work', roles: ALL,
+    key: 'work', label: '작업', icon: 'work', roles: ALL, section: 'main',
     children: [
       { key: 'work-list', label: '작업 목록', path: '/job/workspace' },
       { key: 'risk', label: '위험성평가', path: '/job/risk-assessment' },
@@ -21,24 +21,38 @@ export const NAV = Object.freeze([
   },
   // 하루 단위: 점검표(작업 중) → 안전일지(하루 마감, 현장·날짜당 1건)
   {
-    key: 'daily', label: '일일 안전', icon: 'calendar', roles: ALL,
+    key: 'daily', label: '일일 안전', icon: 'calendar', roles: ALL, section: 'main',
     children: [
       { key: 'checklist', label: '점검표', path: '/job/dailey-checklist' },
       { key: 'daily-safety', label: '안전일지', path: '/job/daily-safety' },
     ],
   },
   // 승인함은 모든 역할: 승인자는 "결재 대기", 작성자는 "내 요청"을 주로 본다 (승인·반려 권한은 서버가 canDecide 로 판단)
-  { key: 'approvals', label: '승인함', icon: 'inbox', path: '/approvals', roles: ALL },
+  { key: 'approvals', label: '승인함', icon: 'inbox', path: '/approvals', roles: ALL, section: 'records' },
   {
-    key: 'records', label: '기록', icon: 'records', roles: ALL,
+    key: 'records', label: '기록', icon: 'records', roles: ALL, section: 'records',
     children: [
       { key: 'incidents', label: '아차사고', path: '/job/incidents' },
       { key: 'record-search', label: '기록 검색', path: '/records/search' },
     ],
   },
-  { key: 'site', label: '현장 설정', icon: 'site', path: '/job/list', roles: MANAGERS },
-  { key: 'admin', label: '관리', icon: 'admin', path: '/admin/users', roles: ['ADMIN'], accountOnly: true },
+  { key: 'site', label: '현장 설정', icon: 'site', path: '/job/list', roles: MANAGERS, section: 'settings' },
+  { key: 'admin', label: '관리', icon: 'admin', path: '/admin/users', roles: ['ADMIN'], accountOnly: true, section: 'settings' },
 ]);
+
+/** 메뉴 묶음 이름 (왼쪽 메뉴에서 묶음 위에 작게 보인다) */
+export const SECTION_LABELS = Object.freeze({ main: '메뉴', records: '결재·기록', settings: '설정' });
+
+/** 머리 위치 표시: 그룹 안 화면이면 ["작업", "작업 목록"], 아니면 ["홈"]. 메뉴에 없는 화면은 null */
+export function crumbFor(pathname) {
+  for (const item of NAV) {
+    if (!isActivePath(item, pathname)) continue;
+    if (!item.children) return [item.label];
+    const child = item.children.find((entry) => pathname === entry.path || pathname.startsWith(`${entry.path}/`));
+    return child ? [item.label, child.label] : [item.label];
+  }
+  return null;
+}
 
 /**
  * 메뉴에 쓸 역할. 계정 ADMIN 은 어느 현장이든 회사 관리자, 아니면 지금 고른 현장의 역할.

@@ -14,25 +14,31 @@ a.ui-btn {
   min-height: var(--touch-min);
   padding: 0 var(--space-4);
   border: 1px solid transparent;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-pill);
   font-family: var(--font-sans);
   font-size: var(--text-md);
-  font-weight: var(--weight-bold);
+  font-weight: 700;
+  white-space: nowrap;
   line-height: 1.2;
   text-decoration: none;
   cursor: pointer;
   transform: none;
   transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
-button.ui-btn--lg { min-height: var(--touch-field); padding: 0 var(--space-5); font-size: var(--text-lg); }
-button.ui-btn--primary, a.ui-btn--primary { background: var(--color-primary); color: var(--color-text-on-primary); }
-button.ui-btn--primary:hover:not(:disabled), a.ui-btn--primary:hover { background: var(--color-primary-hover); transform: none; }
-button.ui-btn--secondary, a.ui-btn--secondary { background: var(--color-surface); color: var(--color-primary); border-color: var(--color-primary); }
-button.ui-btn--secondary:hover:not(:disabled), a.ui-btn--secondary:hover { background: var(--color-primary-soft); transform: none; }
-button.ui-btn--ghost, a.ui-btn--ghost { background: var(--color-surface); color: var(--color-text-sub); border-color: var(--color-border); font-weight: var(--weight-medium); }
+/* 버튼 5종 (11/16): 주요(남색) · 보조(회색) · 약한(흰 테두리) · 위험(빨강) · 글자 링크. 크기는 44 하나와 작은 32 */
+button.ui-btn--lg { min-height: var(--touch-min); padding: 0 var(--space-5); font-size: var(--text-md); }
+button.ui-btn--sm, a.ui-btn--sm { min-height: var(--touch-sm); padding: 0 var(--space-3); font-size: 12.5px; }
+button.ui-btn--primary, a.ui-btn--primary { background: var(--color-primary-fill); color: var(--color-on-primary-fill); }
+button.ui-btn--primary:hover:not(:disabled), a.ui-btn--primary:hover { background: var(--color-primary-fill-hover); transform: none; }
+button.ui-btn--secondary, a.ui-btn--secondary { background: var(--color-primary-soft); color: var(--color-text-strong); border-color: transparent; }
+button.ui-btn--secondary:hover:not(:disabled), a.ui-btn--secondary:hover { background: var(--color-border-soft); filter: brightness(0.97); transform: none; }
+button.ui-btn--ghost, a.ui-btn--ghost { background: var(--color-surface); color: var(--color-text-strong); border-color: var(--color-border-input); }
 button.ui-btn--ghost:hover:not(:disabled), a.ui-btn--ghost:hover { background: var(--color-surface-muted); transform: none; }
-button.ui-btn:disabled { background: var(--color-primary-disabled); border-color: transparent; color: var(--color-text-on-primary); opacity: 1; }
-button.ui-btn--ghost:disabled, button.ui-btn--secondary:disabled { background: var(--color-surface); color: var(--color-text-muted); border-color: var(--color-border); }
+button.ui-btn--danger, a.ui-btn--danger { background: var(--color-danger); color: #ffffff; }
+button.ui-btn--danger:hover:not(:disabled), a.ui-btn--danger:hover { filter: brightness(0.92); transform: none; }
+button.ui-btn--link, a.ui-btn--link { min-height: auto; padding: 0 var(--space-1); background: transparent; color: var(--color-text-strong); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--color-border-accent); }
+button.ui-btn:disabled { background: var(--color-neutral-soft); border-color: transparent; color: var(--color-text-muted); opacity: 0.8; cursor: not-allowed; }
+button.ui-btn--ghost:disabled, button.ui-btn--secondary:disabled { background: var(--color-neutral-soft); color: var(--color-text-muted); border-color: transparent; }
 button.ui-icon-btn {
   display: inline-flex;
   align-items: center;
@@ -40,10 +46,10 @@ button.ui-icon-btn {
   width: var(--touch-min);
   height: var(--touch-min);
   padding: 0;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-input);
+  border-radius: var(--radius-pill);
   background: var(--color-surface);
-  color: var(--color-text-sub);
+  color: var(--color-text-strong);
   cursor: pointer;
 }
 button.ui-icon-btn:hover:not(:disabled) { background: var(--color-surface-muted); transform: none; }
@@ -110,7 +116,7 @@ button.ui-icon-btn:hover:not(:disabled) { background: var(--color-surface-muted)
 
 /* ── 입력칸 ────────────────────────────────────────── */
 .ui-field { display: flex; flex-direction: column; gap: var(--space-1); font-family: var(--font-sans); min-width: 0; }
-.ui-field__label { font-size: var(--text-sm); font-weight: var(--weight-medium); color: var(--color-text-sub); }
+.ui-field__label { font-size: 12.5px; font-weight: var(--weight-medium); color: var(--color-text-sub); }
 .ui-field__required { margin-left: 2px; color: var(--color-danger); }
 .ui-field__control { position: relative; display: flex; align-items: center; }
 .ui-field .ui-field__input {
@@ -118,7 +124,7 @@ button.ui-icon-btn:hover:not(:disabled) { background: var(--color-surface-muted)
   min-height: var(--touch-field);
   padding: 0 var(--space-3);
   border: 1px solid var(--color-border-input);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   background: var(--color-surface);
   color: var(--color-text);
   font-size: var(--text-md);
@@ -129,7 +135,7 @@ button.ui-icon-btn:hover:not(:disabled) { background: var(--color-surface-muted)
 .ui-field--has-suffix .ui-field__input { padding-right: 76px; }
 .ui-field .ui-field__input:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 0; border-color: var(--color-primary); }
 .ui-field--ok .ui-field__input { border-color: var(--color-success); }
-.ui-field--error .ui-field__input { border-color: var(--color-warning); }
+.ui-field--error .ui-field__input { border-color: var(--color-danger); }
 .ui-field__suffix {
   position: absolute;
   right: var(--space-3);
@@ -141,11 +147,11 @@ button.ui-icon-btn:hover:not(:disabled) { background: var(--color-surface-muted)
   pointer-events: none;
 }
 .ui-field__mark--ok { color: var(--color-success); }
-.ui-field__mark--error { color: var(--color-warning); }
+.ui-field__mark--error { color: var(--color-danger); }
 /* 도움말 자리: 한 줄 높이를 항상 잡아 둬서 문구가 생겨도 아래가 밀리지 않는다 */
 .ui-field__help { min-height: 18px; font-size: var(--text-xs); line-height: 18px; color: var(--color-text-muted); }
 .ui-field--ok .ui-field__help { color: var(--color-success-text); }
-.ui-field--error .ui-field__help { color: var(--color-warning-text); }
+.ui-field--error .ui-field__help { color: var(--color-danger-text); font-weight: var(--weight-medium); }
 
 /* ── 단계 표시 ─────────────────────────────────────── */
 .ui-steps {
@@ -163,8 +169,8 @@ button.ui-icon-btn:hover:not(:disabled) { background: var(--color-surface-muted)
 .ui-step { position: relative; display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; }
 .ui-step__bar { height: 4px; border-radius: 2px; background: var(--color-border-soft); }
 .ui-step--done .ui-step__bar { background: var(--color-success); }
-.ui-step--current .ui-step__bar { background: var(--color-primary); }
-.ui-step--problem .ui-step__bar { background: var(--color-warning); }
+.ui-step--current .ui-step__bar { background: var(--color-wait); }
+.ui-step--problem .ui-step__bar { background: var(--color-danger); }
 /* 해당 없음: 완료(초록)와 헷갈리지 않게 점선 회색 */
 .ui-step--skip .ui-step__bar { background: repeating-linear-gradient(90deg, var(--color-border) 0 6px, transparent 6px 10px); }
 button.ui-step__button,
@@ -198,9 +204,9 @@ button.ui-step__button:hover:not(:disabled) { background: transparent; transform
   font-weight: var(--weight-bold);
   box-sizing: border-box;
 }
-.ui-step--done .ui-step__dot { border-color: var(--color-success); background: var(--color-success); color: var(--color-text-on-primary); }
-.ui-step--current .ui-step__dot { border-color: var(--color-primary); background: var(--color-primary); color: var(--color-text-on-primary); }
-.ui-step--problem .ui-step__dot { border-color: var(--color-warning); background: var(--color-warning); color: var(--color-text-on-primary); }
+.ui-step--done .ui-step__dot { border-color: var(--color-success); background: var(--color-success); color: #ffffff; }
+.ui-step--current .ui-step__dot { border-color: var(--color-wait); background: var(--color-wait); color: var(--color-canvas); }
+.ui-step--problem .ui-step__dot { border-color: var(--color-danger); background: var(--color-danger); color: #ffffff; }
 .ui-step__text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .ui-step__label { font-size: var(--text-sm); font-weight: var(--weight-bold); color: var(--color-text-strong); }
 .ui-step--todo .ui-step__label { color: var(--color-text-muted); }
@@ -221,8 +227,8 @@ button.ui-step__button:hover:not(:disabled) { background: transparent; transform
     background: var(--color-neutral-soft);
   }
   .ui-steps .ui-step--done .ui-step__button { background: var(--color-success-soft); }
-  .ui-steps .ui-step--current .ui-step__button { background: var(--color-primary-soft); }
-  .ui-steps .ui-step--problem .ui-step__button { background: var(--color-warning-soft); }
+  .ui-steps .ui-step--current .ui-step__button { background: var(--color-wait-soft); }
+  .ui-steps .ui-step--problem .ui-step__button { background: var(--color-danger-soft); }
   .ui-step__label { white-space: nowrap; }
 }
 
@@ -329,7 +335,7 @@ button.ui-step__button:hover:not(:disabled) { background: transparent; transform
 .ui-toast--success .ui-toast__icon { color: var(--color-success); }
 .ui-toast--error { border-color: var(--color-danger-border); }
 .ui-toast--error .ui-toast__icon { color: var(--color-danger); }
-.ui-toast--info .ui-toast__icon { color: var(--color-primary); }
+.ui-toast--info .ui-toast__icon { color: var(--color-wait); }
 .ui-toast__icon { flex-shrink: 0; margin-top: 1px; }
 .ui-toast__message { flex: 1; line-height: 1.5; word-break: keep-all; }
 button.ui-toast__close {
@@ -350,3 +356,54 @@ button.ui-toast__close:hover:not(:disabled) { background: var(--color-surface-mu
   /* 모바일: 하단 탭 위 가운데 */
   .ui-toasts { right: 16px; left: 16px; bottom: calc(76px + env(safe-area-inset-bottom)); width: auto; }
 }
+
+/* ── 시트 A안 (11/16): 사방 10px 띄운 판, 머리 줄 없음, 아래 버튼 줄만 연회색 ── */
+@media (min-width: 641px) {
+  .ui-sheet__panel {
+    top: 10px;
+    right: 10px;
+    bottom: 10px;
+    width: min(520px, calc(100vw - 20px));
+    border-radius: var(--radius-sheet);
+    box-shadow: var(--shadow-lg);
+    overflow: hidden;
+  }
+  .ui-sheet--wide .ui-sheet__panel { width: min(760px, calc(100vw - 20px)); }
+  .ui-sheet__header { align-items: flex-start; padding: var(--space-5) var(--space-5) var(--space-3); border-bottom: 0; }
+  .ui-sheet__title { font-size: var(--text-xl); }
+  .ui-sheet__body { padding-top: var(--space-1); }
+  .ui-sheet__footer { border-top: 0; background: var(--color-surface-muted); }
+}
+@media (max-width: 1024px) and (min-width: 641px) {
+  .ui-sheet__panel { width: min(680px, calc(100vw - 20px)); }
+}
+@media (max-width: 640px) {
+  .ui-sheet__panel, .ui-sheet--wide .ui-sheet__panel { border-radius: 22px 22px 0 0; }
+  .ui-sheet__handle span { background: var(--color-border-accent); }
+  .ui-sheet__footer { border-top: 0; }
+}
+
+/* 확인 창 (confirm-dialog.jsx, 11/16): window.confirm 자리. PC 가운데 · 모바일 바텀 시트 */
+.ui-confirm { position: fixed; inset: 0; z-index: calc(var(--z-sheet) + 50); display: grid; place-items: center; padding: var(--space-4); font-family: var(--font-sans); }
+.ui-confirm__scrim { position: absolute; inset: 0; background: var(--color-scrim); }
+.ui-confirm__panel {
+  position: relative; display: flex; flex-direction: column; gap: var(--space-2);
+  width: min(420px, 100%); padding: 24px 24px 20px;
+  border-radius: var(--radius-sheet); background: var(--color-surface); color: var(--color-text);
+  box-shadow: var(--shadow-lg);
+}
+.ui-confirm__icon { display: grid; place-items: center; width: 44px; height: 44px; margin-bottom: 4px; border-radius: 50%; background: var(--color-neutral-soft); color: var(--color-text-muted); }
+.ui-confirm--danger .ui-confirm__icon { background: var(--color-danger-soft); color: var(--color-danger); }
+.ui-confirm--warn .ui-confirm__icon { background: var(--color-warning-soft); color: var(--color-warning); }
+.ui-confirm__title { margin: 0; color: var(--color-text-strong); font-size: 18px; font-weight: 700; line-height: 1.4; }
+.ui-confirm__message { margin: 0; text-wrap: pretty; word-break: keep-all; color: var(--color-text-sub); font-size: var(--text-md); line-height: 1.6; overflow-wrap: anywhere; }
+.ui-confirm__actions { display: flex; justify-content: flex-end; gap: var(--space-2); margin-top: var(--space-4); }
+.ui-confirm__actions .ui-btn { min-height: 44px; }
+@media (max-width: 640px) {
+  .ui-confirm { place-items: end stretch; padding: 0; }
+  .ui-confirm__panel { width: 100%; padding: 22px var(--space-4) max(var(--space-4), env(safe-area-inset-bottom)); border-radius: 22px 22px 0 0; }
+  .ui-confirm__actions .ui-btn { flex: 1 1 0; }
+}
+/* approvals.css 가 ui-btn--danger 를 테두리형으로 덮어써서(전역) 확인 창 안은 채운 빨강으로 고정. 승인함 정리는 PR4 */
+.ui-confirm__actions button.ui-btn--danger { border-color: transparent; background: var(--color-danger); color: #fff; }
+.ui-confirm__actions button.ui-btn--danger:hover:not(:disabled) { background: var(--color-danger-text); }

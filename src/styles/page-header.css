@@ -61,3 +61,37 @@ div.job-page-heading { display: block !important; margin: 0 !important; }
 /* 예전 화면 CSS(.job-page-content .checklist-heading label 등)가 머리 안 조절칸을 덮지 않도록 우선순위를 높인다 */
 .dashboard-main .page-head .page-head__actions > label { display: inline-flex; align-items: center; gap: var(--space-2); margin: 0; font-size: var(--text-sm); color: var(--color-text-sub); }
 .dashboard-main .page-head .page-head__actions > label input { min-height: var(--touch-min); margin: 0; }
+
+/* ── 11/16 개편: 현장 선택은 머리 위 줄 오른쪽(알림 옆) ── */
+.header-site .page-head__site select {
+  min-height: 40px;
+  padding: 0 var(--space-8) 0 var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background-color: var(--color-surface);
+  color: var(--color-text-strong);
+  font-weight: var(--weight-bold);
+  font-size: var(--text-sm);
+  max-width: 240px;
+}
+.header-site .page-head__site--one {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  color: var(--color-text-strong);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+  white-space: nowrap;
+}
+@media (max-width: 640px) {
+  .header-site .page-head__site select { max-width: 150px; padding-left: var(--space-3); }
+  .header-site .page-head__site--one { max-width: 130px; overflow: hidden; text-overflow: ellipsis; }
+}
+.page-head__title { font-size: 26px; letter-spacing: -0.01em; }
+.page-head__meta { font-size: var(--text-sm); color: var(--color-text-muted); }
+/* 버튼 글자는 줄바꿈하지 않는다 (320px 포함) */
+.page-head__actions .ui-btn { white-space: nowrap; }

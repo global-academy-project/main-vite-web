@@ -6,6 +6,7 @@ import {
 import { localDate, riskAssessmentBody, riskLevelNotice } from '../utils/job-forms';
 import { blankRiskItem, riskItemForForm } from '../utils/risk-model.js';
 import { useToast } from '../components/ui/toast-context.js';
+import { confirmAction } from '../components/ui/confirm-store.js';
 
 /**
  * 위험성평가 상태와 동작. 기존 job-risk-assessment.jsx 의 규칙을 그대로 옮겼다.
@@ -99,8 +100,8 @@ export function useRiskAssessment({ siteId, initialRiskId, initialWorkId, disabl
     }, (saved) => `${risk ? '변경 사항을 저장했습니다.' : '위험성평가 초안을 저장했습니다.'} ${riskLevelNotice(payload, saved)}`.trim());
   };
 
-  const startNew = (work = '') => {
-    if (needsReload && !window.confirm('서버 반영 여부를 확인했습니까? 확인 없이 새 평가를 만들면 중복 요청이 될 수 있습니다.')) return;
+  const startNew = async (work = '') => {
+    if (needsReload && !(await confirmAction({ title: '중복 요청이 될 수 있습니다', message: '서버 반영 여부를 확인했습니까? 확인 없이 새 평가를 만들면 중복 요청이 될 수 있습니다.', confirmLabel: '새 평가 만들기', tone: 'warn' }))) return;
     setRisk(null); setItems([blankRiskItem(1)]); setAssessDate(localDate()); setWorkId(String(work));
     setDirty(false); setNeedsReload(false); setError('');
   };

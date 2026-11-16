@@ -22,6 +22,7 @@ import { usePeriod } from '../../hooks/use-period.js';
 import PeriodBar from '../../components/period-bar.jsx';
 import SpeakFill from '../../components/permit/speak-fill.jsx';
 import { fieldHint } from '../../utils/extract-model.js';
+import { confirmAction } from '../../components/ui/confirm-store.js';
 
 // TODO: BACKEND CONTRACT REQUIRED: POST /api/v1/permits/{permitId}/signatures
 // EVENT: SUPERVISOR 서명은 approval.steps에 추가하지 않고 별도 이벤트로 저장한다.
@@ -156,7 +157,7 @@ function PermitEditor({ siteId, context, initialPermitId, initialWorkId, back })
         <div className="work-form__error" role="alert">
           <Icon name="warning" size={16} />
           <span>허가서 생성 여부가 불확실해 다시 등록하지 않게 잠갔습니다. 허가서 ID로 조회하거나 관리자에게 저장 여부를 확인하세요.</span>
-          <button type="button" className="ui-btn ui-btn--ghost" disabled={data.busy} onClick={() => { if (window.confirm('허가서 저장 여부를 확인했으며 새 등록을 진행하시겠습니까?')) data.unlockCreation(); }}>확인 후 등록 잠금 해제</button>
+          <button type="button" className="ui-btn ui-btn--ghost" disabled={data.busy} onClick={async () => { if (await confirmAction({ title: '중복 등록이 될 수 있습니다', message: '허가서 저장 여부를 확인했으며 새 등록을 진행하시겠습니까?', confirmLabel: '등록 잠금 해제', tone: 'warn' })) data.unlockCreation(); }}>확인 후 등록 잠금 해제</button>
         </div>
       )}
       {data.conflict && (
@@ -342,7 +343,7 @@ function StepMeasurements({ data }) {
       )}
       <StepError data={data} />
       <div className="risk-bar">
-        <button type="button" className="ui-btn ui-btn--ghost" disabled={data.locked} onClick={() => { if (data.measurementDirty && !window.confirm('저장하지 않은 측정값을 버리고 이전 단계로 갈까요?')) return; data.discardMeasurements(); data.goTo(1); }}>이전</button>
+        <button type="button" className="ui-btn ui-btn--ghost" disabled={data.locked} onClick={async () => { if (data.measurementDirty && !(await confirmAction({ title: '저장하지 않은 측정값이 있습니다', message: '저장하지 않은 측정값을 버리고 이전 단계로 갈까요?', confirmLabel: '버리고 이전으로', tone: 'danger' }))) return; data.discardMeasurements(); data.goTo(1); }}>이전</button>
         <span className="risk-bar__state">{data.measurementDirty ? '저장하지 않은 측정값이 있습니다.' : ''}</span>
         {data.editable
           ? <button type="button" className="ui-btn ui-btn--primary" disabled={data.locked || data.conflict} onClick={data.saveMeasurementsAndNext}>{data.measurementDirty ? '저장하고 다음' : '다음'}</button>

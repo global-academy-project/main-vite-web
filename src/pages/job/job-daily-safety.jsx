@@ -20,6 +20,7 @@ import { missingDailyLogDocumentFields, normalizeDailyLogDocument } from '../../
 import '../../styles/home.css';
 import '../../styles/work.css';
 import '../../styles/records.css';
+import { confirmAction } from '../../components/ui/confirm-store.js';
 
 const roleOf = (site) => site?.role || site?.siteRole || '';
 
@@ -42,15 +43,15 @@ export default function JobDailySafety() {
   const canApprove = DAILY_LOG_APPROVER_ROLES.includes(roleOf(site));
   const deadline = deadlineOf(data.dashboard);
 
-  const confirmLeave = () => !data.dirty || window.confirm('저장하지 않은 요약이 있습니다. 날짜를 바꾸면 사라집니다. 바꿀까요?');
-  const changeDate = (next) => {
-    if (!next || next === date || !confirmLeave()) return;
+  const confirmLeave = async () => !data.dirty || confirmAction({ title: '저장하지 않은 요약이 있습니다', message: '저장하지 않은 요약이 있습니다. 날짜를 바꾸면 사라집니다. 바꿀까요?', confirmLabel: '버리고 바꾸기', tone: 'danger' });
+  const changeDate = async (next) => {
+    if (!next || next === date || !(await confirmLeave())) return;
     setPicked(next);
   };
   const period = {
     ...range.period,
-    setPeriod: (from, to) => { if (confirmLeave()) { setPicked(null); range.setPeriod(from, to); } },
-    pick: (days) => { if (confirmLeave()) { setPicked(null); range.period.pick(days); } },
+    setPeriod: async (from, to) => { if (await confirmLeave()) { setPicked(null); range.setPeriod(from, to); } },
+    pick: async (days) => { if (await confirmLeave()) { setPicked(null); range.period.pick(days); } },
   };
   const handlePrint = () => {
     const missing = missingDailyLogDocumentFields(normalizeDailyLogDocument(data.log, documentContext));

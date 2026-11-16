@@ -22,6 +22,7 @@ import '../../styles/home.css';
 import '../../styles/work.css';
 import '../../styles/approvals.css';
 import '../../styles/records.css';
+import { confirmAction } from '../../components/ui/confirm-store.js';
 
 const TABS = [{ key: 'reports', label: '보고 목록' }, { key: 'warnings', label: '작업 경고' }];
 const pad2 = (value) => String(value).padStart(2, '0');
@@ -79,7 +80,7 @@ function IncidentPage({ site, context, reporter }) {
           <Icon name="warning" size={16} />
           <span>저장 결과가 불확실합니다. 최신 보고를 다시 받아 반영 여부를 확인할 때까지 추가 저장을 멈췄습니다.</span>
           <button type="button" className="ui-btn ui-btn--ghost" disabled={data.busy || data.loading} onClick={() => {
-            if (window.confirm('최신 목록과 보고 내용에서 저장 여부를 확인했습니까? 확인 후 잠금을 해제합니다.')) data.unlock();
+            void confirmAction({ title: '저장 여부를 확인했나요?', message: '최신 목록과 보고 내용에서 저장 여부를 확인했습니까? 확인 후 잠금을 해제합니다.', confirmLabel: '잠금 해제', tone: 'warn' }).then((ok) => { if (ok) data.unlock(); });
           }}>반영 여부 확인 후 잠금 해제</button>
         </div>
       )}

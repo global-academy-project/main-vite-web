@@ -4,6 +4,7 @@ import { createWork, validatePeriod } from '../../api/jobs';
 import JobReferenceSelectors from '../job-reference-selectors';
 import Icon from '../ui/icon.jsx';
 import { useToast } from '../ui/toast-context.js';
+import { confirmAction } from '../ui/confirm-store.js';
 
 const workZoneEnabled = import.meta.env.VITE_ENABLE_WORK_ZONE_API !== 'false';
 const pad = (value) => String(value).padStart(2, '0');
@@ -66,7 +67,7 @@ export default function WorkCreateForm({ site, disabled = false, onCreated }) {
         <div className="work-form__error" role="alert">
           <span>작업 생성 결과가 불확실하여 추가 등록을 멈췄습니다. 작업 목록에서 저장됐는지 먼저 확인하세요.</span>
           <button type="button" className="ui-btn ui-btn--ghost" disabled={busy || disabled} onClick={() => {
-            if (window.confirm('작업 목록에서 저장 여부를 확인했으며, 새 작업 등록을 진행하시겠습니까? 중복 작업이 생길 수 있습니다.')) { setUncertain(false); setError(''); }
+            void confirmAction({ title: '중복 작업이 생길 수 있습니다', message: '작업 목록에서 저장 여부를 확인했으며, 새 작업 등록을 진행하시겠습니까? 중복 작업이 생길 수 있습니다.', confirmLabel: '등록 계속', tone: 'warn' }).then((ok) => { if (ok) { setUncertain(false); setError(''); } });
           }}>확인 후 잠금 해제</button>
         </div>
       )}

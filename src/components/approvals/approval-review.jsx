@@ -11,6 +11,7 @@ import {
 } from '../../utils/approval-model.js';
 import { APPROVAL_TARGET_LABELS } from '../../utils/home-model.js';
 import { jobRecordPath } from '../../utils/job-forms.js';
+import { confirmAction } from '../ui/confirm-store.js';
 
 /**
  * 결재 한 건 검토: 요청 정보 → 결재선 → 문서 미리보기 → 승인·반려(또는 회수).
@@ -38,7 +39,7 @@ export default function ApprovalReview({ approvalId, onDecided, layout = 'sheet'
 
   const act = async (action) => {
     if (action === 'reject') setTouched(true);
-    if (action === 'cancel' && !window.confirm('이 승인 요청을 회수하시겠습니까?')) return;
+    if (action === 'cancel' && !(await confirmAction({ title: '승인 요청을 회수할까요?', message: '이 승인 요청을 회수하시겠습니까?', confirmLabel: '회수', tone: 'danger' }))) return;
     const latest = await review.decide(action, { comment, missingItems: action === 'reject' ? missing : [] });
     if (!latest) return;
     const status = latest.summary?.status;
