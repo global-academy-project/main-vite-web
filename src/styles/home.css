@@ -685,3 +685,6 @@ button.home-panel__fold-btn:hover:not(:disabled) { background: var(--color-neutr
   .home-top { grid-auto-rows: 290px; }
   .home-top .home-panel__body { max-height: none; }
 }
+/* 종류 + 고위험 (TypeBadge highRisk): 한 줄로 */
+.home-type-wrap { display: inline-flex; flex-wrap: nowrap; align-items: center; gap: 4px; white-space: nowrap; }
+.home-type-risk { display: inline-flex; color: var(--color-warning-text); }

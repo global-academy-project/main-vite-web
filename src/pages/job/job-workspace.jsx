@@ -179,7 +179,7 @@ function WorkList({ site, context, onCreate, onAgent }) {
                       <span className="home-table__name"><Link to={`/job/workspace?workId=${work.workId}`} className="home-table__title">{work.title}</Link><span className="work-table__id">#{work.workId}</span></span>
                       <span className={`home-table__facts${work.zoneId && work.startAt ? '' : ' is-warn'}`}>{[zoneName(work.zoneId), timeRange(work.startAt, work.endAt) || '시간 미정', work.workerCount != null ? `${work.workerCount}명` : ''].filter(Boolean).join(' · ')}</span>
                     </td>
-                    <td data-label="종류"><TypeBadge type={work.workType} /></td>
+                    <td data-label="종류"><TypeBadge type={work.workType} highRisk={work.highRisk} /></td>
                     <td data-label="위험성평가">{work.riskAssessment ? <Badge tone={toneOf(work.riskAssessment.status)}>{RISK_STATUS_LABELS[work.riskAssessment.status]}</Badge> : <span className="work-none">없음</span>}</td>
                     <td data-label="작업허가">{permits.length ? <span className="work-badges">{permits.map((permit) => <Badge key={permit.permitId} tone={toneOf(permit.status)}>{PERMIT_STATUS_LABELS[permit.status]}</Badge>)}</span> : <span className="work-none">{work.workType === 'GENERAL' ? '해당 없음' : '없음'}</span>}</td>
                     <td data-label="TBM">{work.tbm ? <Badge tone={toneOf(work.tbm.status)}>{TBM_STATUS_LABELS[work.tbm.status]}</Badge> : <span className="work-none">없음</span>}</td>
@@ -247,7 +247,7 @@ function WorkHub({ site, context, workId, params, setParams }) {
   return (
     <div className="work-hub">
       <PageHeader title={work.title} context={context} onBeforeSelect={() => setParams({})}
-        badges={<><TypeBadge type={work.workType} />{/* 작업 상태는 서버에서 바뀌지 않아(작업 승인·종료 API 없음) 문서가 다 승인됐는지로 보인다 */}<Badge tone={workReady(work) ? 'done' : toneOf(work.status)}>{workReady(work) ? '작업 준비 완료' : work.status === 'DRAFT' ? '준비 중' : (WORK_STATUS_LABELS[work.status] ?? work.status)}</Badge></>}
+        badges={<><TypeBadge type={work.workType} highRisk={work.highRisk} />{/* 작업 상태는 서버에서 바뀌지 않아(작업 승인·종료 API 없음) 문서가 다 승인됐는지로 보인다 */}<Badge tone={workReady(work) ? 'done' : toneOf(work.status)}>{workReady(work) ? '작업 준비 완료' : work.status === 'DRAFT' ? '준비 중' : (WORK_STATUS_LABELS[work.status] ?? work.status)}</Badge></>}
         description={`작업 #${work.workId} · ${zone?.name ?? (work.zoneId ? `구역 #${work.zoneId}` : '구역 미지정')} · ${work.workDate} ${timeRange(work.startAt, work.endAt)} · 작업자 ${work.workerCount ?? '-'}명`}
         actions={<Link className="ui-btn ui-btn--ghost" to="/job/workspace">작업 목록</Link>} />
       {hub.error && <p className="work-form__error" role="alert"><Icon name="alert" size={16} />{hub.error}</p>}

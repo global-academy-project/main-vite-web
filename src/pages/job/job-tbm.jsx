@@ -23,7 +23,7 @@ import '../../styles/records.css';
 import '../../styles/risk.css';
 import '../../styles/permit.css';
 import '../../styles/tbm.css';
-import PeriodBar from '../../components/period-bar.jsx';
+import { PeriodMenu } from '../../components/work/work-filters.jsx';
 
 const tone = (tbm) => (!tbm ? 'todo' : tbm.approvalStatus === 'PENDING' ? 'wait' : tbm.status === 'APPROVED' ? 'done' : tbm.status === 'DONE' ? 'info' : 'todo');
 
@@ -67,14 +67,16 @@ function TbmPage({ site, context, initialDate, initialTbmId, presetWorkId, back,
         actions={<>
           {hub && <Link className="ui-btn ui-btn--ghost" to={hub}><Icon name="chevronLeft" size={16} />작업 허브로</Link>}
           <button type="button" className="ui-btn ui-btn--ghost" disabled={data.busy || data.loading} onClick={data.reload}><Icon name="refresh" size={16} />새로고침</button>
+          {/* 새 TBM 은 화면 머리 한 곳에서만 (PC·모바일 모두 머리에 보인다. 빈 목록 안의 같은 버튼은 뺐다) */}
           <button type="button" className="ui-btn ui-btn--primary" disabled={data.locked} onClick={() => data.openNew([])}>새 TBM</button>
         </>} />
 
-      <section className="work-filters rec-datebar" aria-label="TBM 날짜">
-        <PeriodBar period={data.period} label="TBM 기간" disabled={data.busy} />
-        {data.period.error && <span className="work-filters__help" role="alert">{data.period.error}</span>}
-        <span className="rec-help">연결 작업은 같은 현장·같은 날짜여야 하고, 다른 TBM과 겹쳐 연결할 수 없습니다.</span>
+      <section className="work-filters" aria-label="TBM 날짜">
+        <div className="work-filters__menus"><PeriodMenu period={data.period} label="기간" disabled={data.busy} /></div>
       </section>
+      {/* 예전 PeriodBar 처럼 고른 날짜가 늘 보이게, 오류가 나도 안내 문구는 그대로 */}
+      {data.period.error && <p className="work-filters__help" role="alert">{data.period.error}</p>}
+      <p className="work-filters__help">{data.period.from === data.period.to ? data.period.from : `${data.period.from} ~ ${data.period.to}`} · 연결 작업은 같은 현장·같은 날짜여야 하고, 다른 TBM과 겹쳐 연결할 수 없습니다.</p>
 
       {data.needsReload && (
         <div className="work-form__error" role="alert"><Icon name="warning" size={16} /><span>저장 결과나 최신 내용을 확인해야 합니다. 새로고침으로 서버 반영 여부를 확인한 뒤 계속하세요.</span>
@@ -88,7 +90,7 @@ function TbmPage({ site, context, initialDate, initialTbmId, presetWorkId, back,
           <div className="home-panel__body">
             {data.loading && <div className="home-panel__pad"><Skeleton lines={4} /></div>}
             {!data.loading && data.listError && <StatusView kind="error" compact message={data.listError} onRetry={data.reload} />}
-            {!data.loading && !data.listError && !data.records.length && <StatusView kind="empty" compact title={data.multiDay ? '이 기간의 TBM이 없습니다' : '이 날짜의 TBM이 없습니다'} action={{ label: '새 TBM 작성', onClick: () => data.openNew([]) }} />}
+            {!data.loading && !data.listError && !data.records.length && <StatusView kind="empty" compact title={data.multiDay ? '이 기간의 TBM이 없습니다' : '이 날짜의 TBM이 없습니다'} />}
             {!data.loading && data.records.length > 0 && (
               <ul className="home-list">
                 {data.records.map((record) => (
@@ -167,6 +169,10 @@ function TbmForm({ data, siteId, works }) {
 
 function TbmDetail({ data, tbm, siteId }) {
   const counts = healthCounts(data.attendees);
+  // 한 화면 주요 버튼(남색)은 하나: 지금 차례 단계의 버튼만 남색, 나머지는 회색(보조)
+  const steps = tbmSteps(tbm, { attendeesSaved: data.attendeesSaved, attendeeTotal: data.attendees.length });
+  const currentStep = steps.find((step) => step.state === 'current')?.key;
+  const stepBtn = (key) => `ui-btn ${currentStep === key ? 'ui-btn--primary' : 'ui-btn--secondary'}`;
   const disabled = data.locked || !data.editable || !data.workersLoaded || Boolean(data.workerError);
   return (
     <>
@@ -182,7 +188,7 @@ function TbmDetail({ data, tbm, siteId }) {
             {data.editable && <button type="button" className="ui-btn ui-btn--secondary" disabled={data.locked} onClick={data.openEdit}>내용 수정</button>}
           </div>
         </header>
-        <div className="tbm-card__steps"><StepIndicator steps={tbmSteps(tbm, { attendeesSaved: data.attendeesSaved, attendeeTotal: data.attendees.length })} label="TBM 진행 단계" /></div>
+        <div className="tbm-card__steps"><StepIndicator steps={steps} label="TBM 진행 단계" /></div>
         {data.approvalPending && <p className="rec-note"><Icon name="clock" size={16} />확인 요청 중입니다. 수정·참석자 저장·실시 완료·되돌리기를 할 수 없습니다.</p>}
         <dl className="rec-facts tbm-card__facts">
           <div><dt>팀</dt><dd>{tbm.teamName ?? (tbm.teamId == null ? '미지정' : `#${tbm.teamId}`)}</dd></div>
@@ -212,7 +218,7 @@ function TbmDetail({ data, tbm, siteId }) {
           </div>
           <div className="tbm-card__actions">
             <span className={`rec-log__state${data.attendeesSaved ? '' : ' is-dirty'}`}>{data.attendeesSaved ? '서버에 저장됨' : '저장되지 않음'}</span>
-            {data.editable && <button type="button" className="ui-btn ui-btn--primary" disabled={data.busy || data.attendeesSaved || (data.editing && data.contentDirty)} onClick={data.saveAttendees}>참석자 저장</button>}
+            {data.editable && <button type="button" className={stepBtn('attendees')} disabled={data.busy || data.attendeesSaved || (data.editing && data.contentDirty)} onClick={data.saveAttendees}>참석자 저장</button>}
           </div>
         </header>
         {data.workerError && <p className="work-form__error" role="alert"><Icon name="alert" size={16} />{data.workerError}<button type="button" className="ui-btn ui-btn--ghost" onClick={data.reloadWorkers}>작업자 다시 조회</button></p>}
@@ -258,7 +264,7 @@ function TbmDetail({ data, tbm, siteId }) {
             <label className="risk-field"><span className="risk-field__label">실시 일시<span className="risk-req" aria-hidden="true">*</span></span>
               <input required type="datetime-local" step="any" min={`${tbm.tbmDate}T00:00`} max={`${tbm.tbmDate}T23:59:59`} value={data.heldAt} onChange={(event) => data.setHeldAt(event.target.value)} /></label>
             <label className="risk-field">실제 참석 인원<input type="number" min="0" step="1" inputMode="numeric" placeholder={`비우면 ${data.attendees.length}명`} value={data.attendeeCount} onChange={(event) => data.setAttendeeCount(event.target.value)} /></label>
-            <button type="button" className="ui-btn ui-btn--primary" disabled={data.busy || !data.attendeesSaved || (data.editing && data.contentDirty)} onClick={data.finish}>실시 완료</button>
+            <button type="button" className={stepBtn('held')} disabled={data.busy || !data.attendeesSaved || (data.editing && data.contentDirty)} onClick={data.finish}>실시 완료</button>
           </fieldset>
           {!data.attendeesSaved && <p className="rec-help tbm-finish__hint">참석자를 먼저 저장해야 실시 완료할 수 있습니다.</p>}
         </section>
@@ -270,7 +276,7 @@ function TbmDetail({ data, tbm, siteId }) {
             <div><h2 id="tbm-request">확인 요청</h2><p className="rec-help">확인 요청 중인 TBM은 서버가 재개·수정을 거부합니다. 반려되면 작성 중으로 돌아갑니다.</p></div>
             <div className="tbm-card__actions">
               <button type="button" className="ui-btn ui-btn--ghost" disabled={data.locked || !data.canRequest} onClick={data.reopen}>실시 완료 되돌리기</button>
-              <button type="button" className="ui-btn ui-btn--primary" disabled={data.locked || !data.canRequest} onClick={data.submit}>TBM 확인 요청</button>
+              <button type="button" className={stepBtn('request')} disabled={data.locked || !data.canRequest} onClick={data.submit}>TBM 확인 요청</button>
             </div>
           </header>
         </section>

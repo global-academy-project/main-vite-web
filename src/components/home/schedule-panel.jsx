@@ -207,7 +207,7 @@ function WorkSummary({ work, zones, onClose }) {
   return (
     <div className="home-pop" role="dialog" aria-labelledby={titleId} tabIndex={-1} ref={panel}>
       <div className="home-pop__head">
-        <TypeBadge type={work.workType} />
+        <TypeBadge type={work.workType} highRisk={work.highRisk} />
         <h3 id={titleId}>{work.title}</h3>
         <button type="button" className="ui-icon-btn" aria-label="요약 닫기" onClick={onClose}><Icon name="close" size={16} /></button>
       </div>
