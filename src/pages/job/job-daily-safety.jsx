@@ -204,10 +204,11 @@ function LogPanel({ data, editable = false }) {
                 <button type="button" className="ui-btn ui-btn--primary" disabled={data.busy || !data.summary.trim()} onClick={data.submit}>승인 요청</button>
               </div>
             )}
-            <section className="rec-log__json" aria-labelledby="daily-log-json-title">
-              <span id="daily-log-json-title" className="rec-block__title">안전일지 초안 JSON</span>
+            {/* 서버 원본 데이터: 시안대로 접어 두고 누르면 펼친다 (내용은 그대로) */}
+            <details className="rec-log__json">
+              <summary className="rec-block__title">안전일지 초안 JSON</summary>
               <pre>{JSON.stringify({ ...log, summary: data.summary }, null, 2)}</pre>
-            </section>
+            </details>
             {log.status === 'PENDING' && <p className="rec-note"><Icon name="clock" size={16} />승인 대기 중입니다. 승인 또는 회수는 승인함에서 처리합니다.</p>}
             {log.status === 'APPROVED' && <p className="rec-note rec-note--done"><Icon name="check" size={16} />승인 완료된 안전일지는 수정할 수 없습니다.</p>}
             {log.status === 'REJECTED' && <p className="rec-note rec-note--block"><Icon name="alert" size={16} />반려된 일지입니다. 승인함에서 반려 사유를 확인하세요.</p>}

@@ -23,6 +23,8 @@ import '../../styles/work.css';
 import '../../styles/approvals.css';
 import '../../styles/records.css';
 import { confirmAction } from '../../components/ui/confirm-store.js';
+import OptionMenu from '../../components/ui/option-menu.jsx';
+import { RequestDateMenu } from '../../components/approvals/approval-filters.jsx';
 
 const TABS = [{ key: 'reports', label: '보고 목록' }, { key: 'warnings', label: '작업 경고' }];
 const pad2 = (value) => String(value).padStart(2, '0');
@@ -125,40 +127,39 @@ function ReportList({ data, onOpen, onCreate, openId }) {
 
   return (
     <>
-      <ul className="work-stats" aria-label="보고 건수">
+      <ul className="work-stats appr-stats" aria-label="보고 건수">
         {[
-          { key: '', label: '전체', value: stats.total, tone: 'neutral' },
-          { key: 'week', label: '최근 7일', value: stats.week, tone: 'wait' },
-          { key: 'untagged', label: '태그 없음', value: stats.untagged, tone: 'block' },
+          { key: '', label: '전체', value: stats.total, tone: 'neutral', note: '최근 보고' },
+          { key: 'week', label: '최근 7일', value: stats.week, tone: 'wait', note: '발생일 기준' },
+          { key: 'untagged', label: '태그 없음', value: stats.untagged, tone: 'block', note: '분류 필요' },
         ].map((stat) => (
           <li key={stat.key || 'all'}>
-            <button type="button" aria-pressed={filters.view === stat.key} className={`work-stat work-stat--${stat.tone}${filters.view === stat.key ? ' is-active' : ''}`} onClick={() => update('view', stat.key)}>
-              <span className="work-stat__label">{stat.label}</span>
+            <button type="button" aria-pressed={filters.view === stat.key} className={`work-stat work-stat--${stat.tone}${stat.key === 'untagged' ? ' appr-stat--overdue' : ''}${filters.view === stat.key ? ' is-active' : ''}`} onClick={() => update('view', stat.key)}>
+              <span className="work-stat__label"><i aria-hidden="true" />{stat.label}</span>
               <strong className="work-stat__value">{ready ? stat.value : '–'}</strong>
+              <span className="work-stat__note">{stat.note}</span>
             </button>
           </li>
         ))}
       </ul>
 
       <section className="work-filters" aria-label="보고 검색 조건">
-        <div className="work-filters__row">
-          <label className="appr-select"><span className="sr-only">구역</span>
-            <select value={filters.zoneId} onChange={(event) => update('zoneId', event.target.value)}>
-              <option value="">구역 전체</option>
-              {zones.map((zone) => <option key={zone.zoneId} value={zone.zoneId}>{zone.code} · {zone.name}</option>)}
-            </select>
-          </label>
-          <div className="work-period" role="group" aria-label="발생일">
-            <label><span className="sr-only">발생일 시작</span><input type="date" value={filters.from} max={filters.to || '9999-12-31'} onChange={(event) => update('from', event.target.value)} /></label>
-            <span aria-hidden="true">~</span>
-            <label><span className="sr-only">발생일 끝</span><input type="date" max="9999-12-31" value={filters.to} min={filters.from || undefined} onChange={(event) => update('to', event.target.value)} /></label>
-          </div>
-          <label className="work-search"><span className="sr-only">제목·내용 검색</span>
+        <div className="work-filters__menus">
+          <OptionMenu label="구역" value={filters.zoneId} onPick={(value) => update('zoneId', value)}
+            options={[{ value: '', label: '전체' }, ...zones.map((zone) => ({ value: String(zone.zoneId), label: `${zone.code} · ${zone.name}` }))]} />
+          <RequestDateMenu label="발생일" from={filters.from} to={filters.to} setRange={(range) => setFilters((prev) => ({ ...prev, ...range }))} />
+        </div>
+        <div className="work-filters__find">
+          <label className="work-search"><Icon name="search" size={16} /><span className="sr-only">제목·내용 검색</span>
             <input type="search" value={filters.keyword} placeholder="제목·내용 검색" onChange={(event) => update('keyword', event.target.value)} />
           </label>
-          {hasIncidentFilters(filters) && <button type="button" className="ui-btn ui-btn--ghost" onClick={() => setFilters(EMPTY_INCIDENT_FILTERS)}>조건 초기화</button>}
         </div>
       </section>
+
+      <div className="work-meta">
+        <p className="work-filters__help">{ready ? `${rows.length}건 표시 · ` : ''}서버가 주는 최근 50건 안에서 조건을 적용합니다.</p>
+        {hasIncidentFilters(filters) && <button type="button" className="ui-btn ui-btn--link ui-btn--sm" onClick={() => setFilters(EMPTY_INCIDENT_FILTERS)}>조건 초기화</button>}
+      </div>
 
       <section className="home-panel work-table-panel" aria-label="보고 목록">
         {!ready && !data.loadError && <div className="home-panel__pad"><Skeleton lines={6} /></div>}
@@ -169,14 +170,14 @@ function ReportList({ data, onOpen, onCreate, openId }) {
             action={incidents.length ? { label: '조건 초기화', onClick: () => setFilters(EMPTY_INCIDENT_FILTERS) } : { label: '보고 작성', onClick: onCreate }} />
         )}
         {ready && rows.length > 0 && (
-          <table className="home-table rec-table">
+          <table className="home-table rec-table inc-table">
             <thead><tr><th scope="col">발생</th><th scope="col">보고</th><th scope="col">구역</th><th scope="col">중대도</th><th scope="col">사고 유형</th><th scope="col">관련 작업</th><th scope="col"><span className="sr-only">열기</span></th></tr></thead>
             <tbody>
               {rows.map((item) => {
                 const severity = severityOf(item, codes);
                 const types = accidentTypes(item, codes);
                 return (
-                  <tr key={item.nearMissId} className={String(item.nearMissId) === openId ? 'is-new' : ''}>
+                  <tr key={item.nearMissId} className={String(item.nearMissId) === openId ? 'is-selected' : undefined}>
                     <td data-label="발생" className="work-table__date">{shortOccurred(item.occurredAt)}</td>
                     <td data-label="보고">
                       <span className="home-table__name"><button type="button" className="appr-row-title" onClick={() => onOpen(item.nearMissId)}>{item.title}</button><span className="work-table__id">#{item.nearMissId}</span></span>
@@ -186,7 +187,7 @@ function ReportList({ data, onOpen, onCreate, openId }) {
                     <td data-label="중대도">{severity ? <Badge tone={severity.tone}>{severity.label}</Badge> : <span className="work-none">미분류</span>}</td>
                     <td data-label="사고 유형">{types.length ? types.join(', ') : <span className="work-none">미분류</span>}</td>
                     <td data-label="관련 작업">{item.workId ? <Link className="home-panel__link" to={`/job/workspace?workId=${item.workId}`}>작업 #{item.workId}</Link> : <span className="work-none">없음</span>}</td>
-                    <td data-label="열기"><button type="button" className="ui-btn ui-btn--secondary appr-open" disabled={data.busy} onClick={() => onOpen(item.nearMissId)}>보기</button></td>
+                    <td data-label="열기"><button type="button" className="ui-btn ui-btn--ghost ui-btn--sm appr-open" disabled={data.busy} onClick={() => onOpen(item.nearMissId)}>보기</button></td>
                   </tr>
                 );
               })}
@@ -194,7 +195,6 @@ function ReportList({ data, onOpen, onCreate, openId }) {
           </table>
         )}
       </section>
-      <p className="work-filters__help">서버가 주는 최근 50건 안에서 조건을 적용합니다.</p>
     </>
   );
 }
