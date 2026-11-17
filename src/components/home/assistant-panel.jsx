@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAgentConversation } from '../../hooks/use-agent-conversation.js';
 import { jobRecordPath } from '../../utils/job-forms.js';
 import { RECORD_TYPE_LABELS } from '../../utils/record-query-model.js';
@@ -22,12 +22,24 @@ const TABS = [
  * 두 대화 훅을 모두 살려 둬서 탭을 오가도 대화가 남는다. 현장이 바뀌면 둘 다 새 대화.
  */
 export default function AssistantPanel({ siteId, siteName, zones, onDraftSaved, onDraftChanged, grip, onFold, collapse }) {
+  const navigate = useNavigate();
   const open = !collapse || collapse.open;
   const [tab, setTab] = useState('WORK_REGISTER');
   const work = useAgentConversation({ siteId, taskType: 'WORK_REGISTER' });
   const record = useAgentConversation({ siteId, taskType: 'RECORD_QUERY' });
   const conversation = tab === 'WORK_REGISTER' ? work : record;
   const meta = TABS.find((item) => item.key === tab);
+  const handleSpecialCommand = async (text) => {
+    if (tab !== 'WORK_REGISTER' || !isAuditReportCommand(text)) return false;
+    const confirmed = await confirmAction({
+      title: '감사보고서를 생성할까요?',
+      message: '감사보고서 생성 화면에서 기간과 조회 항목을 확인한 뒤 생성 작업을 시작합니다.',
+      confirmLabel: '생성 화면 열기',
+      tone: 'info',
+    });
+    if (confirmed) navigate(`/audit-reports/new?siteId=${encodeURIComponent(siteId)}&prompt=${encodeURIComponent(text.trim())}`);
+    return true;
+  };
 
   // 작업 등록 초안이 저장되면 오른쪽 오늘 작업 목록을 다시 부른다
   const savedWorkId = work.run?.status === 'DONE' ? work.run.result?.saved?.workId : null;
@@ -58,7 +70,7 @@ export default function AssistantPanel({ siteId, siteName, zones, onDraftSaved, 
       {/* 모바일에서 접어도 대화·진행 중 처리는 그대로 (숨기기만) */}
       <div id="home-ai-body" className="home-assistant__body" hidden={!open}>
       <Thread id="ai-thread" conversation={conversation} records={tab === 'RECORD_QUERY'} siteId={siteId} zones={zones} hint={meta.hint} suggestions={meta.suggestions} siteName={siteName} onDraftChanged={onDraftChanged} />
-      <Composer key={tab} conversation={conversation} placeholder={meta.placeholder} siteName={siteName} voice />
+      <Composer key={tab} conversation={conversation} placeholder={meta.placeholder} siteName={siteName} voice onSpecialCommand={handleSpecialCommand} />
       </div>
     </section>
   );
@@ -127,7 +139,7 @@ function RecordAnswer({ result }) {
 }
 
 /** voice: 말로 입력 버튼(서버 음성 입력이 켜져 있고 브라우저가 녹음할 수 있을 때만 보인다). 받아 적은 글은 입력칸 뒤에 붙고 바로 보내지 않는다 */
-export function Composer({ conversation, placeholder, siteName, voice: withVoice = false }) {
+export function Composer({ conversation, placeholder, siteName, voice: withVoice = false, onSpecialCommand }) {
   const [text, setText] = useState('');
   const [voiceError, setVoiceError] = useState('');
   const areaRef = useRef(null);
@@ -160,6 +172,7 @@ export function Composer({ conversation, placeholder, siteName, voice: withVoice
   };
   const submit = async (event) => {
     event.preventDefault();
+    if (length && await onSpecialCommand?.(text)) { setText(''); setHeight(null); return; }
       if (await conversation.send(text)) { setText(''); setHeight(null); }
   };
   return (
@@ -191,4 +204,9 @@ export function Composer({ conversation, placeholder, siteName, voice: withVoice
       </span>
     </form>
   );
+}
+
+function isAuditReportCommand(text) {
+  const value = String(text ?? '').replace(/\s+/g, '');
+  return /감사보고서/.test(value) && /(생성|작성|만들|발행|출력)/.test(value);
 }
