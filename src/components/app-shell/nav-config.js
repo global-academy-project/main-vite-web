@@ -37,6 +37,7 @@ export const NAV = Object.freeze([
     ],
   },
   { key: 'site', label: '현장 설정', icon: 'site', path: '/job/list', roles: MANAGERS },
+  { key: 'audit-report', label: '감사보고서', icon: 'records', path: '/reports/audit', roles: ['ADMIN', 'SITE_ADMIN', 'APPROVER'] },
   { key: 'admin', label: '관리', icon: 'admin', path: '/admin/users', roles: ['ADMIN'], accountOnly: true },
 ]);
 

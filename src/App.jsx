@@ -36,6 +36,7 @@ const ApprovalResult = lazy(() => import("./pages/approvals/approval-result"));
 const ApprovalRevision = lazy(() => import("./pages/approvals/approval-revision"));
 const RecordSearch = lazy(() => import("./pages/records/record-search"));
 const RecordDetail = lazy(() => import("./pages/records/record-detail"));
+const AuditReport = lazy(() => import("./pages/reports/audit-report"));
 
 /** 첫 화면: 로그인 안 했으면 로그인, 했으면 역할별 첫 화면(승인자는 승인함, 나머지는 홈) */
 function EntryRedirect() {
@@ -98,6 +99,7 @@ function App() {
             <Route path="/approvals/:approvalId/result" element={guard(<ApprovalResult />)} />
             <Route path="/approvals/:approvalId/revision" element={guard(<ApprovalRevision />)} />
             <Route path="/records/search" element={guard(<RecordSearch />)} />
+            <Route path="/reports/audit" element={guard(<AuditReport />)} />
             <Route path="/records/:recordType/:recordId" element={guard(<RecordDetail />)} />
             <Route path="/job/dailey-checklist" element={guard(<DailyChecklist />)} />
             <Route path="/job/incidents" element={guard(<JobIncidents />)} />
