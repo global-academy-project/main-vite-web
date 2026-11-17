@@ -6,6 +6,7 @@ import PageHeader from '../../components/ui/page-header.jsx';
 import { Badge } from '../../components/home/panel.jsx';
 import Icon from '../../components/ui/icon.jsx';
 import Sheet from '../../components/ui/sheet.jsx';
+import ApprovalLinesTab from '../../components/site/approval-lines-tab.jsx';
 import StatusView, { Skeleton } from '../../components/ui/status-view.jsx';
 import { useSiteSettings } from '../../hooks/use-site-settings.js';
 import { localDate } from '../../utils/job-forms';
@@ -52,7 +53,7 @@ function SettingsPage({ site, context }) {
 
   return (
     <div className="work-list rec-page site-page">
-      <PageHeader title="현장 설정" description="현장 운영 설정과 구역·설비·작업자·팀 기준 정보를 관리합니다." context={context}
+      <PageHeader title="현장 설정" description="현장 운영 설정, 구역·설비·작업자·팀 기준 정보와 결재선을 관리합니다." context={context}
         actions={<button type="button" className="ui-btn ui-btn--ghost" disabled={data.busy} onClick={data.reload}><Icon name="refresh" size={16} />새로고침</button>} />
 
       <nav className="site-tabs" aria-label="현장 설정 구분">
@@ -78,6 +79,8 @@ function SettingsPage({ site, context }) {
         ? { ...EMPTY_WORKER, ...entry, phone: '', phoneParts: ['', '', ''], jobType: entry.jobType ?? '', teamId: entry.teamId == null ? '' : String(entry.teamId) }
         : { ...EMPTY_WORKER })} />}
       {tab === 'teams' && <TeamsTab data={data} onEdit={(entry) => open('teams', entry ? { ...entry, businessNo: entry.businessNo ?? '' } : { ...EMPTY_TEAM })} />}
+      {/* 결재선: 이 탭을 열 때만 불러온다 (다른 탭 요청·저장과 따로) */}
+      {tab === 'approvals' && <ApprovalLinesTab key={site.siteId} siteId={site.siteId} canEdit={data.permissions.manageSite} disabled={context.selecting || context.loading} mode={data.resources.settings?.mode} />}
 
       <EditSheet edit={edit} setEdit={setEdit} data={data} onClose={close} />
     </div>

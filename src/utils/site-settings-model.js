@@ -2,7 +2,7 @@
 
 export const SITE_TABS = Object.freeze([
   { key: 'site', label: '현장 정보' }, { key: 'zones', label: '구역' }, { key: 'equipment', label: '설비' },
-  { key: 'workers', label: '작업자' }, { key: 'teams', label: '팀·협력업체' },
+  { key: 'workers', label: '작업자' }, { key: 'teams', label: '팀·협력업체' }, { key: 'approvals', label: '결재선' },
 ]);
 export const SITE_MODE_LABELS = Object.freeze({ VERIFY: '검증 모드', GUIDE: '안내 모드' });
 export const EMPLOYMENT_LABELS = Object.freeze({ DIRECT: '직영', CONTRACTOR: '협력업체', DAILY: '일용' });
