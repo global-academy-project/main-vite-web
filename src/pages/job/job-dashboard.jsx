@@ -5,16 +5,17 @@ import JobPageLayout from '../../components/job-page-layout';
 import PageHeader from '../../components/ui/page-header.jsx';
 import { Badge } from '../../components/home/panel.jsx';
 import Icon from '../../components/ui/icon.jsx';
+import { DayMenu } from '../../components/work/work-filters.jsx';
 import StatusView, { Skeleton } from '../../components/ui/status-view.jsx';
 import { useWorkStatus } from '../../hooks/use-work-status.js';
 import { APPROVAL_TARGET_LABELS, tileValue, todoTiles, todoTotal } from '../../utils/home-model.js';
 import { localDate } from '../../utils/job-forms';
-import { shiftDate } from '../../utils/daily-log-model.js';
 import { clockOf, deadlineRows, entryPath, stageSegments, summaryBars, summaryTotals, teamRows } from '../../utils/status-model.js';
 import '../../styles/home.css';
 import '../../styles/work.css';
 import '../../styles/records.css';
 import '../../styles/tbm.css';
+import '../../styles/permit.css';
 import '../../styles/status.css';
 
 const RANGES = [7, 14, 30];
@@ -50,13 +51,9 @@ function StatusPage({ site, context }) {
           <Link className="ui-btn ui-btn--primary" to="/job/workspace">작업 목록</Link>
         </>} />
 
-      <section className="work-filters rec-datebar" aria-label="기준일">
-        <div className="rec-datebar__nav">
-          <button type="button" className="ui-icon-btn" aria-label="전날" onClick={() => data.changeDate(shiftDate(data.date, -1))}><Icon name="chevronLeft" size={18} /></button>
-          <label><span className="sr-only">기준일</span><input type="date" max="9999-12-31" value={data.date} onChange={(event) => data.changeDate(event.target.value)} /></label>
-          <button type="button" className="ui-icon-btn rec-datebar__next" aria-label="다음 날" onClick={() => data.changeDate(shiftDate(data.date, 1))}><Icon name="chevronLeft" size={18} /></button>
-          {data.date !== localDate() && <button type="button" className="ui-btn ui-btn--ghost" onClick={() => data.changeDate(localDate())}>오늘</button>}
-        </div>
+      <section className="work-filters rec-datebar status-datebar" aria-label="기준일">
+        {/* 다른 화면의 기간 드롭다운과 같은 모양. 하루 단위라 ‹ › 로 하루씩 이동, 오늘·어제·직접 지정은 드롭다운 안 */}
+        <DayMenu date={data.date} today={localDate()} onChange={data.changeDate} />
         {!dashboard && !data.dayError && (
           <ul className="status-deadlines" aria-hidden="true">
             {['TBM 마감', '안전일지 마감', '결재 처리 기한'].map((label) => <li key={label}><span>{label}</span><strong>—</strong></li>)}
@@ -71,6 +68,7 @@ function StatusPage({ site, context }) {
           </ul>
         )}
       </section>
+      <p className="work-filters__help">{data.date} ({['일', '월', '화', '수', '목', '금', '토'][new Date(`${data.date}T00:00:00`).getDay()]}) 기준</p>
 
       {!data.dayLoading && data.dayError && <section className="home-panel"><StatusView kind="error" message={data.dayError} onRetry={data.reload} /></section>}
 

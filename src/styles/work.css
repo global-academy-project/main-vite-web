@@ -419,3 +419,11 @@ button.work-check-menu__option:hover:not(:disabled) { background: var(--color-su
   .home-table.finder-table td:nth-child(5) { grid-column: 1 / -1; grid-row: 4; text-align: right; }
   .home-table.finder-table td:nth-child(5):empty { display: none; }
 }
+
+/* 하루 단위 날짜 드롭다운 (작업 현황): ‹ [기준일 오늘 ⌄] › */
+.work-day-menu { display: inline-flex; align-items: center; gap: var(--space-2); }
+.work-day-menu__next svg { transform: scaleX(-1); }
+.work-day-menu .ui-icon-btn { width: 40px; height: 40px; min-width: 40px; min-height: 40px; }
+.work-period-menu__range.work-day-menu__row { display: flex; align-items: center; gap: var(--space-2); }
+.work-day-menu__row label { flex: 1 1 auto; }
+.work-day-menu__row input { width: 100%; }

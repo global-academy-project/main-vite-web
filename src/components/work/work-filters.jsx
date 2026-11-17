@@ -91,3 +91,44 @@ export function ActionMenu({ actionOnly, setActionOnly }) {
     </FilterMenu>
   );
 }
+
+const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
+const dayText = (date) => { const [y, m, d] = date.split('-').map(Number); return `${short(date)} (${WEEKDAYS[new Date(y, m - 1, d).getDay()]})`; };
+const addDay = (date, days) => { const [y, m, d] = date.split('-').map(Number); const next = new Date(y, m - 1, d + days); return `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, '0')}-${String(next.getDate()).padStart(2, '0')}`; };
+
+/** 버튼에 보일 하루 값: 오늘 / 11/14 (토) */
+const dayValue = (date, today) => (date === today ? '오늘' : dayText(date));
+
+/**
+ * 하루 단위 날짜 드롭다운 (작업 현황). 다른 화면의 기간 드롭다운과 같은 틀에 ‹ › 하루 이동을 붙인다.
+ * 판 안: 날짜 하나 + "오늘"(바로 적용), 고른 날짜는 "적용". 전날·다음 날은 ‹ › 가 맡는다.
+ */
+export function DayMenu({ date, today, onChange, label = '기준일', disabled = false }) {
+  return (
+    <div className="work-day-menu" role="group" aria-label={label}>
+      <button type="button" className="ui-icon-btn" aria-label="전날" disabled={disabled} onClick={() => onChange(addDay(date, -1))}><Icon name="chevronLeft" size={18} /></button>
+      <FilterMenu label={label} value={dayValue(date, today)} active={date !== today} width={280}>
+        {(close) => <DayPanel date={date} today={today} onChange={onChange} close={close} disabled={disabled} />}
+      </FilterMenu>
+      <button type="button" className="ui-icon-btn work-day-menu__next" aria-label="다음 날" disabled={disabled} onClick={() => onChange(addDay(date, 1))}><Icon name="chevronLeft" size={18} /></button>
+    </div>
+  );
+}
+
+function DayPanel({ date, today, onChange, close, disabled }) {
+  const [value, setValue] = useState(date);
+  const pick = (next) => { onChange(next); close(); };
+  return (
+    <div className="work-period-menu">
+      <p className="work-period-menu__caption">날짜</p>
+      <div className="work-period-menu__range work-day-menu__row">
+        <label><span className="sr-only">날짜</span><input type="date" value={value} max="9999-12-31" disabled={disabled} onChange={(event) => setValue(event.target.value)} /></label>
+        <button type="button" className="work-chip" aria-pressed={date === today} disabled={disabled} onClick={() => pick(today)}>오늘</button>
+      </div>
+      <div className="work-period-menu__actions">
+        <button type="button" className="ui-btn ui-btn--ghost ui-btn--sm" onClick={() => close()}>취소</button>
+        <button type="button" className="ui-btn ui-btn--primary ui-btn--sm" disabled={disabled || !value} onClick={() => pick(value)}>적용</button>
+      </div>
+    </div>
+  );
+}
