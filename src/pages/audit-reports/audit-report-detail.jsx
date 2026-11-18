@@ -4,8 +4,12 @@ import SafetyPageLayout from '../../components/safety-page-layout';
 import PageHeader from '../../components/ui/page-header.jsx';
 import StatusView from '../../components/ui/status-view.jsx';
 import { useToast } from '../../components/ui/toast-context.js';
-import { exportAuditReportPdf, getAuditReport, updateAuditReport } from '../../api/audit-reports.js';
+import { getAuditReport, retryAuditReportSummary, updateAuditReport } from '../../api/audit-reports.js';
+import { STAT_LABELS, VERIFICATION_LABELS, statEntries } from '../../utils/audit-report-model.js';
 import '../../styles/audit-reports.css';
+
+// 요약 중(GENERATING)일 때 다시 조회하는 간격
+const POLL_MS = 5000;
 
 export default function AuditReportDetail() {
   return (
@@ -22,20 +26,31 @@ function Detail({ site }) {
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [dirty, setDirty] = useState(false);
   const [error, setError] = useState('');
+  const siteId = site.currentSite?.siteId;
   const allowed = site.account?.user?.role === 'ADMIN'
     || ['ADMIN', 'SITE_ADMIN'].includes(site.currentSite?.role);
+  const generating = report?.status === 'GENERATING';
 
   useEffect(() => {
-    if (!site.currentSite?.siteId || !allowed) return;
+    if (!siteId || !allowed) return undefined;
+    let active = true;
+    getAuditReport(siteId, reportId)
+      .then((data) => { if (active) setReport(data); })
+      .catch((requestError) => { if (active) setError(requestError.message || '감사보고서를 불러오지 못했습니다.'); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [siteId, reportId, allowed]);
 
-    getAuditReport(site.currentSite.siteId, reportId)
-      .then(setReport)
-      .catch((requestError) => {
-        setError(requestError.message || '감사보고서를 불러오지 못했습니다.');
-      })
-      .finally(() => setLoading(false));
-  }, [site.currentSite?.siteId, reportId, allowed]);
+  // AI 요약이 끝날 때까지 상태만 다시 조회한다 (고치는 중이면 덮어쓰지 않도록 요약 중에는 편집을 막는다)
+  useEffect(() => {
+    if (!generating || !siteId) return undefined;
+    const timer = setInterval(() => {
+      getAuditReport(siteId, reportId).then((data) => { if (data.status !== 'GENERATING') setReport(data); }).catch(() => {});
+    }, POLL_MS);
+    return () => clearInterval(timer);
+  }, [generating, siteId, reportId]);
 
   if (!allowed) {
     return <StatusView kind="forbidden" title="관리자만 감사보고서를 이용할 수 있습니다" />;
@@ -54,36 +69,35 @@ function Detail({ site }) {
     );
   }
 
-  const items = report.items ?? report.sections ?? [];
+  const items = Array.isArray(report.items) ? report.items : [];
+  const edit = (patch) => { setReport({ ...report, ...patch }); setDirty(true); };
 
   const save = async () => {
     setSaving(true);
     try {
-      const saved = await updateAuditReport(site.currentSite.siteId, reportId, {
+      const saved = await updateAuditReport(siteId, reportId, {
         title: report.title,
-        summary: report.summary,
-        items,
+        summary: report.summary ?? null,
+        items: items.map((item) => ({ queryType: item.queryType, summary: item.summary ?? '' })),
+        lockVersion: report.lockVersion,
       });
       setReport(saved);
+      setDirty(false);
       toast.show({ tone: 'success', message: '감사보고서를 저장했습니다.' });
     } catch (requestError) {
-      toast.show({ tone: 'error', message: requestError.message || '저장에 실패했습니다.' });
+      const conflict = requestError.code === 'CONFLICT_MODIFIED';
+      toast.show({ tone: 'error', message: conflict ? '다른 사람이 먼저 저장했습니다. 새로 고침한 뒤 다시 고쳐 주세요.' : requestError.message || '저장에 실패했습니다.' });
     } finally {
       setSaving(false);
     }
   };
 
-  const print = async () => {
+  const retry = async () => {
     try {
-      const blob = await exportAuditReportPdf(site.currentSite.siteId, reportId);
-      const url = URL.createObjectURL(blob);
-      const anchor = document.createElement('a');
-      anchor.href = url;
-      anchor.download = `audit-report-${reportId}.pdf`;
-      anchor.click();
-      URL.revokeObjectURL(url);
+      setReport(await retryAuditReportSummary(siteId, reportId));
+      toast.show({ tone: 'success', message: 'AI 요약을 다시 시작했습니다. 잠시 뒤 채워집니다.' });
     } catch (requestError) {
-      toast.show({ tone: 'error', message: requestError.message || 'PDF 출력에 실패했습니다.' });
+      toast.show({ tone: 'error', message: requestError.message || '다시 요약하지 못했습니다.' });
     }
   };
 
@@ -91,13 +105,14 @@ function Detail({ site }) {
     <div className="audit-page">
       <PageHeader
         title={report.title || `감사보고서 #${reportId}`}
-        description={`${report.dateFrom || report.date_from} ~ ${report.dateTo || report.date_to}`}
+        description={`${report.dateFrom} ~ ${report.dateTo} · 만든 사람 ${report.createdByName ?? '-'}`}
         context={site}
         actions={(
           <>
             <Link className="ui-btn ui-btn--ghost" to="/audit-reports">목록</Link>
-            <button type="button" className="ui-btn ui-btn--secondary" onClick={print}>PDF 출력</button>
-            <button type="button" className="ui-btn ui-btn--primary" disabled={saving} onClick={save}>
+            <Link className="ui-btn ui-btn--ghost" to={`/records/actions?new=1&sourceType=AUDIT&sourceId=${report.reportId}`}>개선조치 등록</Link>
+            <button type="button" className="ui-btn ui-btn--secondary" disabled={dirty} onClick={() => window.print()}>인쇄·PDF 저장</button>
+            <button type="button" className="ui-btn ui-btn--primary" disabled={saving || generating || !dirty} onClick={save}>
               {saving ? '저장 중…' : '변경 저장'}
             </button>
           </>
@@ -107,50 +122,57 @@ function Detail({ site }) {
       <section className="audit-card">
         <div className="audit-card__head">
           <div>
-            <h2>감사보고서 초안</h2>
-            <p>관리자는 항목별 내용을 편집할 수 있습니다. 서버 연동 후 실제 집계·검증 결과가 표시됩니다.</p>
+            <h2>감사보고서</h2>
+            <p>집계 수치는 만든 순간의 공식 기록 그대로이며 고칠 수 없습니다. 제목·종합 의견·항목별 요약만 고칠 수 있습니다.{dirty ? ' 저장하지 않은 변경이 있습니다(인쇄는 저장 후).' : ''}</p>
           </div>
-          <span className={`audit-status audit-status--${String(report.status || 'DRAFT').toLowerCase()}`}>
-            {report.status || 'DRAFT'}
-          </span>
+          <span className={`audit-status audit-status--${String(report.status).toLowerCase()}`}>{report.statusLabel ?? report.status}</span>
         </div>
 
-        {report.summary != null && (
-          <label className="audit-editor">
-            종합 의견
-            <textarea
-              value={report.summary || ''}
-              onChange={(event) => setReport({ ...report, summary: event.target.value })}
-              rows={5}
-            />
-          </label>
+        {generating && <p className="audit-notice" role="status">AI가 항목별 요약과 수치 검증을 만드는 중입니다. 끝나면 이 화면이 저절로 바뀝니다.</p>}
+        {report.status === 'FAILED' && (
+          <p className="audit-notice" role="alert">AI 요약을 만들지 못했습니다{report.failureReason ? `: ${report.failureReason}` : ''}. 집계는 남아 있으니 직접 요약을 쓰거나 다시 요약하세요.
+            <button type="button" className="ui-btn ui-btn--ghost" onClick={retry}>AI 요약 다시 하기</button></p>
         )}
+        {report.status === 'REVIEW_REQUIRED' && <p className="audit-notice" role="note">AI 요약의 수치가 집계와 맞지 않는 항목이 있습니다. 항목의 "불일치"를 확인하고 요약을 고쳐 주세요.</p>}
+
+        <label className="audit-editor">
+          제목
+          <input maxLength={200} value={report.title ?? ''} disabled={generating} onChange={(event) => edit({ title: event.target.value })} />
+        </label>
+        <label className="audit-editor">
+          종합 의견
+          <textarea value={report.summary ?? ''} rows={5} disabled={generating} onChange={(event) => edit({ summary: event.target.value })} />
+        </label>
 
         <div className="audit-items">
           {items.map((item, index) => (
-            <article className="audit-item" key={item.id ?? item.queryType ?? index}>
+            <article className="audit-item" key={item.queryType ?? index}>
               <div className="audit-item__title">
-                <h3>{item.title || item.queryType || `항목 ${index + 1}`}</h3>
-                <span className={`audit-status audit-status--${String(item.verification?.status || item.status || 'PENDING').toLowerCase()}`}>
-                  {item.verification?.status || item.status || '검토 대기'}
+                <h3>{item.title || item.queryType}</h3>
+                <span className={`audit-status audit-status--${String(item.verification?.status ?? 'pending').toLowerCase()}`}>
+                  {VERIFICATION_LABELS[item.verification?.status] ?? '검증 전'}
                 </span>
               </div>
+              <dl className="audit-stats">
+                {statEntries(item.stats).map(([key, value]) => (
+                  <div key={key}><dt>{STAT_LABELS[key] ?? key}</dt><dd>{value}</dd></div>
+                ))}
+              </dl>
+              {item.verification?.mismatches?.length > 0 && (
+                <ul className="audit-evidence">{item.verification.mismatches.map((text, i) => <li key={i}>불일치: {text}</li>)}</ul>
+              )}
               <label className="audit-editor">
                 요약
                 <textarea
                   value={item.summary || ''}
-                  onChange={(event) => setReport({
-                    ...report,
-                    items: items.map((current, itemIndex) => (
-                      itemIndex === index ? { ...current, summary: event.target.value } : current
-                    )),
+                  disabled={generating}
+                  onChange={(event) => edit({
+                    items: items.map((current, itemIndex) => (itemIndex === index ? { ...current, summary: event.target.value } : current)),
                   })}
                   rows={4}
                 />
               </label>
-              <p className="audit-evidence">
-                근거 {item.evidence?.length ?? 0}건 · 집계 수치 {item.stats ? JSON.stringify(item.stats) : '서버 연동 대기'}
-              </p>
+              <p className="audit-evidence">근거 기록 {item.evidence?.length ?? 0}건{item.truncated ? ` · 전체 ${item.total}건 중 일부만 담김` : ''}</p>
             </article>
           ))}
         </div>

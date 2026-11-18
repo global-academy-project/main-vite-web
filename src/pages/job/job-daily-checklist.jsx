@@ -195,6 +195,8 @@ function InspectionDetail({ data, item }) {
             <Link className="ui-btn ui-btn--ghost" to={`/records/INSPECTION/${item.inspectionId}`}>문서 보기</Link>
             {item.approvalId && <Link className="ui-btn ui-btn--ghost" to={`/approvals/${item.approvalId}`}>결재 보기</Link>}
             {item.workId && <Link className="ui-btn ui-btn--ghost" to={`/job/workspace?workId=${item.workId}`}>작업 #{item.workId}</Link>}
+            <Link className="ui-btn ui-btn--ghost" to={`/records/actions?sourceType=INSPECTION&sourceId=${item.inspectionId}`}>개선조치</Link>
+            <Link className="ui-btn ui-btn--secondary" to={`/records/actions?new=1&sourceType=INSPECTION&sourceId=${item.inspectionId}`}>개선조치 등록</Link>
           </div>
         </header>
         <div className="tbm-card__steps"><StepIndicator steps={inspectionSteps(item, { dirty: data.dirty })} label="점검표 진행 단계" /></div>

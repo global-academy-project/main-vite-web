@@ -37,8 +37,8 @@ export const TODO_TYPES = Object.freeze([
   { type: 'INSPECTION_DRAFT', label: '점검 미제출', path: '/job/dailey-checklist' },
   { type: 'INSPECTION_PENDING', label: '점검 승인 대기', path: '/approvals' },
   { type: 'DAILY_LOG_MISSING', label: '안전일지 미작성', path: '/job/daily-safety' },
-  { type: 'CORRECTIVE_OPEN', label: '개선조치 미완료', path: '/records/search' },
-  { type: 'SIGNATURE_MISSING', label: '서명 미완료', path: '/approvals' },
+  { type: 'CORRECTIVE_OPEN', label: '개선조치 미완료', path: '/records/actions' },
+  { type: 'SIGNATURE_MISSING', label: '서명 미완료', path: '/job/tbm' },
 ]);
 
 /** 대시보드 items → 할 일 칸 (없는 종류는 0건으로 채워 자리를 고정한다) */

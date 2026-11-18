@@ -76,3 +76,19 @@
   .audit-card__head, .audit-row { flex-direction: column; }
   .audit-row__meta { width: 100%; justify-content: space-between; }
 }
+.audit-stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: var(--space-2) var(--space-4); margin: 0; }
+.audit-stats div { display: flex; flex-direction: column; }
+.audit-stats dt { color: var(--color-text-muted); font-size: var(--text-sm); }
+.audit-stats dd { margin: 0; color: var(--color-text-strong); font-weight: 700; }
+.audit-editor input { padding: var(--space-2) var(--space-3); border: 1px solid var(--color-border); border-radius: var(--radius-md); font: inherit; }
+.audit-status--generating, .audit-status--pending { background: var(--color-warning-soft); color: var(--color-warning-text); }
+
+/* 인쇄·PDF 저장: 화면 메뉴·버튼을 빼고 보고서만 */
+@media print {
+  .app-nav, .app-tabs, .dashboard-header, .page-head__actions, .page-head__site, .ui-toast, .app-nav-scrim, .audit-notice button { display: none !important; }
+  .dashboard-main, .dashboard-content { margin: 0 !important; padding: 0 !important; max-width: none !important; }
+  .audit-card { border: 0 !important; box-shadow: none !important; padding: 0 !important; }
+  .audit-editor textarea, .audit-editor input { border: 0; resize: none; min-height: 0; padding: 0; }
+  .audit-item { break-inside: avoid; }
+  body { background: #fff; }
+}

@@ -298,6 +298,7 @@ function StepDetails({ data }) {
       <div className="permit-step__notes">
         <p className="rec-help">{PERMIT_RULE_SUMMARY[data.type]}</p>
         <p className="rec-help">미확인은 판정에서 입력 누락(MISSING), 미조치는 기준 미충족(FAIL)으로 막힙니다. 감시자 이름은 작업자 배치가 아닙니다. 기존 양식의 추가 칸은 수정 저장 때 그대로 보존합니다.</p>
+        <p className="rec-help">작업허가는 이 작업의 위험성평가가 승인돼 있어야 최종 승인됩니다. 위험성평가가 없거나 승인 전이면 승인 단계에서 막힙니다.</p>
       </div>
       <StepError data={data} />
       <div className="risk-bar">

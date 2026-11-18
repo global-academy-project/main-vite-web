@@ -13,7 +13,7 @@ test('승인자 메뉴는 작성자와 같다 (승인·반려 권한은 서버�
 });
 
 test('현장 관리자는 현장 설정까지, 관리는 없다', () => {
-  assert.deepEqual(keys(navFor('MEMBER', 'SITE_ADMIN')), ['home', 'work-status', 'work', 'daily', 'approvals', 'records', 'site']);
+  assert.deepEqual(keys(navFor('MEMBER', 'SITE_ADMIN')), ['home', 'work-status', 'work', 'daily', 'approvals', 'records', 'site', 'audit-reports']);
 });
 
 test('계정 ADMIN 은 현장 역할과 상관없이 전부', () => {

@@ -13,7 +13,7 @@ test('status segments keep a fixed order and skip zero', () => {
 test('entry paths and deadlines', () => {
   assert.equal(entryPath({ targetType: 'DAILY_LOG', targetId: null }, '2026-11-06'), '/job/daily-safety?date=2026-11-06');
   assert.equal(entryPath({ targetType: 'PERMIT', targetId: 5 }, '2026-11-06'), '/job/permits?permitId=5');
-  assert.equal(entryPath({ targetType: 'CORRECTIVE_ACTION', targetId: 5 }, '2026-11-06'), null);
+  assert.equal(entryPath({ targetType: 'CORRECTIVE_ACTION', targetId: 5 }, '2026-11-06'), '/records/actions?actionId=5');
   assert.equal(clockOf('2026-11-06T09:30:00'), '09:30');
   assert.equal(clockOf(null), '');
   const rows = deadlineRows({ tbmDeadline: '2026-11-06T09:00:00', tbmPassed: true, dailyLogDeadline: '2026-11-06T18:00:00', dailyLogPassed: false, approvalDueMinutes: 120 });

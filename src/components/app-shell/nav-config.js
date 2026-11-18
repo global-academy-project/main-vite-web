@@ -33,6 +33,7 @@ export const NAV = Object.freeze([
     key: 'records', label: '기록', icon: 'records', roles: ALL, section: 'records',
     children: [
       { key: 'incidents', label: '아차사고', path: '/job/incidents' },
+      { key: 'corrective-actions', label: '개선조치', path: '/records/actions' },
       { key: 'record-search', label: '기록 검색', path: '/records/search' },
     ],
   },

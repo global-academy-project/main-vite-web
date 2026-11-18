@@ -167,6 +167,41 @@ function TbmForm({ data, siteId, works }) {
   );
 }
 
+/** 참석자 서명: 실시 완료(DONE)된 TBM 에서 등록 참석자마다 한 번. 승인된 TBM 은 보기만 */
+function TbmSignatures({ data, tbm }) {
+  const people = tbm.attendees ?? [];
+  const signedCount = people.filter((person) => person.signedAt).length;
+  const canSign = tbm.status === 'DONE' && !data.locked;
+  return (
+    <section className="home-panel tbm-card" aria-labelledby="tbm-signatures">
+      <header className="tbm-card__head">
+        <div>
+          <h2 id="tbm-signatures">참석자 서명 <span className="home-panel__count">{signedCount}/{people.length}</span></h2>
+          <p className="rec-help">참석자 본인이 내용을 확인한 뒤 진행자 기기에서 서명합니다. 서명은 지울 수 없고, 확인(승인) 전까지 받을 수 있습니다. 참석자를 등록하지 않고 인원만 적은 TBM은 서명을 받을 수 없습니다.</p>
+        </div>
+      </header>
+      {people.length ? (
+        <ul className="tbm-workers__list">
+          {people.map((person) => (
+            <li key={person.workerId} className={person.signedAt ? 'is-in' : ''}>
+              <span className="tbm-worker__name">{person.name ?? '이름 없음'}<span className="work-table__id">#{person.workerId}</span></span>
+              {person.signedAt ? (
+                <span className="work-badges">
+                  <Badge tone="done">서명 {person.signedAt.replace('T', ' ').slice(5, 16)}</Badge>
+                  {person.signatureChanged && <Badge tone="warn">서명 후 내용 변경</Badge>}
+                </span>
+              ) : canSign ? (
+                <button type="button" className="ui-btn ui-btn--secondary" disabled={data.busy} onClick={() => data.sign(person)}>서명 받기</button>
+              ) : <Badge tone="neutral">서명 없음</Badge>}
+            </li>
+          ))}
+        </ul>
+      ) : <p className="rec-help">등록된 참석자가 없습니다.</p>}
+      {people.some((person) => person.signatureChanged) && <p className="rec-note"><Icon name="alert" size={16} />서명한 뒤 TBM 내용이 바뀐 참석자가 있습니다. 바뀐 내용을 다시 설명해 주세요. 서명 기록은 그대로 남습니다.</p>}
+    </section>
+  );
+}
+
 function TbmDetail({ data, tbm, siteId }) {
   const counts = healthCounts(data.attendees);
   // 한 화면 주요 버튼(남색)은 하나: 지금 차례 단계의 버튼만 남색, 나머지는 회색(보조)
@@ -256,6 +291,8 @@ function TbmDetail({ data, tbm, siteId }) {
 
       <TbmPhotos key={tbm.tbmId} tbm={tbm} editable={tbm.status !== 'APPROVED' && !data.approvalPending} />
 
+      {tbm.status !== 'DRAFT' && <TbmSignatures data={data} tbm={tbm} />}
+
       {data.editable && (
         <section className="home-panel tbm-card" aria-labelledby="tbm-finish">
           <header className="tbm-card__head"><div><h2 id="tbm-finish">실시 완료</h2><p className="rec-help">실시 일시는 TBM 날짜와 같은 날이어야 합니다. 실제 참석 인원을 비우면 등록 참석자 수를 씁니다. 실시 완료는 승인·서명이 아닙니다.</p></div></header>
@@ -273,7 +310,7 @@ function TbmDetail({ data, tbm, siteId }) {
       {tbm.status === 'DONE' && (
         <section className="home-panel tbm-card" aria-labelledby="tbm-request">
           <header className="tbm-card__head">
-            <div><h2 id="tbm-request">확인 요청</h2><p className="rec-help">확인 요청 중인 TBM은 서버가 재개·수정을 거부합니다. 반려되면 작성 중으로 돌아갑니다.</p></div>
+            <div><h2 id="tbm-request">확인 요청</h2><p className="rec-help">확인 요청 중인 TBM은 서버가 재개·수정을 거부합니다. 반려되면 작성 중으로 돌아갑니다.{(tbm.attendees ?? []).some((person) => !person.signedAt) ? ` 아직 서명하지 않은 참석자 ${(tbm.attendees ?? []).filter((person) => !person.signedAt).length}명이 있습니다. 승인되면 서명을 더 받을 수 없습니다.` : ''}</p></div>
             <div className="tbm-card__actions">
               <button type="button" className="ui-btn ui-btn--ghost" disabled={data.locked || !data.canRequest} onClick={data.reopen}>실시 완료 되돌리기</button>
               <button type="button" className={stepBtn('request')} disabled={data.locked || !data.canRequest} onClick={data.submit}>TBM 확인 요청</button>
