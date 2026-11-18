@@ -7,6 +7,7 @@ import PageHeader from '../../components/ui/page-header.jsx';
 import { Badge } from '../../components/home/panel.jsx';
 import Icon from '../../components/ui/icon.jsx';
 import Sheet from '../../components/ui/sheet.jsx';
+import { confirmAction } from '../../components/ui/confirm-store.js';
 import StatusView, { Skeleton } from '../../components/ui/status-view.jsx';
 import { useAdmin } from '../../hooks/use-admin.js';
 import {
@@ -158,6 +159,18 @@ function Approve({ user, data }) {
   const [role, setRole] = useState('MEMBER');
   const [grants, setGrants] = useState({});
   const list = grantList(grants);
+  const approve = async () => {
+    const admin = role === 'ADMIN';
+    const ok = await confirmAction({
+      title: `${user.name} 님의 가입을 승인할까요?`,
+      message: admin
+        ? '회사 관리자로 승인합니다. 모든 현장에 접근하고 회원·현장을 관리할 수 있게 됩니다.'
+        : `일반 회원으로 승인합니다. 현장 ${list.length}곳의 권한을 줍니다.`,
+      confirmLabel: '승인',
+      tone: admin ? 'warn' : 'default',
+    });
+    if (ok) await data.approve(user, role, admin ? [] : list);
+  };
   const blocked = !user.emailVerified ? '이메일 인증 전입니다. 메일 확인을 기다리거나, 본인을 직접 확인했다면 아래 "이메일 인증 처리"를 누르세요.'
     : role === 'MEMBER' && !list.length ? '일반 회원은 현장 권한을 1개 이상 줘야 합니다.' : '';
   return (
@@ -171,7 +184,7 @@ function Approve({ user, data }) {
         : <GrantTable sites={grantableSites(data.sites, user)} grants={grants} setGrants={setGrants} disabled={data.busy} />}
       {blocked && <p className="rec-help admin-hint">{blocked}</p>}
       <div className="site-form__actions">
-        <button type="button" className="ui-btn ui-btn--primary" disabled={data.busy || Boolean(blocked)} onClick={() => data.approve(user, role, role === 'ADMIN' ? [] : list)}>가입 승인</button>
+        <button type="button" className="ui-btn ui-btn--primary" disabled={data.busy || Boolean(blocked)} onClick={approve}>가입 승인</button>
       </div>
     </section>
   );
@@ -220,7 +233,7 @@ function AccountActions({ user, data, me }) {
     await data[action](user);
   };
   const text = (action) => (action === 'role'
-    ? { ...ACTION_TEXT.role, label: nextRole === 'ADMIN' ? '회사 관리자로 바꾸기' : '일반 회원으로 바꾸기', help: nextRole === 'ADMIN' ? '모든 현장 접근과 회원·현장 관리 권한이 생깁니다.' : '관리 권한이 빠집니다. 현장 권한은 따로 정해야 합니다.' }
+    ? { ...ACTION_TEXT.role, label: nextRole === 'ADMIN' ? '회사 관리자로 바꾸기' : '일반 회원으로 바꾸기', help: nextRole === 'ADMIN' ? '모든 현장 접근과 회원·현장 관리 권한이 생깁니다.' : '관리 권한이 빠지고, 남아 있던 현장 권한도 모두 회수됩니다. 현장 권한은 다시 정해야 합니다.' }
     : ACTION_TEXT[action]);
   if (!actions.length && !password) return null;
   return (
@@ -264,6 +277,13 @@ function SitesTab({ data }) {
   const save = async (event) => {
     event.preventDefault();
     if (!edit.name.trim()) { setError('현장 이름을 입력하세요.'); return; }
+    const before = edit.siteId ? data.sites.find((site) => site.siteId === edit.siteId) : null;
+    if (before?.active && !edit.active && !(await confirmAction({
+      title: `${before.name} 현장을 사용 중지할까요?`,
+      message: '회원과 회사 관리자 모두의 현장 목록에서 빠지고, 새 권한을 줄 수 없습니다. 기록은 남고 다시 사용으로 바꿀 수 있습니다.',
+      confirmLabel: '사용 중지',
+      tone: 'danger',
+    }))) return;
     if (await data.saveSite(edit.siteId ?? null, edit)) setEdit(null);
   };
   return (
