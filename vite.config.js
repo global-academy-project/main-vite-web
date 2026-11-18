@@ -10,11 +10,6 @@ export default defineConfig(({ command }) => {
       target: apiTarget,
       changeOrigin: true,
     },
-    '/test/api': {
-      target: 'http://localhost:60002',
-      changeOrigin: true,
-      rewrite: (path) => path.replace(/^\/test\/api/, '/api'),
-    },
   }
 
   // Default vite web react runtime configuration
