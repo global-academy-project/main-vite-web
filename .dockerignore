@@ -1,3 +1,12 @@
+#### Project documentation and configuration files
+LICENSE
+README.md
+SECURITY.md
+SUPPORT.md
+CONTRIBUTING.md
+CODE_OF_CONDUCT.md
+CHANGELOG.md
+
 #### Node.js dependencies default ignore file or dir
 node_modules/
 dist/
@@ -9,15 +18,6 @@ dist/
 .github/
 .git/
 .gitignore
-
-#### Project documentation and configuration files
-LICENSE
-README.md
-SECURITY.md
-SUPPORT.md
-CONTRIBUTING.md
-CODE_OF_CONDUCT.md
-CHANGELOG.md
 
 #### Docker related files
 Dockerfile
