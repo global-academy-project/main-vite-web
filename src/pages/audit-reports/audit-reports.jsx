@@ -92,7 +92,6 @@ function AuditReportHome({ site }) {
         dateFrom: form.dateFrom,
         dateTo: form.dateTo,
         queryTypes: form.queryTypes,
-        prompt,
       });
       navigate(`/audit-reports/${report.reportId ?? report.id}`);
     } catch (requestError) {
@@ -105,7 +104,7 @@ function AuditReportHome({ site }) {
   const remove = async (report) => {
     const confirmed = await confirmAction({
       title: '감사보고서를 삭제할까요?',
-      message: '삭제한 보고서는 목록에서 숨겨집니다. 이 작업은 관리자만 할 수 있습니다.',
+      message: '삭제한 보고서는 목록에서 숨겨지고 되돌릴 수 없습니다. 현장 관리자 이상만 할 수 있습니다.',
       confirmLabel: '삭제',
       tone: 'warn',
     });
@@ -137,7 +136,7 @@ function AuditReportHome({ site }) {
           <div className="audit-card__head">
             <div>
               <h2>감사보고서 생성</h2>
-              <p>기간과 조회 항목을 확인한 뒤 생성 작업을 시작합니다.</p>
+              <p>기간과 조회 항목을 확인한 뒤 생성합니다. 서버가 기록을 집계해 저장하고, AI 요약은 잠시 뒤 채워집니다.</p>
             </div>
             <Link className="ui-btn ui-btn--ghost" to="/audit-reports">목록으로</Link>
           </div>

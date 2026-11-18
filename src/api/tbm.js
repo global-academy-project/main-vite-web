@@ -81,6 +81,15 @@ export async function reopenTbm(id, siteId) {
   ));
 }
 
+/** 참석자 서명 (실시 완료 후, 확인 전까지. 한 사람 한 번, 지울 수 없음) */
+export async function signTbm(id, workerId, siteId) {
+  const tbmId = jobId(id);
+  const worker = jobId(workerId);
+  return jobWrite(async () => requireTbm(
+    await api(`/api/v1/tbm/${tbmId}/signatures`, { method: 'POST', body: { workerId: worker } }), siteId,
+  ));
+}
+
 export async function submitTbm(id, siteId) {
   const tbmId = jobId(id);
   return jobWrite(async () => requireTbm(

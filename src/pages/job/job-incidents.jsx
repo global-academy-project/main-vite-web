@@ -221,6 +221,10 @@ function IncidentDetail({ data, openId, onOpen }) {
         <h3 className="rec-block__title">발생 상황</h3>
         <p className="rec-text">{incident.description}</p>
         {incident.immediateAction && <><h3 className="rec-block__title">즉시 조치</h3><p className="rec-text">{incident.immediateAction}</p></>}
+        <div className="rec-actions">
+          <Link className="ui-btn ui-btn--ghost" to={`/records/actions?sourceType=NEAR_MISS&sourceId=${incident.nearMissId}`}>이 보고의 개선조치</Link>
+          <Link className="ui-btn ui-btn--secondary" to={`/records/actions?new=1&sourceType=NEAR_MISS&sourceId=${incident.nearMissId}`}>개선조치 등록</Link>
+        </div>
       </section>
 
       <section className="rec-block">

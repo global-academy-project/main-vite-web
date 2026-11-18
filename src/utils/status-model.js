@@ -30,7 +30,6 @@ export function stageSegments(works = []) {
 /** 미완료 한 건이 열 화면. 안전일지 미작성은 기록이 없어 그날 안전일지로 */
 export function entryPath(entry, date) {
   if (entry.targetType === 'DAILY_LOG' && entry.targetId == null) return `/job/daily-safety?date=${date}`;
-  if (entry.targetType === 'CORRECTIVE_ACTION') return null;
   return jobRecordPath(entry.targetType, entry.targetId);
 }
 

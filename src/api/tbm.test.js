@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { completeTbm, createTbm, getTbm, getSiteTbms, getSiteWorkers, saveTbmAttendees, updateTbm, reopenTbm, submitTbm } from './tbm.js';
+import { completeTbm, createTbm, getTbm, getSiteTbms, getSiteWorkers, saveTbmAttendees, signTbm, updateTbm, reopenTbm, submitTbm } from './tbm.js';
 import { completeTbmBody } from '../utils/job-forms.js';
 
 const tbm = {
@@ -81,7 +81,12 @@ test('TBM and worker API requests use expected paths, bodies, and site validatio
   responseData = { ...tbm, status: 'DONE' };
   await submitTbm(12, 1);
   assert.deepEqual(requests.at(-1), { path: '/api/v1/tbm/12/submit', method: 'POST', body: undefined });
+  responseData = { ...tbm, status: 'DONE', attendees: [{ workerId: 5, name: '박작업', healthOk: true, signedAt: '2026-11-02T08:40:00', signatureChanged: false }] };
+  const signed = await signTbm(12, 5, 1);
+  assert.deepEqual(requests.at(-1), { path: '/api/v1/tbm/12/signatures', method: 'POST', body: { workerId: 5 } });
+  assert.equal(signed.attendees[0].signedAt, '2026-11-02T08:40:00');
   const invalidBefore = requests.length;
+  await assert.rejects(signTbm(12, 0, 1), /ID/);
   await assert.rejects(updateTbm('../12', {}, 1), /ID/);
   await assert.rejects(reopenTbm(0, 1), /ID/);
   await assert.rejects(submitTbm(-1, 1), /ID/);

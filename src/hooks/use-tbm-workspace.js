@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { completeTbm, createTbm, getSiteTbms, getSiteWorkers, getTbm, reopenTbm, saveTbmAttendees, submitTbm, updateTbm } from '../api/tbm';
+import { completeTbm, createTbm, getSiteTbms, getSiteWorkers, getTbm, reopenTbm, saveTbmAttendees, signTbm, submitTbm, updateTbm } from '../api/tbm';
+import { confirmAction } from '../components/ui/confirm-store.js';
 import { reloadJobConflict } from '../api/jobs';
 import { completeTbmBody, tbmContentBody, tbmHeldAt, tbmPermissions } from '../utils/job-forms';
 import { useToast } from '../components/ui/toast-context.js';
@@ -182,6 +183,22 @@ export function useTbmWorkspace({ siteId, disabled, initialTbmId, initialDate, p
     void write(async () => { const saved = await action(selectedTbm.tbmId, siteId); updateRecord(saved); selectTbm(saved); say(success); }, 'TBM 상태 변경에 실패했습니다.');
   };
 
+  // 참석자 서명: 실시 완료(DONE)된 TBM 에서, 본인 확인 뒤 한 번. 지울 수 없어서 먼저 확인 창
+  const sign = async (person) => {
+    if (!selectedTbm || needsReload || selectedTbm.status !== 'DONE') return;
+    const ok = await confirmAction({
+      title: `${person.name ?? `#${person.workerId}`} 님의 서명을 받을까요?`,
+      message: '참석자 본인이 TBM 내용을 확인했을 때만 누르세요. 서명은 지울 수 없습니다.',
+      confirmLabel: '서명',
+    });
+    if (!ok) return;
+    void write(async () => {
+      const saved = await signTbm(selectedTbm.tbmId, person.workerId, siteId);
+      updateRecord(saved);
+      say(`${person.name ?? `#${person.workerId}`} 님의 서명을 받았습니다.`);
+    }, '참석자 서명을 저장하지 못했습니다.');
+  };
+
   const toggleAttendee = (workerId, checked) => {
     setAttendees((current) => (checked ? [...current, { workerId, healthOk: null }] : current.filter((person) => person.workerId !== workerId)));
     setAttendeesSaved(false);
@@ -202,7 +219,7 @@ export function useTbmWorkspace({ siteId, disabled, initialTbmId, initialDate, p
     attendees, attendeesSaved, toggleAttendee, setHealth, attendeeCount, setAttendeeCount, heldAt, setHeldAt,
     editing, content, contentDate, setContentDate: (value) => { setContentDate(value); setContentDirty(true); }, setField, contentDirty, openNew, openEdit, closeEditor, saveContent,
     needsReload, busy, error, locked: disabled || busy || loading || needsReload,
-    saveAttendees, finish,
+    saveAttendees, finish, sign,
     submit: () => changeStatus(submitTbm, 'TBM 확인 요청을 보냈습니다. 승인함에서 확인하며, 승인 완료를 뜻하지 않습니다.'),
     reopen: () => changeStatus(reopenTbm, 'TBM을 작성 중으로 되돌렸습니다.'),
   };

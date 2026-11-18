@@ -37,6 +37,7 @@ const ApprovalResult = lazy(() => import("./pages/approvals/approval-result"));
 const ApprovalRevision = lazy(() => import("./pages/approvals/approval-revision"));
 const RecordSearch = lazy(() => import("./pages/records/record-search"));
 const RecordDetail = lazy(() => import("./pages/records/record-detail"));
+const CorrectiveActions = lazy(() => import("./pages/records/corrective-actions"));
 const AuditReports = lazy(() => import("./pages/audit-reports/audit-reports"));
 const AuditReportDetail = lazy(() => import("./pages/audit-reports/audit-report-detail"));
 
@@ -101,6 +102,7 @@ function App() {
             <Route path="/approvals/:approvalId/result" element={guard(<ApprovalResult />)} />
             <Route path="/approvals/:approvalId/revision" element={guard(<ApprovalRevision />)} />
             <Route path="/records/search" element={guard(<RecordSearch />)} />
+            <Route path="/records/actions" element={guard(<CorrectiveActions />)} />
             <Route path="/records/:recordType/:recordId" element={guard(<RecordDetail />)} />
             <Route path="/audit-reports" element={guard(<AuditReports />)} />
             <Route path="/audit-reports/new" element={guard(<AuditReports />)} />
