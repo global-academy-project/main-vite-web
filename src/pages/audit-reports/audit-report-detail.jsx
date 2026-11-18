@@ -43,11 +43,12 @@ function Detail({ site }) {
     return () => { active = false; };
   }, [siteId, reportId, allowed]);
 
-  // AI 요약이 끝날 때까지 상태만 다시 조회한다 (고치는 중이면 덮어쓰지 않도록 요약 중에는 편집을 막는다)
+  // AI 요약이 끝날 때까지 다시 조회한다. 요약 중에는 편집을 막아 두므로 받은 값으로 바로 바꿔도 고친 내용이 사라지지 않는다.
+  // 요약 중에도 받아 두는 것은 오래 멈추면 서버가 summaryRetryable 을 켜 주기 때문
   useEffect(() => {
     if (!generating || !siteId) return undefined;
     const timer = setInterval(() => {
-      getAuditReport(siteId, reportId).then((data) => { if (data.status !== 'GENERATING') setReport(data); }).catch(() => {});
+      getAuditReport(siteId, reportId).then(setReport).catch(() => {});
     }, POLL_MS);
     return () => clearInterval(timer);
   }, [generating, siteId, reportId]);
@@ -128,10 +129,14 @@ function Detail({ site }) {
           <span className={`audit-status audit-status--${String(report.status).toLowerCase()}`}>{report.statusLabel ?? report.status}</span>
         </div>
 
-        {generating && <p className="audit-notice" role="status">AI가 항목별 요약과 수치 검증을 만드는 중입니다. 끝나면 이 화면이 저절로 바뀝니다.</p>}
+        {generating && !report.summaryRetryable && <p className="audit-notice" role="status">AI가 항목별 요약과 수치 검증을 만드는 중입니다. 끝나면 이 화면이 저절로 바뀝니다.</p>}
+        {generating && report.summaryRetryable && (
+          <p className="audit-notice" role="alert">AI 요약이 너무 오래 걸리고 있습니다. 멈췄을 수 있으니 다시 요약해 주세요.
+            <button type="button" className="ui-btn ui-btn--ghost" onClick={retry}>AI 요약 다시 하기</button></p>
+        )}
         {report.status === 'FAILED' && (
           <p className="audit-notice" role="alert">AI 요약을 만들지 못했습니다{report.failureReason ? `: ${report.failureReason}` : ''}. 집계는 남아 있으니 직접 요약을 쓰거나 다시 요약하세요.
-            <button type="button" className="ui-btn ui-btn--ghost" onClick={retry}>AI 요약 다시 하기</button></p>
+            {report.summaryRetryable && <button type="button" className="ui-btn ui-btn--ghost" onClick={retry}>AI 요약 다시 하기</button>}</p>
         )}
         {report.status === 'REVIEW_REQUIRED' && <p className="audit-notice" role="note">AI 요약의 수치가 집계와 맞지 않는 항목이 있습니다. 항목의 "불일치"를 확인하고 요약을 고쳐 주세요.</p>}
 
