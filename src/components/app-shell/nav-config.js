@@ -35,10 +35,11 @@ export const NAV = Object.freeze([
       { key: 'incidents', label: '아차사고', path: '/job/incidents' },
       { key: 'corrective-actions', label: '개선조치', path: '/records/actions' },
       { key: 'record-search', label: '기록 검색', path: '/records/search' },
+      // 내부 감사(감사보고서)는 현장 관리자·회사 관리자만 (하위 메뉴 roles, 서버도 같은 권한으로 막는다)
+      { key: 'audit-reports', label: '내부 감사', path: '/audit-reports', roles: MANAGERS },
     ],
   },
   { key: 'site', label: '현장 설정', icon: 'site', path: '/job/list', roles: MANAGERS, section: 'settings' },
-  { key: 'audit-reports', label: '감사보고서', icon: 'records', path: '/audit-reports', roles: MANAGERS, section: 'settings' },
   { key: 'admin', label: '관리', icon: 'admin', path: '/admin/users', roles: ['ADMIN'], accountOnly: true, section: 'settings' },
 ]);
 
@@ -65,13 +66,16 @@ export function effectiveRole(accountRole, siteRole) {
   return ALL.includes(siteRole) && siteRole !== 'ADMIN' ? siteRole : null;
 }
 
-/** 역할에 맞는 메뉴만 남긴다. 관리(accountOnly)는 계정 ADMIN 만 */
+/** 역할에 맞는 메뉴만 남긴다. 관리(accountOnly)는 계정 ADMIN 만. 하위 메뉴도 roles 가 있으면 같은 기준으로 거른다 */
 export function navFor(accountRole, siteRole) {
   const role = effectiveRole(accountRole, siteRole);
+  const allowed = (roles) => !roles || (role ? roles.includes(role) : roles === ALL);
   return NAV.filter((item) => {
     if (item.accountOnly) return accountRole === 'ADMIN';
-    return role ? item.roles.includes(role) : item.roles === ALL;
-  });
+    return allowed(item.roles);
+  }).map((item) => (item.children?.some((child) => child.roles)
+    ? { ...item, children: item.children.filter((child) => allowed(child.roles)) }
+    : item));
 }
 
 /** 역할별 첫 화면: 승인자는 승인함, 나머지는 홈 */
