@@ -107,7 +107,7 @@ function SiteTab({ data, context, site }) {
             <p className="rec-help">마감 시각은 작업 현황·홈의 미완료 집계와 알림에 쓰입니다. 현장 이름·모드는 회사 관리자가 바꿉니다.</p>
           </div>
         </header>
-        {data.loading('settings') && <div className="status-pad site-pad"><Skeleton lines={4} /></div>}
+        {data.loading('settings') && <div className="site-pad"><Skeleton lines={4} /></div>}
         {data.errors.settings && <StatusView kind="error" compact message={data.errors.settings} onRetry={data.reload} />}
         {settings && (
           <form className="site-form" onSubmit={async (event) => {
