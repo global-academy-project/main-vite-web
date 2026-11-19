@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   checkPermit, createPermit, editablePermitStatuses, getPermit, getWork, hasMeasurementItems, measurementItems,
-  requireWork, saveMeasurements, stepForPermit, submitPermit, updatePermit, validatePeriod, applyPermitExtraction, extractRuleInput, measurementFields,
+  requireWork, revisePermit, saveMeasurements, stepForPermit, submitPermit, updatePermit, validatePeriod, applyPermitExtraction, extractRuleInput, measurementFields,
 } from '../api/jobs';
 import { useToast } from '../components/ui/toast-context.js';
 import { MAX_FILL_TEXTS, extractFill, mergeFill, remainingCodes } from '../utils/extract-model.js';
@@ -214,6 +214,20 @@ export function usePermitWorkspace({ siteId, disabled, initialWorkId, initialPer
     if (mounted.current) { apply(result); say('승인 요청을 보냈습니다. 승인 완료나 작업 시작 허가가 아닙니다. 결과는 승인함 "내 요청"에서 볼 수 있습니다.'); }
   });
 
+  /** 반려된 허가서에서 새 판을 만들어 연다. 성공하면 새 판을 돌려준다 (주소를 바꾸는 건 화면 몫) */
+  const revise = async () => {
+    if (!permit || permit.status !== 'REJECTED') return null;
+    let next = null;
+    await run(async () => {
+      next = await revisePermit(permit.permitId, siteId);
+      if (mounted.current) {
+        apply(next); setFill(null); setStep(1);
+        say(`새 판(${next.revision}판)을 만들었습니다. 반려 사유에 맞춰 고친 뒤 측정값 입력 → 규칙 판정 → 승인 요청을 다시 하세요.`);
+      }
+    });
+    return next;
+  };
+
   const startNew = async () => {
     if (!(await confirmReplacement())) return false;
     setPermit(null); setForm(EMPTY_FORM); setValues({}); setFill(null); setDirty(false);
@@ -230,6 +244,6 @@ export function usePermitWorkspace({ siteId, disabled, initialWorkId, initialPer
     noApplicableRules, serverDisallowsSubmit, submitted, reachable, blocked, error, busy, loading, creationUncertain,
     unlockCreation: () => { setCreationUncertain(false); setError(''); },
     step, goTo, hasMeasurements, editable, locked: busy || disabled,
-    load, save, saveMeasurementsAndNext, runCheck, submit, startNew,
+    load, save, saveMeasurementsAndNext, runCheck, submit, startNew, revise,
   };
 }

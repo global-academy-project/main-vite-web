@@ -72,3 +72,32 @@ test('incident API rejects malformed list responses before the UI consumes them'
   await assert.rejects(getIncidents(2), /목록 응답 형식/);
   await assert.rejects(searchIncidents({ siteId: 2 }), /목록 응답 형식/);
 });
+test('auto-tag run status: NEAR_MISS_TAG run without conversation, DONE needs the same report and saved count', async (t) => {
+  const storage = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
+  Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: { getItem: () => null } });
+  t.after(() => {
+    if (storage) Object.defineProperty(globalThis, 'localStorage', storage);
+    else delete globalThis.localStorage;
+  });
+  let data;
+  let path;
+  t.mock.method(globalThis, 'fetch', async (requestPath) => {
+    path = requestPath;
+    return new Response(JSON.stringify({ success: true, data }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+  });
+  const { getAutoTagRun } = await import('./incidents.js');
+
+  data = { runId: 51, conversationId: null, taskType: 'NEAR_MISS_TAG', status: 'PROCESSING', result: null };
+  assert.equal((await getAutoTagRun(51, 9)).status, 'PROCESSING');
+  assert.equal(path, '/api/v1/agent/runs/51');
+
+  data = { ...data, status: 'DONE', result: { nearMissId: 9, savedCount: 2, skipped: [], taggingSource: 'near_miss_rules', model: null } };
+  assert.equal((await getAutoTagRun(51, 9)).result.savedCount, 2);
+  await assert.rejects(getAutoTagRun(51, 10), /형식/);   // 다른 보고의 결과
+
+  data = { ...data, status: 'FAILED', result: null, errorMessage: 'AGENT_TIMEOUT' };
+  assert.equal((await getAutoTagRun(51, 9)).errorMessage, 'AGENT_TIMEOUT');
+
+  data = { ...data, taskType: 'WORK_REGISTER' };
+  await assert.rejects(getAutoTagRun(51, 9), /형식/);
+});

@@ -292,3 +292,32 @@ test('문장 추출 반영: 나눠 보낸 문장이 있으면 texts 를 함께 �
   await applyPermitExtraction(11, { lockVersion: 0, text: 'a\nb', texts: ['a', 'b'], measurements }, 1);
   assert.deepEqual(bodies.at(-1), { lockVersion: 0, text: 'a\nb', texts: ['a', 'b'], measurements, form: {} });
 });
+
+test('반려된 허가서 새 판: POST /permits/{id}/revise, 다른 번호의 작성 중 허가서만 받는다', async (t) => {
+  const storage = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
+  Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: { getItem: () => null } });
+  t.after(() => {
+    if (storage) Object.defineProperty(globalThis, 'localStorage', storage);
+    else delete globalThis.localStorage;
+  });
+  let data;
+  let request;
+  t.mock.method(globalThis, 'fetch', async (path, options) => {
+    request = { path, method: options.method };
+    return new Response(JSON.stringify({ success: true, data }), { status: 201, headers: { 'Content-Type': 'application/json' } });
+  });
+  const { revisePermit } = await import('./jobs.js');
+  const permit = (over) => ({ permitId: 8, siteId: 3, workId: 5, lockVersion: 0, measurements: [], canSubmit: false,
+    permitType: 'HOT', status: 'DRAFT', revision: 2, lastEvaluation: null, ...over });
+
+  data = permit();
+  assert.equal((await revisePermit(7, 3)).revision, 2);
+  assert.deepEqual(request, { path: '/api/v1/permits/7/revise', method: 'POST' });
+
+  data = permit({ permitId: 7 });
+  await assert.rejects(revisePermit(7, 3), /새 판/);
+  data = permit({ status: 'REJECTED' });
+  await assert.rejects(revisePermit(7, 3), /새 판/);
+  data = permit({ siteId: 4 });
+  await assert.rejects(revisePermit(7, 3), /현장/);
+});

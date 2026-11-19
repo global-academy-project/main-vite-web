@@ -120,7 +120,7 @@ export function nextAction(work) {
   if (['DRAFT', 'REJECTED'].includes(risk.status)) return { label: risk.status === 'REJECTED' ? '위험성평가 반려 수정' : '위험성평가 승인 요청', tone: risk.status === 'REJECTED' ? 'block' : 'todo', path: jobRecordPath('RISK', risk.riskAssessmentId) };
   if (work.workType !== 'GENERAL' && !permits.length) return { label: '작업허가 작성', tone: 'todo', path: `/job/permits?workId=${work.workId}` };
   const draft = permits.find((permit) => ['DRAFT', 'CHECKING', 'REJECTED'].includes(permit.status));
-  if (draft) return { label: draft.status === 'REJECTED' ? '작업허가 반려 수정' : '작업허가 측정·판정', tone: draft.status === 'REJECTED' ? 'block' : 'todo', path: jobRecordPath('PERMIT', draft.permitId) };
+  if (draft) return { label: draft.status === 'REJECTED' ? '작업허가 반려 · 새 판 작성' : '작업허가 측정·판정', tone: draft.status === 'REJECTED' ? 'block' : 'todo', path: jobRecordPath('PERMIT', draft.permitId) };
   if (!work.tbm) return { label: 'TBM 작성', tone: 'todo', path: `/job/tbm?date=${encodeURIComponent(work.workDate ?? '')}&workId=${work.workId}` };
   if (work.tbm.status === 'DRAFT') return { label: 'TBM 완료 처리', tone: 'todo', path: jobRecordPath('TBM', work.tbm.tbmId) };
   if (risk.status === 'PENDING' || permits.some((permit) => permit.status === 'PENDING') || work.status === 'PENDING') return { label: '승인 대기', tone: 'wait', path: null };

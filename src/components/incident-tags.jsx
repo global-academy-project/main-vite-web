@@ -1,8 +1,13 @@
 import { useState } from 'react';
 import { TAG_AXES, TAG_LABELS } from '../utils/agentic-rag-tags';
+import { isTagConfirmed } from '../utils/incident-model.js';
 import '../style/job/job-search.css';
 
-export function TagChips({ tags, codes = [] }) {
+/**
+ * 축별 태그. confirmed: 사람이 저장해 확정된 태그인가 (아니면 규칙·AI 제안).
+ * 비어 있는 축은 확정된 보고면 "미분류"(사람이 비워 둠), 아니면 "미확인"
+ */
+export function TagChips({ tags, codes = [], confirmed = true }) {
   return (
     <div className="incident-tags">
       {TAG_AXES.map(({ axis, label }) => (
@@ -13,12 +18,13 @@ export function TagChips({ tags, codes = [] }) {
               <span className="tag-chip" key={`${axis}:${tag.value}`}>
                 {codes.find((code) => code.axis === axis && code.code === tag.value)?.label
                   ?? TAG_LABELS[axis]?.[tag.value] ?? tag.value}
-                <small> · {tag.source === 'USER' ? '사용자' : 'AI'}
+                <small> · {tag.source === 'USER' ? '사용자' : confirmed ? 'AI' : 'AI 제안'}
                   {tag.confidence != null ? ` ${Math.round(tag.confidence * 100)}%` : ''}
+                  {confirmed ? ' · 확정' : ''}
                 </small>
               </span>
             ))}
-            {!tags.some((tag) => tag.axis === axis) && <span className="tag-unspecified">미분류</span>}
+            {!tags.some((tag) => tag.axis === axis) && <span className="tag-unspecified">{confirmed ? '미분류' : '미확인'}</span>}
           </div>
         </div>
       ))}
@@ -26,7 +32,7 @@ export function TagChips({ tags, codes = [] }) {
   );
 }
 
-export function TagEditor({ tags, codes, onChange, disabled = false }) {
+export function TagEditor({ tags, codes, onChange, disabled = false, confirmed = true }) {
   const [cas, setCas] = useState('');
   const [error, setError] = useState('');
   const toggle = (axis, value, checked) => {
@@ -56,7 +62,7 @@ export function TagEditor({ tags, codes, onChange, disabled = false }) {
   return (
     <fieldset className="incident-tag-editor" disabled={disabled}>
       <legend>5축 태그 검토</legend>
-      <p className="job-help">모르는 축은 미분류로 남겨 두세요. 직접 선택한 값은 사용자 태그로 저장됩니다. 신뢰도는 안전 판정 점수가 아닙니다.</p>
+      <p className="job-help">{confirmed ? '' : 'AI가 제안한 태그는 아직 확정 전입니다. 맞으면 그대로, 틀리면 고친 뒤 저장해야 확정됩니다. '}모르는 축은 비워 두세요. 직접 선택한 값은 사용자 태그로 저장됩니다. 신뢰도는 안전 판정 점수가 아닙니다. 중상·사망은 사람만 고를 수 있습니다.</p>
       <div className="incident-tag-axes">
       {TAG_AXES.filter(({ axis }) => axis !== 'SUBSTANCE').map(({ axis, label }) => (
         <fieldset key={axis}>
@@ -86,7 +92,7 @@ export function TagEditor({ tags, codes, onChange, disabled = false }) {
       {error && <p role="alert" className="dashboard-error">{error}</p>}
       <details className="incident-tag-summary">
         <summary>고른 태그와 출처 보기 (사용자 / AI 신뢰도)</summary>
-        <TagChips tags={tags} codes={codes} />
+        <TagChips tags={tags} codes={codes} confirmed={confirmed} />
       </details>
     </fieldset>
   );
@@ -106,7 +112,7 @@ export function RelatedEvidenceList({ result, codes, onOpen }) {
           <p>{item.description}</p>
           {item.immediateAction && <p>당시 조치: {item.immediateAction}</p>}
           <small>아차사고 #{item.nearMissId}{item.zoneName && ` · ${item.zoneName}`} · {item.occurredAt}</small>
-          <TagChips tags={item.tags} codes={codes} />
+          <TagChips tags={item.tags} codes={codes} confirmed={isTagConfirmed(item)} />
         </article>
       ))}
     </section>

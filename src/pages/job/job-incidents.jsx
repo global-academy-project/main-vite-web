@@ -13,7 +13,8 @@ import Sheet from '../../components/ui/sheet.jsx';
 import StatusView, { Skeleton } from '../../components/ui/status-view.jsx';
 import { useIncidents } from '../../hooks/use-incidents.js';
 import {
-  accidentTypes, EMPTY_INCIDENT_FILTERS, filterIncidents, hasIncidentFilters, INCIDENT_STATUS_LABELS, incidentStats, severityOf, shortOccurred, validateIncidentForm,
+  accidentTypes, EMPTY_INCIDENT_FILTERS, filterIncidents, hasIncidentFilters, INCIDENT_STATUS_LABELS, incidentStats, isTagConfirmed, severityOf, shortOccurred,
+  TAG_STATE_LABELS, TAG_STATE_TONES, tagState, validateIncidentForm,
 } from '../../utils/incident-model.js';
 import { localDate } from '../../utils/job-forms';
 import { WORK_TYPE_LABELS } from '../../utils/home-model.js';
@@ -131,10 +132,10 @@ function ReportList({ data, onOpen, onCreate, openId }) {
         {[
           { key: '', label: '전체', value: stats.total, tone: 'neutral', note: '최근 보고' },
           { key: 'week', label: '최근 7일', value: stats.week, tone: 'wait', note: '발생일 기준' },
-          { key: 'untagged', label: '태그 없음', value: stats.untagged, tone: 'block', note: '분류 필요' },
+          { key: 'unconfirmed', label: '확정 전', value: stats.unconfirmed, tone: 'block', note: '태그 확인 필요' },
         ].map((stat) => (
           <li key={stat.key || 'all'}>
-            <button type="button" aria-pressed={filters.view === stat.key} className={`work-stat work-stat--${stat.tone}${stat.key === 'untagged' ? ' appr-stat--overdue' : ''}${filters.view === stat.key ? ' is-active' : ''}`} onClick={() => update('view', stat.key)}>
+            <button type="button" aria-pressed={filters.view === stat.key} className={`work-stat work-stat--${stat.tone}${stat.key === 'unconfirmed' ? ' appr-stat--overdue' : ''}${filters.view === stat.key ? ' is-active' : ''}`} onClick={() => update('view', stat.key)}>
               <span className="work-stat__label"><i aria-hidden="true" />{stat.label}</span>
               <strong className="work-stat__value">{ready ? stat.value : '–'}</strong>
               <span className="work-stat__note">{stat.note}</span>
@@ -157,7 +158,7 @@ function ReportList({ data, onOpen, onCreate, openId }) {
       </section>
 
       <div className="work-meta">
-        <p className="work-filters__help">{ready ? `${rows.length}건 표시 · ` : ''}서버가 주는 최근 50건 안에서 조건을 적용합니다.</p>
+        <p className="work-filters__help">{ready ? `${rows.length}건 표시 · ` : ''}서버가 주는 최근 100건 안에서 조건을 적용합니다.</p>
         {hasIncidentFilters(filters) && <button type="button" className="ui-btn ui-btn--link ui-btn--sm" onClick={() => setFilters(EMPTY_INCIDENT_FILTERS)}>조건 초기화</button>}
       </div>
 
@@ -171,11 +172,14 @@ function ReportList({ data, onOpen, onCreate, openId }) {
         )}
         {ready && rows.length > 0 && (
           <table className="home-table rec-table inc-table">
-            <thead><tr><th scope="col">발생</th><th scope="col">보고</th><th scope="col">구역</th><th scope="col">중대도</th><th scope="col">사고 유형</th><th scope="col">관련 작업</th><th scope="col"><span className="sr-only">열기</span></th></tr></thead>
+            <thead><tr><th scope="col">발생</th><th scope="col">보고</th><th scope="col">구역</th><th scope="col">태그</th><th scope="col">중대도</th><th scope="col">사고 유형</th><th scope="col">관련 작업</th><th scope="col"><span className="sr-only">열기</span></th></tr></thead>
             <tbody>
               {rows.map((item) => {
                 const severity = severityOf(item, codes);
                 const types = accidentTypes(item, codes);
+                const state = tagState(item);
+                const suggested = state === 'SUGGESTED';
+                const empty = isTagConfirmed(item) ? '미분류' : '미확인';
                 return (
                   <tr key={item.nearMissId} className={String(item.nearMissId) === openId ? 'is-selected' : undefined}>
                     <td data-label="발생" className="work-table__date">{shortOccurred(item.occurredAt)}</td>
@@ -184,8 +188,9 @@ function ReportList({ data, onOpen, onCreate, openId }) {
                       {item.description && <span className="home-table__facts rec-snippet">{item.description}</span>}
                     </td>
                     <td data-label="구역">{zoneName(item.zoneId)}</td>
-                    <td data-label="중대도">{severity ? <Badge tone={severity.tone}>{severity.label}</Badge> : <span className="work-none">미분류</span>}</td>
-                    <td data-label="사고 유형">{types.length ? types.join(', ') : <span className="work-none">미분류</span>}</td>
+                    <td data-label="태그"><Badge tone={TAG_STATE_TONES[state]}>{TAG_STATE_LABELS[state]}</Badge></td>
+                    <td data-label="중대도">{severity ? <><Badge tone={severity.tone}>{severity.label}</Badge>{suggested && <span className="work-none"> 제안</span>}</> : <span className="work-none">{empty}</span>}</td>
+                    <td data-label="사고 유형">{types.length ? `${types.join(', ')}${suggested ? ' (제안)' : ''}` : <span className="work-none">{empty}</span>}</td>
                     <td data-label="관련 작업">{item.workId ? <Link className="home-panel__link" to={`/job/workspace?workId=${item.workId}`}>작업 #{item.workId}</Link> : <span className="work-none">없음</span>}</td>
                     <td data-label="열기"><button type="button" className="ui-btn ui-btn--ghost ui-btn--sm appr-open" disabled={data.busy} onClick={() => onOpen(item.nearMissId)}>보기</button></td>
                   </tr>
@@ -208,6 +213,7 @@ function IncidentDetail({ data, openId, onOpen }) {
   }
   const codes = data.resources?.codes ?? [];
   const zone = data.resources?.zones.find((item) => item.zoneId === incident.zoneId);
+  const confirmed = isTagConfirmed(incident);
   return (
     <div className="rec-detail">
       {data.error && <p className="work-form__error" role="alert"><Icon name="alert" size={16} />{data.error}</p>}
@@ -215,7 +221,7 @@ function IncidentDetail({ data, openId, onOpen }) {
         <div><dt>발생 일시</dt><dd>{incident.occurredAt?.replace('T', ' ').slice(0, 16) ?? '-'}</dd></div>
         <div><dt>구역</dt><dd>{zone ? `${zone.code} · ${zone.name}` : '구역 미지정'}</dd></div>
         <div><dt>관련 작업</dt><dd>{incident.workId ? <Link to={`/job/workspace?workId=${incident.workId}`}>작업 #{incident.workId}</Link> : '없음'}</dd></div>
-        <div><dt>상태</dt><dd>{INCIDENT_STATUS_LABELS[incident.status] ?? incident.status ?? '-'} · 버전 {incident.lockVersion}</dd></div>
+        <div><dt>상태</dt><dd>{INCIDENT_STATUS_LABELS[incident.status] ?? incident.status ?? '-'} · 태그 {TAG_STATE_LABELS[tagState(incident)]} · 버전 {incident.lockVersion}</dd></div>
       </dl>
       <section className="rec-block">
         <h3 className="rec-block__title">발생 상황</h3>
@@ -230,13 +236,19 @@ function IncidentDetail({ data, openId, onOpen }) {
       <section className="rec-block">
         <div className="rec-block__head">
           <h3 className="rec-block__title">태그 검토</h3>
+          <Badge tone={TAG_STATE_TONES[tagState(incident)]}>{TAG_STATE_LABELS[tagState(incident)]}</Badge>
           {data.tagsDirty && <Badge tone="warn">저장 안 됨</Badge>}
         </div>
-        <p className="rec-help">태그 저장은 전체 교체입니다. 다른 사용자가 먼저 저장해 내용이 바뀌면 "최신 보고 다시 받기" 후 다시 검토하세요. 중대도는 하나만 고를 수 있습니다.</p>
-        <div className="rec-tags"><TagEditor tags={data.tags} codes={codes} disabled={data.locked} onChange={data.setTags} /></div>
+        <p className="rec-help">{confirmed
+          ? '사람이 저장해 확정된 태그입니다. 고치면 다시 저장하세요.'
+          : '아직 사람이 확정하지 않았습니다. AI 제안을 확인하고 저장하면 확정되고, 확정된 보고만 사내 사고사례 검색(RAG)에 들어갑니다. 중대도를 중상·사망으로 저장하면 같은 구역의 확인 전 경고가 긴급으로 바뀝니다.'}
+          {' '}태그 저장은 전체 교체입니다. 다른 사용자가 먼저 저장해 내용이 바뀌면 "최신 보고 다시 받기" 후 다시 검토하세요. 중대도는 하나만 고를 수 있습니다.</p>
+        {data.autoTagging === incident.nearMissId && <p className="rec-note" role="status"><Icon name="clock" size={16} />AI가 태그를 제안하는 중입니다. 끝나면 제안이 아래에 채워집니다.</p>}
+        <div className="rec-tags"><TagEditor tags={data.tags} codes={codes} disabled={data.locked} onChange={data.setTags} confirmed={confirmed} /></div>
         <div className="rec-actions">
           <button type="button" className="ui-btn ui-btn--ghost" disabled={data.locked} onClick={() => onOpen(incident.nearMissId)}><Icon name="refresh" size={16} />최신 보고 다시 받기</button>
-          <button type="button" className="ui-btn ui-btn--primary" disabled={data.locked || !data.tagsDirty} onClick={data.saveTags}>태그 저장</button>
+          {!confirmed && <button type="button" className="ui-btn ui-btn--secondary" disabled={data.locked || data.tagsDirty} onClick={() => { void data.autoTag(); }}>AI 태그 제안 다시 받기</button>}
+          <button type="button" className="ui-btn ui-btn--primary" disabled={data.locked || (!data.tagsDirty && (confirmed || !data.tags.length))} onClick={data.saveTags}>{confirmed ? '태그 저장' : '확인하고 저장(확정)'}</button>
         </div>
       </section>
 
@@ -259,7 +271,7 @@ function IncidentDetail({ data, openId, onOpen }) {
                   {item.description && <span className="rec-related__desc">{item.description}</span>}
                   {item.immediateAction && <span className="rec-related__desc">당시 조치: {item.immediateAction}</span>}
                 </button>
-                <TagChips tags={item.tags} codes={codes} />
+                <TagChips tags={item.tags} codes={codes} confirmed={isTagConfirmed(item)} />
               </li>
             ))}
           </ul>
@@ -304,7 +316,7 @@ function IncidentForm({ data, reporter, onSaved }) {
         <Field className="rec-form__wide" label="발생 상황" required multiline rows={4} maxLength={20000} value={form.description} error={errors.description} placeholder="무엇이 어떻게 위험했는지 적어 주세요." onChange={(event) => update('description', event.target.value)} />
         <Field className="rec-form__wide" label="즉시 조치" multiline rows={3} maxLength={10000} value={form.immediateAction} error={errors.immediateAction} placeholder="바로 한 조치가 있으면 적어 주세요." onChange={(event) => update('immediateAction', event.target.value)} />
       </fieldset>
-      <p className="work-form__help">자동 태깅은 이번 연결 범위에 들어 있지 않습니다. 저장한 뒤 보고를 열어 태그를 직접 검토해 주세요.</p>
+      <p className="work-form__help">저장하면 AI가 5축 태그를 제안합니다(자동 태깅). 제안은 확정이 아니므로 보고를 열어 확인하고 저장해 주세요.</p>
     </form>
   );
 }

@@ -11,7 +11,7 @@ import Icon from '../../components/ui/icon.jsx';
 import StatusView, { Skeleton } from '../../components/ui/status-view.jsx';
 import { useProfile } from '../../hooks/use-profile.js';
 import { ACCOUNT_ROLE_LABELS } from '../../utils/admin-model.js';
-import { NOTIFICATION_TYPE_LABELS } from '../../utils/notification-model.js';
+import { NOTIFICATION_TYPE_LABELS, SENT_NOTIFICATION_TYPES } from '../../utils/notification-model.js';
 import { emailBody, passwordBody, profileBody, profileForm, sameProfile } from '../../utils/profile-model.js';
 import { joinPhone, koreanOnly, NAME_MAX, NAME_MIN, phonePartsError, splitPhone } from '../../utils/auth-validation.js';
 import PhoneInput from '../../components/phone-input.jsx';
@@ -244,7 +244,7 @@ function Preferences({ data }) {
           <div className="site-table-wrap">
             <table className="site-table profile-prefs">
               <thead><tr><th scope="col">종류</th><th scope="col">웹</th><th scope="col">문자</th></tr></thead>
-              <tbody>{data.prefs.map((entry) => {
+              <tbody>{data.prefs.filter((entry) => SENT_NOTIFICATION_TYPES.includes(entry.type)).map((entry) => {
                 const label = NOTIFICATION_TYPE_LABELS[entry.type] ?? entry.type;
                 return (
                   <tr key={entry.type}>
