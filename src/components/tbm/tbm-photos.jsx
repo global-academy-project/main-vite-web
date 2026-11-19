@@ -6,6 +6,8 @@ import { checkChip, correctionBody, correctionForm, PHOTO_ACCEPT, photoSummary, 
 import { Badge } from '../home/panel.jsx';
 import Icon from '../ui/icon.jsx';
 import StatusView, { Skeleton } from '../ui/status-view.jsx';
+// 사진 요약(TbmPhotoSummary)은 결재·문서 보기·작업 화면에서도 쓰므로 모양 CSS를 부품이 직접 불러온다 (지연 로딩 화면마다 CSS가 따로 붙는다)
+import '../../styles/tbm.css';
 
 /**
  * TBM 사진 칸 (TBM 화면). 올리면 서버가 촬영 날짜·같은 사진을 확인해 사진마다 결과를 보여 준다.

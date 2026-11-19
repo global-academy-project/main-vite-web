@@ -7,6 +7,8 @@ import { RECORD_TYPE_LABELS } from '../../utils/record-query-model.js';
 import { Composer, Thread } from '../home/assistant-panel.jsx';
 import { Badge } from '../home/panel.jsx';
 import Icon from '../ui/icon.jsx';
+// 실행 상세(rec-facts·rec-note·rec-help)는 records.css 모양이다. 작업 화면은 records.css를 불러오지 않으므로 부품이 직접 불러온다
+import '../../styles/records.css';
 
 const TABS = [
   { key: 'WORK_REGISTER', label: '작업 등록', placeholder: '작업 장소·종류·시간·인원과 실제 측정값을 알려 주세요.', hint: '완료되면 서버가 작업·서류 초안을 "작성 중"으로 저장합니다. 승인이나 작업 허가가 아닙니다.',

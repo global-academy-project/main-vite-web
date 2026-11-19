@@ -141,7 +141,7 @@ function DocumentPage({ type, id }) {
               <section className="home-panel tbm-card" aria-labelledby="doc-approval">
                 <header className="tbm-card__head"><div><h2 id="doc-approval">결재</h2>
                   <p className="rec-help">{summary ? '이 문서의 가장 최근 결재입니다.' : '아직 결재 요청이 없습니다.'}</p></div>
-                  {summary && <div className="tbm-card__actions"><Link className="ui-btn ui-btn--ghost site-edit" to={`/approvals/${summary.approvalId}`}>결재 보기</Link></div>}
+                  {summary && <div className="tbm-card__actions"><Link className="ui-btn ui-btn--ghost ui-btn--sm" to={`/approvals/${summary.approvalId}`}>결재 보기</Link></div>}
                 </header>
                 {summary && (
                   <div className="doc-approval">
