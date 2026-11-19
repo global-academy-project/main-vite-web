@@ -21,7 +21,7 @@ const roleAllowed = (account, site) => account?.user?.role === 'ADMIN'
 
 export default function AuditReports() {
   return (
-    <SafetyPageLayout title="감사보고서">
+    <SafetyPageLayout title="내부 감사">
       {(site) => <AuditReportHome site={site} />}
     </SafetyPageLayout>
   );
@@ -126,7 +126,7 @@ function AuditReportHome({ site }) {
   return (
     <div className="audit-page">
       <PageHeader
-        title="감사보고서"
+        title="내부 감사"
         description="현장 기록과 관련 문서를 모아 부족한 항목을 확인하고 보고서로 관리합니다."
         context={site}
         actions={<button type="button" className="ui-btn ui-btn--primary" onClick={() => navigate('/audit-reports/new')}>새 감사보고서</button>}

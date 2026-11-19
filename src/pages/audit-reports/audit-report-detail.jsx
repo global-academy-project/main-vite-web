@@ -13,7 +13,7 @@ const POLL_MS = 5000;
 
 export default function AuditReportDetail() {
   return (
-    <SafetyPageLayout title="감사보고서">
+    <SafetyPageLayout title="내부 감사">
       {(site) => <Detail site={site} />}
     </SafetyPageLayout>
   );
