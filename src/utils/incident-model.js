@@ -28,18 +28,32 @@ export function severityOf(incident, codes = []) {
 /** 표에 보일 사고 유형 이름들 */
 export const accidentTypes = (incident, codes = []) => (incident.tags ?? []).filter((tag) => tag.axis === 'ACCIDENT_TYPE').map((tag) => tagLabel(tag, codes));
 
-/** 건수 카드: 전체 · 이번 주(최근 7일) · 태그 없음 */
+/**
+ * 태그 상태 (사람이 확정했는지): 보고 직후(REPORTED)의 태그는 규칙·AI 제안이고, 사람이 저장해야 확정된다.
+ *  - CONFIRMED 확정됨: 사람이 검토하고 저장함 (TAGGED 이후)
+ *  - SUGGESTED 제안됨: 제안 태그가 있지만 사람이 아직 확정하지 않음
+ *  - NONE 미확인: 제안도 없고 사람도 저장하지 않음
+ */
+export const TAG_STATE_LABELS = Object.freeze({ CONFIRMED: '확정됨', SUGGESTED: '제안됨', NONE: '미확인' });
+export const TAG_STATE_TONES = Object.freeze({ CONFIRMED: 'done', SUGGESTED: 'wait', NONE: 'todo' });
+export const isTagConfirmed = (item) => Boolean(item?.status) && item.status !== 'REPORTED';
+export function tagState(item) {
+  if (isTagConfirmed(item)) return 'CONFIRMED';
+  return item?.tags?.length ? 'SUGGESTED' : 'NONE';
+}
+
+/** 건수 카드: 전체 · 이번 주(최근 7일) · 확정 전(사람이 태그를 저장하지 않은 보고) */
 export function incidentStats(incidents = [], now = new Date()) {
   const weekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6);
   const since = localDay(weekStart);
   return {
     total: incidents.length,
     week: incidents.filter((item) => dayOf(item.occurredAt) >= since).length,
-    untagged: incidents.filter((item) => !item.tags?.length).length,
+    unconfirmed: incidents.filter((item) => !isTagConfirmed(item)).length,
   };
 }
 
-/** 화면 안 조건 (서버 목록은 최근 50건이라 받은 목록 안에서만 고른다) */
+/** 화면 안 조건 (서버 목록은 최근 100건이라 받은 목록 안에서만 고른다) */
 export function filterIncidents(incidents = [], filters = EMPTY_INCIDENT_FILTERS, now = new Date()) {
   const keyword = filters.keyword?.trim().toLowerCase() ?? '';
   const since = filters.view === 'week' ? localDay(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6)) : '';
@@ -49,7 +63,7 @@ export function filterIncidents(incidents = [], filters = EMPTY_INCIDENT_FILTERS
     if (filters.from && day < filters.from) return false;
     if (filters.to && day > filters.to) return false;
     if (since && day < since) return false;
-    if (filters.view === 'untagged' && item.tags?.length) return false;
+    if (filters.view === 'unconfirmed' && isTagConfirmed(item)) return false;
     if (keyword && ![item.title, item.description, item.immediateAction].some((text) => text?.toLowerCase().includes(keyword))) return false;
     return true;
   });

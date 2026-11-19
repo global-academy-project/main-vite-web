@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { getSiteWorks, getWork, measurementFields, permitFormFields, permitFormFieldsOf, setPermitChoice, stepForTarget } from '../../api/jobs';
+import { editablePermitStatuses, getSiteWorks, getWork, measurementFields, permitFormFields, permitFormFieldsOf, setPermitChoice, stepForTarget } from '../../api/jobs';
 import { useWorkSite } from '../../api/workers';
 import JobPageLayout from '../../components/job-page-layout';
 import PageHeader from '../../components/ui/page-header.jsx';
@@ -12,7 +12,7 @@ import StepIndicator from '../../components/ui/step-indicator.jsx';
 import { usePermitWorkspace } from '../../hooks/use-permit-workspace.js';
 import { PERMIT_STATUS_LABELS, toneOf } from '../../utils/home-model.js';
 import { EVALUATION_LABELS, EVALUATION_TONES, localizeRuleText, PERMIT_RULE_SUMMARY, PERMIT_TYPE_LABELS, permitSteps, RULE_CHECK_LABELS, ruleDetailLine, ruleValueLabels, SEVERITY_LABELS } from '../../utils/permit-model.js';
-import { backToHubPath } from '../../utils/work-list-model.js';
+import { backToHubPath, withBack } from '../../utils/work-list-model.js';
 import { unitLabel } from '../../utils/approval-model.js';
 import '../../styles/home.css';
 import '../../styles/work.css';
@@ -177,15 +177,27 @@ function PermitEditor({ siteId, context, initialPermitId, initialWorkId, back })
         <div className="work-form__error permit-existing" role="alert">
           <Icon name="info" size={16} />
           <span>이 작업에는 {PERMIT_TYPE_LABELS[data.type]} 허가서가 이미 있습니다 ({existing.permitNo ?? `#${existing.permitId}`} · {PERMIT_STATUS_LABELS[existing.status] ?? existing.status}). 같은 종류는 하나만 만들 수 있어요.
-            {['DRAFT', 'CHECKING', 'REJECTED'].includes(existing.status) ? ' 그 허가서에서 이어서 고치세요.' : ' 승인 요청 뒤에는 읽기만 할 수 있습니다.'}</span>
+            {existing.status === 'REJECTED' ? ' 반려된 허가서는 열어서 "새 판으로 다시 작성"을 누르세요.'
+              : editablePermitStatuses.includes(existing.status) ? ' 그 허가서에서 이어서 고치세요.' : ' 승인 요청 뒤에는 읽기만 할 수 있습니다.'}</span>
           <Link className="ui-btn ui-btn--primary" to={`/job/permits?permitId=${existing.permitId}`}>그 허가서로 이동</Link>
         </div>
       )}
 
       <section className="home-panel permit-steps" aria-label="허가서 진행 단계">
         <StepIndicator steps={permitSteps(data)} label="허가서 진행 단계" onSelect={(key) => { const no = Number(key); if (!data.locked && data.reachable[no] && data.step !== no) data.goTo(no); }} />
-        {data.submitted && <p className="rec-help">승인 요청 후에는 내용을 바꿀 수 없어 읽기만 합니다.</p>}
+        {data.submitted && permit?.status !== 'REJECTED' && <p className="rec-help">승인 요청 후에는 내용을 바꿀 수 없어 읽기만 합니다.</p>}
       </section>
+
+      {permit?.status === 'REJECTED' && (
+        <div className="work-form__error" role="alert">
+          <Icon name="warning" size={16} />
+          <span>반려된 허가서입니다({permit.revision ?? 1}판). 이 판은 그대로 기록에 남습니다. 새 판을 만들면 내용이 옮겨지고, 고친 뒤 측정값 입력 → 규칙 판정 → 승인 요청을 다시 해야 합니다. 반려 사유는 승인함 "내 요청"에서 볼 수 있습니다.</span>
+          <button type="button" className="ui-btn ui-btn--primary" disabled={data.locked || data.conflict} onClick={async () => {
+            const next = await data.revise();
+            if (next) navigate(withBack(`/job/permits?permitId=${next.permitId}`, back ? targetWorkId : null), { replace: true });
+          }}>새 판으로 다시 작성</button>
+        </div>
+      )}
 
       {data.step === 1 && <StepDetails data={data} />}
       {data.step === 2 && permit && <StepMeasurements data={data} />}
@@ -454,7 +466,9 @@ function StepSubmit({ data, siteId }) {
       <StepError data={data} />
       <div className="risk-bar">
         <button type="button" className="ui-btn ui-btn--ghost" disabled={data.locked} onClick={() => data.goTo(3)}>이전</button>
-        <span className="risk-bar__state">{data.submitted ? '승인 요청을 보냈습니다. 승인함 "내 요청"에서 결과를 볼 수 있습니다.' : ''}</span>
+        <span className="risk-bar__state">{permit.status === 'REJECTED' ? '반려되었습니다. 위의 "새 판으로 다시 작성"으로 다시 내세요.'
+          : permit.status === 'SUPERSEDED' ? '새 판으로 대체된 허가서입니다. 기록으로만 남습니다.'
+            : data.submitted ? '승인 요청을 보냈습니다. 승인함 "내 요청"에서 결과를 볼 수 있습니다.' : ''}</span>
         {data.editable && <button type="button" className="ui-btn ui-btn--primary" disabled={data.locked || data.conflict || data.noApplicableRules || !permit.canSubmit} onClick={data.submit}>승인 요청</button>}
         {data.submitted && <Link className="ui-btn ui-btn--secondary" to="/approvals?tab=requested">승인함 열기</Link>}
       </div>

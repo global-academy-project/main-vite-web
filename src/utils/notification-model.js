@@ -1,6 +1,12 @@
 // 알림함 화면 계산 (React 없이 테스트할 수 있게 분리)
 import { jobRecordPath } from './job-forms.js';
 
+/**
+ * 서버가 지금 실제로 만드는 알림 종류 (승인 요청·결과, 작업허가 판정 차단, 아차사고 경고, 마감, 개선조치 기한).
+ * 나머지(에이전트 완료·문서 준비·작업 실패·계정·시스템)는 설정값만 있고 아직 보내지 않아 받기 설정에서 숨긴다
+ */
+export const SENT_NOTIFICATION_TYPES = Object.freeze(['APPROVAL_REQUEST', 'APPROVAL_RESULT', 'BLOCKED', 'NEAR_MISS_WARNING', 'DEADLINE', 'ACTION_DUE']);
+
 export const NOTIFICATION_TYPE_LABELS = Object.freeze({
   APPROVAL_REQUEST: '승인 요청', APPROVAL_RESULT: '승인 결과', BLOCKED: '작업 차단',
   NEAR_MISS_WARNING: '아차사고 경고', DEADLINE: '마감', ACTION_DUE: '조치 기한',

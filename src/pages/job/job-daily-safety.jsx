@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useWorkSite } from '../../api/workers';
 import JobPageLayout from '../../components/job-page-layout';
 import PageHeader from '../../components/ui/page-header.jsx';
@@ -9,6 +9,7 @@ import StatusView, { Skeleton } from '../../components/ui/status-view.jsx';
 import StepIndicator from '../../components/ui/step-indicator.jsx';
 import { useToast } from '../../components/ui/toast-context.js';
 import { useDailySafety } from '../../hooks/use-daily-safety.js';
+import { getDailySafetyLog } from '../../api/records';
 import { useDateRange } from '../../hooks/use-date-range.js';
 import { PeriodMenu } from '../../components/work/work-filters.jsx';
 import SafetyInspectionLogForm from '../../components/daily-safety/safety-inspection-log-form.jsx';
@@ -30,10 +31,35 @@ const roleOf = (site) => site?.role || site?.siteRole || '';
  */
 export default function JobDailySafety() {
   const context = useWorkSite();
+  const [params] = useSearchParams();
+  // 승인함·알림에서 오면 ?dailyLogId=번호: 그 일지의 날짜를 찾아 그날 하루로 연다
+  const logId = /^\d+$/.test(params.get('dailyLogId') ?? '') ? params.get('dailyLogId') : null;
+  // 문서 보기 화면에서 오면 ?date=YYYY-MM-DD: 그날 하루로 연다
+  const dateParam = /^\d{4}-\d{2}-\d{2}$/.test(params.get('date') ?? '') ? params.get('date') : '';
+  const [found, setFound] = useState({ id: null, date: '', error: '' });
+  useEffect(() => {
+    if (!logId) return undefined;
+    let active = true;
+    getDailySafetyLog(logId)
+      .then((log) => { if (active) setFound({ id: logId, date: log.date, error: '' }); })
+      .catch((requestError) => { if (active) setFound({ id: logId, date: '', error: requestError.message || '안전일지를 찾지 못했습니다.' }); });
+    return () => { active = false; };
+  }, [logId]);
+
+  const initialDate = found.date || dateParam;
+
+  if (logId && found.id !== logId) {
+    return <JobPageLayout title="안전일지" user={context.account?.user} contentClassName="work-page"><StatusView kind="loading" title="안전일지를 여는 중입니다" /></JobPageLayout>;
+  }
+  return <DailySafetyPage key={`${logId}:${initialDate}`} context={context} initialDate={initialDate} openError={found.error} />;
+}
+
+function DailySafetyPage({ context, initialDate, openError }) {
   const site = context.currentSite;
   const toast = useToast();
   // 기간(from~to, 같은 탭 유지, 서버 한도 92일). 일지는 날짜당 1건이라 보는 날짜는 기간 안의 하루: 기본은 끝 날짜
-  const range = useDateRange('daily-log', localDate(), { maxDays: 92 });
+  // 주소로 일지를 정해 들어온 경우(initialDate)는 저장된 기간 대신 그날 하루
+  const range = useDateRange('daily-log', initialDate || localDate(), { maxDays: 92, fixed: Boolean(initialDate) });
   const [picked, setPicked] = useState(null);
   const date = picked && picked >= range.from && picked <= range.to ? picked : range.to;
   const data = useDailySafety(site?.siteId, date, range);
@@ -81,6 +107,7 @@ export default function JobDailySafety() {
         {period.error && <p className="work-filters__help" role="alert">{period.error}</p>}
         <p className="work-filters__help daily-datebar">{period.from === period.to ? period.from : `${period.from} ~ ${period.to}`}
           {data.log && <Badge tone={DAILY_LOG_TONES[data.log.status] ?? 'neutral'}>{DAILY_LOG_STATUS_LABELS[data.log.status] ?? data.log.status}</Badge>}</p>
+        {openError && <p className="work-form__error" role="alert"><Icon name="alert" size={16} />{openError}</p>}
         {site && data.multiDay && <RangeLogs data={data} date={date} onPick={changeDate} />}
 
         {!site ? <StatusView kind="empty" title="현장을 선택해 주세요" />

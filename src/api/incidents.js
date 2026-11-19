@@ -36,15 +36,37 @@ export const reviewIncidentTags = async (id, lockVersion, tags) =>
   jobWrite(async () => requireIncident(await api(`${incidentPath(id)}/tags`, {
     method: 'PUT', body: { lockVersion, tags },
   })));
+/**
+ * 자동 태깅 시작 (POST /near-misses/{id}/auto-tags → 202 {runId}). 보고자 본인 또는 승인자 이상, 사람이 아직 태그를 저장하지 않은 보고만.
+ * AI 태그는 제안으로 저장되고, 사람이 태그를 저장해야 확정된다.
+ */
 export async function autoTagIncident(id, lockVersion) {
   if (!Number.isSafeInteger(lockVersion) || lockVersion < 0) {
     throw new Error('보고의 최신 버전 번호가 필요합니다.');
   }
-  const started = await api(`${incidentPath(jobId(id))}/auto-tags`, { method: 'POST', body: { lockVersion } });
-  if (!Number.isSafeInteger(started?.runId) || started.runId < 1) {
-    throw new Error('자동 태깅 실행 시작 응답 형식이 올바르지 않습니다.');
+  return jobWrite(async () => {
+    const started = await api(`${incidentPath(jobId(id))}/auto-tags`, { method: 'POST', body: { lockVersion } });
+    if (!Number.isSafeInteger(started?.runId) || started.runId < 1) {
+      throw new Error('자동 태깅 실행 시작 응답 형식이 올바르지 않습니다.');
+    }
+    return started;
+  });
+}
+
+const AUTO_TAG_STATUSES = ['PROCESSING', 'DONE', 'FAILED'];
+/**
+ * 자동 태깅 실행 상태 (GET /agent/runs/{runId}, 실행 종류 NEAR_MISS_TAG, 대화 없음).
+ * DONE 이면 result: { nearMissId, savedCount, skipped[], taggingSource, model, ... }, FAILED 이면 errorMessage
+ */
+export async function getAutoTagRun(runId, nearMissId) {
+  const id = jobId(runId);
+  const data = await api(`/api/v1/agent/runs/${id}`);
+  if (!data || data.runId !== id || data.taskType !== 'NEAR_MISS_TAG' || !AUTO_TAG_STATUSES.includes(data.status)
+    || (data.status === 'DONE' && (!data.result || data.result.nearMissId !== jobId(nearMissId)
+      || !Number.isSafeInteger(data.result.savedCount)))) {
+    throw new Error('자동 태깅 실행 응답 형식이 올바르지 않습니다.');
   }
-  return started;
+  return data;
 }
 export const searchIncidents = async (body) => requireIncidents(
   await api('/api/v1/incident-search', { method: 'POST', body }),

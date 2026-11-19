@@ -242,6 +242,20 @@ export async function checkPermit(id) {
     return result;
   });
 }
+/**
+ * 반려된 허가서에서 새 판 (POST /permits/{id}/revise → 201 새 판). 허가번호·기간·감시자·양식 값이 옮겨지고 판 번호가 오른 작성 중 허가서.
+ * 측정값·판정은 옮기지 않으므로 새 판에서 다시 측정·판정한 뒤 승인 요청한다. 반려가 아니거나 이미 새 판이 있으면 409
+ */
+export async function revisePermit(id, siteId) {
+  const permitId = jobId(id);
+  return jobWrite(async () => {
+    const next = requirePermit(await api(`/api/v1/permits/${permitId}/revise`, { method: 'POST' }), siteId);
+    if (next.permitId === permitId || next.status !== 'DRAFT') {
+      throw new Error('허가서 새 판 응답 형식이 올바르지 않습니다.');
+    }
+    return next;
+  });
+}
 export async function submitPermit(id, siteId) {
   const path = `/api/v1/permits/${jobId(id)}/submit`;
   return jobWrite(async () => requirePermit(await api(path, { method: 'POST' }), siteId));
