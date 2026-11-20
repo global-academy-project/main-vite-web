@@ -8,6 +8,11 @@ button.tbm-list__item:hover:not(:disabled) { background: var(--color-surface-mut
 .tbm-list li + li button.tbm-list__item { border-top: 1px solid var(--color-border-soft); }
 button.tbm-list__item.is-active, button.tbm-list__item.is-active:hover:not(:disabled) { background: var(--color-primary-soft); box-shadow: inset 3px 0 0 var(--color-primary); }
 .tbm-detail { display: flex; flex-direction: column; gap: var(--space-4); min-width: 0; }
+/* 11/20: 오른쪽이 빈 안내 칸("고르거나 새로 만드세요") 하나뿐일 때만 두 칸 높이를 맞춘다 (둘 중 큰 쪽에 맞춤).
+   상세가 열려 있을 때는 예전처럼 왼쪽은 목록 길이만큼만 있고 스크롤하면 따라온다(sticky) */
+.tbm-layout:has(> .tbm-detail > .home-panel:only-child > .ui-status) > .tbm-list,
+.tbm-layout:has(> .tbm-detail > .home-panel:only-child > .ui-status) > .tbm-detail { align-self: stretch; }
+.tbm-detail > .home-panel:only-child:has(> .ui-status) { flex-grow: 1; }
 
 .tbm-card { display: flex; flex-direction: column; gap: var(--space-3); padding-bottom: var(--space-4); }
 .tbm-card__head { display: flex; flex-wrap: wrap; align-items: flex-start; gap: var(--space-3); padding: var(--space-4) var(--space-4) 0; }
@@ -66,6 +71,7 @@ button.tbm-list__item.is-active, button.tbm-list__item.is-active:hover:not(:disa
 @media (max-width: 1024px) {
   .tbm-layout { grid-template-columns: minmax(0, 1fr); }
   .tbm-list { position: static; max-height: 280px; }
+  .tbm-layout:has(> .tbm-detail > .home-panel:only-child > .ui-status) > .tbm-list { align-self: start; }
   .tbm-workers__list { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 640px) {
