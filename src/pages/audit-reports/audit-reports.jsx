@@ -6,6 +6,7 @@ import StatusView from '../../components/ui/status-view.jsx';
 import { confirmAction } from '../../components/ui/confirm-store.js';
 import { useToast } from '../../components/ui/toast-context.js';
 import { createAuditReport, deleteAuditReport, listAuditReports } from '../../api/audit-reports.js';
+import { defaultAuditPeriod } from '../../utils/audit-report-model.js';
 import '../../styles/audit-reports.css';
 
 const QUERY_TYPES = [
@@ -36,8 +37,7 @@ function AuditReportHome({ site }) {
   const [error, setError] = useState('');
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState(() => ({
-    dateFrom: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0, 10),
-    dateTo: new Date().toISOString().slice(0, 10),
+    ...defaultAuditPeriod(),
     queryTypes: QUERY_TYPES.map(([key]) => key),
   }));
   const siteId = site.currentSite?.siteId;
