@@ -21,7 +21,7 @@ const roleAllowed = (account, site) => account?.user?.role === 'ADMIN'
 
 export default function AuditReports() {
   return (
-    <SafetyPageLayout title="내부 감사">
+    <SafetyPageLayout title="감사 대응">
       {(site) => <AuditReportHome site={site} />}
     </SafetyPageLayout>
   );
@@ -43,7 +43,6 @@ function AuditReportHome({ site }) {
   const siteId = site.currentSite?.siteId;
   const allowed = roleAllowed(site.account, site.currentSite);
   const isNew = location.pathname.endsWith('/new');
-  const prompt = new URLSearchParams(location.search).get('prompt');
 
   const load = () => {
     if (!siteId || !allowed) return;
@@ -51,7 +50,7 @@ function AuditReportHome({ site }) {
     setError('');
     listAuditReports(siteId)
       .then((data) => setReports(Array.isArray(data) ? data : data?.items ?? []))
-      .catch((requestError) => setError(requestError.message || '감사보고서 목록을 불러오지 못했습니다.'))
+      .catch((requestError) => setError(requestError.message || '감사 대응 보고서 목록을 불러오지 못했습니다.'))
       .finally(() => setLoading(false));
   };
 
@@ -63,7 +62,7 @@ function AuditReportHome({ site }) {
         if (active) setReports(Array.isArray(data) ? data : data?.items ?? []);
       })
       .catch((requestError) => {
-        if (active) setError(requestError.message || '감사보고서 목록을 불러오지 못했습니다.');
+        if (active) setError(requestError.message || '감사 대응 보고서 목록을 불러오지 못했습니다.');
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -95,7 +94,7 @@ function AuditReportHome({ site }) {
       });
       navigate(`/audit-reports/${report.reportId ?? report.id}`);
     } catch (requestError) {
-      toast.show({ tone: 'error', message: requestError.message || '감사보고서 생성 요청에 실패했습니다.' });
+      toast.show({ tone: 'error', message: requestError.message || '감사 대응 보고서 생성 요청에 실패했습니다.' });
     } finally {
       setCreating(false);
     }
@@ -103,7 +102,7 @@ function AuditReportHome({ site }) {
 
   const remove = async (report) => {
     const confirmed = await confirmAction({
-      title: '감사보고서를 삭제할까요?',
+      title: '감사 대응 보고서를 삭제할까요?',
       message: '삭제한 보고서는 목록에서 숨겨지고 되돌릴 수 없습니다. 현장 관리자 이상만 할 수 있습니다.',
       confirmLabel: '삭제',
       tone: 'warn',
@@ -113,34 +112,33 @@ function AuditReportHome({ site }) {
     try {
       await deleteAuditReport(siteId, reportId);
       setReports((current) => current.filter((item) => (item.reportId ?? item.id) !== reportId));
-      toast.show({ tone: 'success', message: '감사보고서를 삭제했습니다.' });
+      toast.show({ tone: 'success', message: '감사 대응 보고서를 삭제했습니다.' });
     } catch (requestError) {
       toast.show({ tone: 'error', message: requestError.message || '삭제에 실패했습니다.' });
     }
   };
 
   if (!allowed) {
-    return <StatusView kind="forbidden" title="관리자만 감사보고서를 이용할 수 있습니다" message="현장 관리자 또는 회사 관리자 권한이 필요합니다." />;
+    return <StatusView kind="forbidden" title="관리자만 감사 대응 보고서를 이용할 수 있습니다" message="현장 관리자 또는 회사 관리자 권한이 필요합니다." />;
   }
 
   return (
     <div className="audit-page">
       <PageHeader
-        title="내부 감사"
+        title="감사 대응"
         description="현장 기록과 관련 문서를 모아 부족한 항목을 확인하고 보고서로 관리합니다."
         context={site}
-        actions={<button type="button" className="ui-btn ui-btn--primary" onClick={() => navigate('/audit-reports/new')}>새 감사보고서</button>}
+        actions={<button type="button" className="ui-btn ui-btn--primary" onClick={() => navigate('/audit-reports/new')}>새 감사 대응 보고서</button>}
       />
       {isNew ? (
         <form className="audit-card audit-create" onSubmit={create}>
           <div className="audit-card__head">
             <div>
-              <h2>감사보고서 생성</h2>
+              <h2>감사 대응 보고서 생성</h2>
               <p>기간과 조회 항목을 확인한 뒤 생성합니다. 서버가 기록을 집계해 저장하고, AI 요약은 잠시 뒤 채워집니다.</p>
             </div>
             <Link className="ui-btn ui-btn--ghost" to="/audit-reports">목록으로</Link>
           </div>
-          {prompt && <p className="audit-notice" role="note">작업등록에서 요청한 감사보고서입니다. 생성 조건을 확인해 주세요.</p>}
           <div className="audit-form-grid">
             <label>조회 시작일<input type="date" value={form.dateFrom} onChange={(event) => setForm({ ...form, dateFrom: event.target.value })} required /></label>
             <label>조회 종료일<input type="date" value={form.dateTo} onChange={(event) => setForm({ ...form, dateTo: event.target.value })} required /></label>
@@ -156,14 +154,14 @@ function AuditReportHome({ site }) {
               ))}
             </div>
           </fieldset>
-          <div className="audit-actions"><button type="submit" className="ui-btn ui-btn--primary" disabled={creating}>{creating ? '생성 요청 중…' : '감사보고서 생성'}</button></div>
+          <div className="audit-actions"><button type="submit" className="ui-btn ui-btn--primary" disabled={creating}>{creating ? '생성 요청 중…' : '감사 대응 보고서 생성'}</button></div>
         </form>
       ) : (
         <section className="audit-card">
           <div className="audit-card__head">
             <div>
               <h2>보관된 보고서</h2>
-              <p>생성된 감사보고서는 이곳에서 조회·편집·삭제할 수 있습니다.</p>
+              <p>생성된 감사 대응 보고서는 이곳에서 조회·편집·삭제할 수 있습니다.</p>
             </div>
           </div>
           {loading ? <StatusView kind="loading" title="목록을 불러오는 중입니다" />
@@ -171,9 +169,9 @@ function AuditReportHome({ site }) {
               : reports.length === 0 ? (
                 <StatusView
                   kind="empty"
-                  title="생성된 감사보고서가 없습니다"
-                  message="새 감사보고서를 생성하면 이곳에 보관됩니다."
-                  action={{ label: '새 감사보고서', onClick: () => navigate('/audit-reports/new') }}
+                  title="생성된 감사 대응 보고서가 없습니다"
+                  message="새 감사 대응 보고서를 생성하면 이곳에 보관됩니다."
+                  action={{ label: '새 감사 대응 보고서', onClick: () => navigate('/audit-reports/new') }}
                 />
               )
                 : <div className="audit-list">{reports.map((report) => <ReportRow key={report.reportId ?? report.id} report={report} onRemove={remove} />)}</div>}
@@ -188,7 +186,7 @@ function ReportRow({ report, onRemove }) {
   return (
     <article className="audit-row">
       <div>
-        <Link to={`/audit-reports/${reportId}`} className="audit-row__title">{report.title || `감사보고서 #${reportId}`}</Link>
+        <Link to={`/audit-reports/${reportId}`} className="audit-row__title">{report.title || `감사 대응 보고서 #${reportId}`}</Link>
         <p>{report.dateFrom || report.date_from} ~ {report.dateTo || report.date_to}</p>
       </div>
       <div className="audit-row__meta">

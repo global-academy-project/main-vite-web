@@ -1,4 +1,4 @@
-// 감사보고서 화면 규칙: 집계 이름(서버 기록 조회 summary 키)과 검증 표시
+// 감사 대응 보고서 화면 규칙: 집계 이름(서버 기록 조회 summary 키)과 검증 표시
 export const STAT_LABELS = Object.freeze({
   count: '건수',
   works: '작업', written: '평가 작성', approved: '승인', missing: '미작성', rate: '실시율', approvedRate: '승인율',

@@ -50,7 +50,7 @@ test('하단 탭: 역할과 상관없이 같은 4개 + 더보기', () => {
   assert.deepEqual(keys(bottomTabsFor('ADMIN', null)), tabs);
 });
 
-test('기록 하위 메뉴: 내부 감사는 4번째, 현장 관리자·회사 관리자에게만 보인다', () => {
+test('기록 하위 메뉴: 감사 대응은 4번째, 현장 관리자·회사 관리자에게만 보인다', () => {
   const recordKeys = (account, site) => keys(navFor(account, site).find((item) => item.key === 'records').children);
   assert.deepEqual(recordKeys('MEMBER', 'SITE_ADMIN'), ['incidents', 'corrective-actions', 'record-search', 'audit-reports']);
   assert.deepEqual(recordKeys('ADMIN', null), ['incidents', 'corrective-actions', 'record-search', 'audit-reports']);
@@ -60,9 +60,9 @@ test('기록 하위 메뉴: 내부 감사는 4번째, 현장 관리자·회사 �
   assert.equal(NAV.some((item) => item.key === 'audit-reports'), false);
 });
 
-test('내부 감사 화면 위치 표시: 기록 > 내부 감사', () => {
+test('감사 대응 화면 위치 표시: 기록 > 감사 대응', () => {
   const records = NAV.find((item) => item.key === 'records');
   assert.equal(isActivePath(records, '/audit-reports'), true);
   assert.equal(isActivePath(records, '/audit-reports/7'), true);
-  assert.deepEqual(crumbFor('/audit-reports/7'), ['기록', '내부 감사']);
+  assert.deepEqual(crumbFor('/audit-reports/7'), ['기록', '감사 대응']);
 });

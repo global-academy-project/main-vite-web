@@ -1,6 +1,6 @@
 import { api } from './client';
 
-// Spring 감사보고서 API (현장 관리자 이상). 만들면 바로 GENERATING 으로 돌아오고, AI 요약은 서버가 따로 한 뒤 상태가 바뀐다.
+// Spring 감사 대응 보고서 API (현장 관리자 이상). 만들면 바로 GENERATING 으로 돌아오고, AI 요약은 서버가 따로 한 뒤 상태가 바뀐다.
 const base = (siteId) => `/api/v1/sites/${encodeURIComponent(siteId)}/audit-reports`;
 
 export const listAuditReports = (siteId) => api(base(siteId));

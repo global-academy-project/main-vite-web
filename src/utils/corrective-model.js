@@ -6,7 +6,7 @@ export const ACTION_STATUS_TONES = Object.freeze({
   OPEN: 'todo', IN_PROGRESS: 'active', DONE: 'wait', VERIFIED: 'done', CANCELED: 'neutral',
 });
 export const ACTION_SOURCE_LABELS = Object.freeze({
-  NEAR_MISS: '아차사고', INSPECTION: '점검표', RULE_VIOLATION: '규칙 위반', AUDIT: '감사보고서', OTHER: '기타',
+  NEAR_MISS: '아차사고', INSPECTION: '점검표', RULE_VIOLATION: '규칙 위반', AUDIT: '감사 대응 보고서', OTHER: '기타',
 });
 /**
  * 목록 위 건수 카드 (아차사고 목록과 같은 모양). 서버는 현장의 개선조치를 전부 주므로 화면에서 센다.

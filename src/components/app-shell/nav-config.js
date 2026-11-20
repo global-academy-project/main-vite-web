@@ -35,8 +35,8 @@ export const NAV = Object.freeze([
       { key: 'incidents', label: '아차사고', path: '/job/incidents' },
       { key: 'corrective-actions', label: '개선조치', path: '/records/actions' },
       { key: 'record-search', label: '기록 검색', path: '/records/search' },
-      // 내부 감사(감사보고서)는 현장 관리자·회사 관리자만 (하위 메뉴 roles, 서버도 같은 권한으로 막는다)
-      { key: 'audit-reports', label: '내부 감사', path: '/audit-reports', roles: MANAGERS },
+      // 감사 대응(감사 대응 보고서 화면)은 현장 관리자·회사 관리자만 (하위 메뉴 roles, 서버도 같은 권한으로 막는다)
+      { key: 'audit-reports', label: '감사 대응', path: '/audit-reports', roles: MANAGERS },
     ],
   },
   { key: 'site', label: '현장 설정', icon: 'site', path: '/job/list', roles: MANAGERS, section: 'settings' },
