@@ -5,7 +5,7 @@ import PageHeader from '../../components/ui/page-header.jsx';
 import StatusView from '../../components/ui/status-view.jsx';
 import { useToast } from '../../components/ui/toast-context.js';
 import { getAuditReport, retryAuditReportSummary, updateAuditReport } from '../../api/audit-reports.js';
-import { STAT_LABELS, VERIFICATION_LABELS, statEntries } from '../../utils/audit-report-model.js';
+import { STAT_LABELS, reviewNotice, statEntries, verificationBadge } from '../../utils/audit-report-model.js';
 import '../../styles/audit-reports.css';
 
 // 요약 중(GENERATING)일 때 다시 조회하는 간격
@@ -138,7 +138,7 @@ function Detail({ site }) {
           <p className="audit-notice" role="alert">AI 요약을 만들지 못했습니다{report.failureReason ? `: ${report.failureReason}` : ''}. 집계는 남아 있으니 직접 요약을 쓰거나 다시 요약하세요.
             {report.summaryRetryable && <button type="button" className="ui-btn ui-btn--ghost" onClick={retry}>AI 요약 다시 하기</button>}</p>
         )}
-        {report.status === 'REVIEW_REQUIRED' && <p className="audit-notice" role="note">AI 요약의 수치가 집계와 맞지 않는 항목이 있습니다. 항목의 "불일치"를 확인하고 요약을 고쳐 주세요.</p>}
+        {reviewNotice(report) && <p className="audit-notice" role="note">{reviewNotice(report)}</p>}
 
         <label className="audit-editor">
           제목
@@ -154,9 +154,9 @@ function Detail({ site }) {
             <article className="audit-item" key={item.queryType ?? index}>
               <div className="audit-item__title">
                 <h3>{item.title || item.queryType}</h3>
-                <span className={`audit-status audit-status--${String(item.verification?.status ?? 'pending').toLowerCase()}`}>
-                  {VERIFICATION_LABELS[item.verification?.status] ?? '검증 전'}
-                </span>
+                {verificationBadge(item) && (
+                  <span className={`audit-status audit-status--${verificationBadge(item).className}`}>{verificationBadge(item).label}</span>
+                )}
               </div>
               <dl className="audit-stats">
                 {statEntries(item.stats).map(([key, value]) => (
