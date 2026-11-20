@@ -13,7 +13,7 @@ const POLL_MS = 5000;
 
 export default function AuditReportDetail() {
   return (
-    <SafetyPageLayout title="내부 감사">
+    <SafetyPageLayout title="감사 대응">
       {(site) => <Detail site={site} />}
     </SafetyPageLayout>
   );
@@ -38,7 +38,7 @@ function Detail({ site }) {
     let active = true;
     getAuditReport(siteId, reportId)
       .then((data) => { if (active) setReport(data); })
-      .catch((requestError) => { if (active) setError(requestError.message || '감사보고서를 불러오지 못했습니다.'); })
+      .catch((requestError) => { if (active) setError(requestError.message || '감사 대응 보고서를 불러오지 못했습니다.'); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, [siteId, reportId, allowed]);
@@ -54,7 +54,7 @@ function Detail({ site }) {
   }, [generating, siteId, reportId]);
 
   if (!allowed) {
-    return <StatusView kind="forbidden" title="관리자만 감사보고서를 이용할 수 있습니다" />;
+    return <StatusView kind="forbidden" title="관리자만 감사 대응 보고서를 이용할 수 있습니다" />;
   }
   if (loading) {
     return <StatusView kind="loading" title="보고서를 불러오는 중입니다" />;
@@ -84,7 +84,7 @@ function Detail({ site }) {
       });
       setReport(saved);
       setDirty(false);
-      toast.show({ tone: 'success', message: '감사보고서를 저장했습니다.' });
+      toast.show({ tone: 'success', message: '감사 대응 보고서를 저장했습니다.' });
     } catch (requestError) {
       const conflict = requestError.code === 'CONFLICT_MODIFIED';
       toast.show({ tone: 'error', message: conflict ? '다른 사람이 먼저 저장했습니다. 새로 고침한 뒤 다시 고쳐 주세요.' : requestError.message || '저장에 실패했습니다.' });
@@ -105,7 +105,7 @@ function Detail({ site }) {
   return (
     <div className="audit-page">
       <PageHeader
-        title={report.title || `감사보고서 #${reportId}`}
+        title={report.title || `감사 대응 보고서 #${reportId}`}
         description={`${report.dateFrom} ~ ${report.dateTo} · 만든 사람 ${report.createdByName ?? '-'}`}
         context={site}
         actions={(
@@ -123,7 +123,7 @@ function Detail({ site }) {
       <section className="audit-card">
         <div className="audit-card__head">
           <div>
-            <h2>감사보고서</h2>
+            <h2>감사 대응 보고서</h2>
             <p>집계 수치는 만든 순간의 공식 기록 그대로이며 고칠 수 없습니다. 제목·종합 의견·항목별 요약만 고칠 수 있습니다.{dirty ? ' 저장하지 않은 변경이 있습니다(인쇄는 저장 후).' : ''}</p>
           </div>
           <span className={`audit-status audit-status--${String(report.status).toLowerCase()}`}>{report.statusLabel ?? report.status}</span>
