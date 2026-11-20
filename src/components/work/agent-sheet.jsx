@@ -126,7 +126,8 @@ function RunDetails({ run, records }) {
         {result.saved?.workDateAssumed && <p className="rec-note rec-note--block"><Icon name="alert" size={16} />작업 날짜가 없어 서버의 오늘 날짜로 저장했습니다. 작업일을 확인하세요.</p>}
         {result.saved?.notes?.map((note, index) => <p key={index} className="rec-help">{note}</p>)}
 
-        {!records && result.classification && (
+        {/* 감사 분기(route)는 작업을 분류하지 않았으므로 작업 분류를 보이지 않는다 */}
+        {!records && result.classification && !result.route && (
           <section><h3>작업 분류</h3>
             <dl className="rec-facts">
               <div><dt>작업 유형</dt><dd>{result.classification.workTypes?.join(', ') || '미분류'}</dd></div>

@@ -1,14 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useAgentConversation } from '../../hooks/use-agent-conversation.js';
 import { jobRecordPath } from '../../utils/job-forms.js';
 import { RECORD_TYPE_LABELS } from '../../utils/record-query-model.js';
 import Icon from '../ui/icon.jsx';
 import DraftCard from './draft-card.jsx';
+import AuditRouteCard from './audit-route-card.jsx';
 import { FoldButton } from './panel.jsx';
 import { confirmAction } from '../ui/confirm-store.js';
 import { useVoiceInput } from '../../hooks/use-voice-input.js';
 import { appendText, clock } from '../../utils/voice-model.js';
+import { auditRouteReportId } from '../../utils/audit-route-model.js';
 
 const TABS = [
   { key: 'WORK_REGISTER', label: '작업 등록', placeholder: '예: 오늘 오후 2시 3번 탱크 내부 청소, 4명', hint: '작업 장소·종류·시간·인원을 말하듯이 적어 주세요.',
@@ -22,25 +24,12 @@ const TABS = [
  * 두 대화 훅을 모두 살려 둬서 탭을 오가도 대화가 남는다. 현장이 바뀌면 둘 다 새 대화.
  */
 export default function AssistantPanel({ siteId, siteName, zones, onDraftSaved, onDraftChanged, grip, onFold, collapse }) {
-  const navigate = useNavigate();
   const open = !collapse || collapse.open;
   const [tab, setTab] = useState('WORK_REGISTER');
   const work = useAgentConversation({ siteId, taskType: 'WORK_REGISTER' });
   const record = useAgentConversation({ siteId, taskType: 'RECORD_QUERY' });
   const conversation = tab === 'WORK_REGISTER' ? work : record;
   const meta = TABS.find((item) => item.key === tab);
-  const handleSpecialCommand = async (text) => {
-    if (tab !== 'WORK_REGISTER' || !isAuditReportCommand(text)) return false;
-    const confirmed = await confirmAction({
-      title: '감사보고서를 생성할까요?',
-      message: '감사보고서 생성 화면에서 기간과 조회 항목을 확인한 뒤 생성 작업을 시작합니다.',
-      confirmLabel: '생성 화면 열기',
-      tone: 'info',
-    });
-    if (confirmed) navigate(`/audit-reports/new?siteId=${encodeURIComponent(siteId)}&prompt=${encodeURIComponent(text.trim())}`);
-    return true;
-  };
-
   // 작업 등록 초안이 저장되면 오른쪽 오늘 작업 목록을 다시 부른다
   const savedWorkId = work.run?.status === 'DONE' ? work.run.result?.saved?.workId : null;
   useEffect(() => { if (savedWorkId) onDraftSaved?.(savedWorkId); }, [savedWorkId, onDraftSaved]);
@@ -70,7 +59,7 @@ export default function AssistantPanel({ siteId, siteName, zones, onDraftSaved, 
       {/* 모바일에서 접어도 대화·진행 중 처리는 그대로 (숨기기만) */}
       <div id="home-ai-body" className="home-assistant__body" hidden={!open}>
       <Thread id="ai-thread" conversation={conversation} records={tab === 'RECORD_QUERY'} siteId={siteId} zones={zones} hint={meta.hint} suggestions={meta.suggestions} siteName={siteName} onDraftChanged={onDraftChanged} />
-      <Composer key={tab} conversation={conversation} placeholder={meta.placeholder} siteName={siteName} voice onSpecialCommand={handleSpecialCommand} />
+      <Composer key={tab} conversation={conversation} placeholder={meta.placeholder} siteName={siteName} voice />
       </div>
     </section>
   );
@@ -79,6 +68,8 @@ export default function AssistantPanel({ siteId, siteName, zones, onDraftSaved, 
 export function Thread({ id, conversation, records, siteId, zones, hint, suggestions, siteName, onDraftChanged }) {
   const end = useRef(null);
   const { messages, pendingText, processing, run, error, uncertain } = conversation;
+  // 작업 등록 대화의 감사 분기: 서버가 감사 대응 보고서를 만들었거나 연결했을 때만 카드 (거절이면 답변 메시지만)
+  const auditReportId = records ? null : auditRouteReportId(run);
   useEffect(() => { end.current?.scrollIntoView?.({ block: 'end' }); }, [messages.length, pendingText, processing, run?.status]);
 
   return (
@@ -100,6 +91,7 @@ export function Thread({ id, conversation, records, siteId, zones, hint, suggest
       {pendingText && !messages.some((item) => item.role === 'USER' && item.content === pendingText) && <p className="bubble bubble--me">{pendingText}</p>}
       {processing && <p className="bubble bubble--ai bubble--typing" role="status"><span /><span /><span /><span className="sr-only">AI가 처리하고 있습니다</span></p>}
       {run?.status === 'WAITING_INPUT' && run.result?.ask?.message && !messages.some((item) => item.content === run.result.ask.message) && <p className="bubble bubble--ai">{run.result.ask.message}</p>}
+      {auditReportId && <AuditRouteCard key={run.runId} siteId={siteId} reportId={auditReportId} />}
       {!records && run?.status === 'DONE' && run.result?.saved && <DraftCard key={run.runId} result={run.result} siteId={siteId} zones={zones} onChanged={onDraftChanged} />}
       {records && run?.status === 'DONE' && <RecordAnswer result={run.result} />}
       {run?.status === 'FAILED' && <p className="bubble bubble--error" role="alert"><Icon name="alert" size={14} />AI 처리에 실패했습니다. {run.errorMessage}</p>}
@@ -139,7 +131,7 @@ function RecordAnswer({ result }) {
 }
 
 /** voice: 말로 입력 버튼(서버 음성 입력이 켜져 있고 브라우저가 녹음할 수 있을 때만 보인다). 받아 적은 글은 입력칸 뒤에 붙고 바로 보내지 않는다 */
-export function Composer({ conversation, placeholder, siteName, voice: withVoice = false, onSpecialCommand }) {
+export function Composer({ conversation, placeholder, siteName, voice: withVoice = false }) {
   const [text, setText] = useState('');
   const [voiceError, setVoiceError] = useState('');
   const areaRef = useRef(null);
@@ -172,7 +164,6 @@ export function Composer({ conversation, placeholder, siteName, voice: withVoice
   };
   const submit = async (event) => {
     event.preventDefault();
-    if (length && await onSpecialCommand?.(text)) { setText(''); setHeight(null); return; }
       if (await conversation.send(text)) { setText(''); setHeight(null); }
   };
   return (
@@ -204,9 +195,4 @@ export function Composer({ conversation, placeholder, siteName, voice: withVoice
       </span>
     </form>
   );
-}
-
-function isAuditReportCommand(text) {
-  const value = String(text ?? '').replace(/\s+/g, '');
-  return /감사보고서/.test(value) && /(생성|작성|만들|발행|출력)/.test(value);
 }

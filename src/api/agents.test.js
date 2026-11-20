@@ -173,3 +173,30 @@ test('planned auto-tag contract accepts an asynchronous run ID, not a synchronou
   await assert.rejects(autoTagIncident(9, 0), /응답/);
   await assert.rejects(autoTagIncident(9, -1), /버전/);
 });
+
+test('감사 분기 실행: auditReportId 는 양의 정수이거나 없음(null)이어야 한다', async (t) => {
+  let data;
+  const storage = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
+  Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: { getItem: () => null } });
+  t.after(() => {
+    if (storage) Object.defineProperty(globalThis, 'localStorage', storage);
+    else delete globalThis.localStorage;
+  });
+  t.mock.method(globalThis, 'fetch', async () => new Response(JSON.stringify({ success: true, data }),
+    { status: 200, headers: { 'Content-Type': 'application/json' } }));
+  const run = (auditReportId) => ({
+    runId: 7, conversationId: 2, siteId: 1, taskType: 'WORK_REGISTER', status: 'DONE', steps: [], citations: [],
+    auditReportId,
+    result: { runStatus: 'DONE', route: { target: 'AUDIT_REPORT', dateFrom: '2026-10-01', dateTo: '2026-10-31', message: '만들게요' } },
+  });
+  data = run(41);
+  assert.equal((await getAgentRun(7)).auditReportId, 41);
+  data = run(null);
+  assert.equal((await getAgentRun(7)).auditReportId, null);
+  data = run(undefined);
+  assert.equal((await getAgentRun(7)).auditReportId, undefined);   // 이 필드가 없던 서버 응답도 받는다
+  for (const bad of [0, -1, 1.5, '41']) {
+    data = run(bad);
+    await assert.rejects(getAgentRun(7), /응답 형식/);
+  }
+});

@@ -37,6 +37,7 @@ export async function getAgentRun(runId, { conversationId, siteId, taskType = 'W
     || (expectedConversation && expectedConversation !== data.conversationId)
     || (expectedSite && expectedSite !== data.siteId)
     || !Array.isArray(data.steps) || !Array.isArray(data.citations)
+    || (data.auditReportId != null && !positiveId(data.auditReportId))
     || (['DONE', 'WAITING_INPUT'].includes(data.status)
       && (!data.result || data.result.runStatus !== data.status))) {
     throw new Error('에이전트 실행 응답 형식이 올바르지 않습니다.');
